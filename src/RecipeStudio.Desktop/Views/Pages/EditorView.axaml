@@ -1,0 +1,178 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="clr-namespace:RecipeStudio.Desktop.Controls"
+             mc:Ignorable="d"
+             x:Class="RecipeStudio.Desktop.Views.Pages.EditorView">
+
+  <Grid RowDefinitions="Auto,*" Margin="18">
+
+    <!-- Header -->
+    <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,12">
+      <StackPanel>
+        <TextBlock Text="Редактор рецепта" Classes="h1" />
+        <TextBlock Text="SQLite + импорт/экспорт Excel + визуализация траектории" Classes="muted" />
+      </StackPanel>
+
+      <Button Grid.Column="1" Command="{Binding BackCommand}" Classes="ghost">Назад</Button>
+      <Button Grid.Column="2" Command="{Binding SaveCommand}" Classes="accent">Сохранить</Button>
+    </Grid>
+
+    <Grid Grid.Row="1" ColumnDefinitions="*,420">
+
+      <!-- Left: table -->
+      <Border Classes="card" Margin="0,0,12,0">
+        <DockPanel LastChildFill="True">
+
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,10">
+            <Button Command="{Binding AddPointCommand}" Classes="good">+ Точка</Button>
+            <Button Command="{Binding DuplicatePointCommand}" Classes="ghost">Дублировать</Button>
+            <Button Command="{Binding RemovePointCommand}" Classes="danger">Удалить</Button>
+            <Button Command="{Binding MoveUpCommand}" Classes="ghost">↑</Button>
+            <Button Command="{Binding MoveDownCommand}" Classes="ghost">↓</Button>
+            <Button Command="{Binding RecalculateCommand}" Classes="ghost">Пересчитать</Button>
+
+            <Button Command="{Binding ImportExcelCommand}" Classes="ghost">Импорт Excel</Button>
+            <Button Command="{Binding ExportExcelCommand}" Classes="ghost">Экспорт Excel</Button>
+
+            <TextBlock Text="{Binding Document.RecipeId, StringFormat='ID: {0}'}" Classes="muted" Margin="12,0,0,0" VerticalAlignment="Center" />
+          </StackPanel>
+
+          <DataGrid ItemsSource="{Binding Points}"
+                    SelectedItem="{Binding SelectedPoint}"
+                    AutoGenerateColumns="False"
+                    CanUserResizeColumns="True"
+                    CanUserReorderColumns="True"
+                    CanUserSortColumns="True"
+                    IsReadOnly="False"
+>
+
+            <DataGrid.Columns>
+
+              <DataGridTextColumn Header="#" Binding="{Binding NPoint}" IsReadOnly="True" Width="45" />
+              <DataGridCheckBoxColumn Header="Act" Binding="{Binding Act}" Width="55" />
+              <DataGridCheckBoxColumn Header="Safe" Binding="{Binding Safe}" Width="60" />
+
+              <!-- Core input -->
+              <DataGridTextColumn Header="R, мм" Binding="{Binding RCrd}" Width="90" />
+              <DataGridTextColumn Header="Z, мм" Binding="{Binding ZCrd}" Width="90" />
+              <DataGridTextColumn Header="place" Binding="{Binding Place}" Width="70" />
+              <DataGridCheckBoxColumn Header="hidden" Binding="{Binding Hidden}" Width="75" />
+
+              <DataGridTextColumn Header="a_nozzle" Binding="{Binding ANozzle}" Width="90" />
+              <DataGridTextColumn Header="α rec" Binding="{Binding RecommendedAlfa}" IsReadOnly="True" Width="75" />
+              <DataGridTextColumn Header="α" Binding="{Binding Alfa}" Width="75" />
+              <DataGridTextColumn Header="β" Binding="{Binding Betta}" Width="75" />
+
+              <DataGridTextColumn Header="ω" Binding="{Binding SpeedTable}" Width="70" />
+              <DataGridTextColumn Header="t, сек" Binding="{Binding TimeSec}" IsReadOnly="True" Width="75" />
+              <DataGridTextColumn Header="V, мм/мин" Binding="{Binding NozzleSpeedMmMin}" IsReadOnly="True" Width="95" />
+              <DataGridTextColumn Header="G rec" Binding="{Binding RecommendedIceRate}" IsReadOnly="True" Width="75" />
+
+              <DataGridTextColumn Header="ice_rate" Binding="{Binding IceRate}" Width="90" />
+              <DataGridTextColumn Header="ice_grind" Binding="{Binding IceGrind}" Width="90" />
+              <DataGridTextColumn Header="air_p" Binding="{Binding AirPressure}" Width="75" />
+              <DataGridTextColumn Header="air_t" Binding="{Binding AirTemp}" Width="75" />
+
+              <DataGridCheckBoxColumn Header="cont" Binding="{Binding Container}" Width="70" />
+              <DataGridTextColumn Header="D form" Binding="{Binding DClampForm}" Width="90" />
+              <DataGridTextColumn Header="D cont" Binding="{Binding DClampCont}" Width="90" />
+              <DataGridTextColumn Header="desc" Binding="{Binding Description}" Width="90" />
+
+              <!-- Outputs -->
+              <DataGridTextColumn Header="Xr0" Binding="{Binding Xr0}" IsReadOnly="True" Width="80" />
+              <DataGridTextColumn Header="Yx0" Binding="{Binding Yx0}" IsReadOnly="True" Width="80" />
+              <DataGridTextColumn Header="Zr0" Binding="{Binding Zr0}" IsReadOnly="True" Width="80" />
+
+              <DataGridTextColumn Header="dX" Binding="{Binding DX}" IsReadOnly="True" Width="80" />
+              <DataGridTextColumn Header="dY" Binding="{Binding DY}" IsReadOnly="True" Width="80" />
+              <DataGridTextColumn Header="dZ" Binding="{Binding DZ}" IsReadOnly="True" Width="80" />
+
+              <DataGridTextColumn Header="dA" Binding="{Binding DA}" IsReadOnly="True" Width="80" />
+              <DataGridTextColumn Header="aB" Binding="{Binding AB}" IsReadOnly="True" Width="80" />
+
+              <DataGridTextColumn Header="Xpuls" Binding="{Binding XPuls}" IsReadOnly="True" Width="90" />
+              <DataGridTextColumn Header="Ypuls" Binding="{Binding YPuls}" IsReadOnly="True" Width="90" />
+              <DataGridTextColumn Header="Zpuls" Binding="{Binding ZPuls}" IsReadOnly="True" Width="90" />
+
+              <DataGridTextColumn Header="Apuls" Binding="{Binding APuls}" IsReadOnly="True" Width="90" />
+              <DataGridTextColumn Header="Bpuls" Binding="{Binding BPuls}" IsReadOnly="True" Width="90" />
+
+              <DataGridTextColumn Header="Top_p" Binding="{Binding TopPuls}" IsReadOnly="True" Width="95" />
+              <DataGridTextColumn Header="Top_Hz" Binding="{Binding TopHz}" IsReadOnly="True" Width="90" />
+              <DataGridTextColumn Header="Low_p" Binding="{Binding LowPuls}" IsReadOnly="True" Width="95" />
+              <DataGridTextColumn Header="Low_Hz" Binding="{Binding LowHz}" IsReadOnly="True" Width="90" />
+              <DataGridTextColumn Header="Clamp_p" Binding="{Binding ClampPuls}" IsReadOnly="True" Width="100" />
+
+            </DataGrid.Columns>
+          </DataGrid>
+
+        </DockPanel>
+      </Border>
+
+      <!-- Right: parameters + plots -->
+      <StackPanel Grid.Column="1" Spacing="12">
+
+        <Border Classes="card">
+          <StackPanel Spacing="10">
+            <TextBlock Text="Параметры" FontSize="16" FontWeight="SemiBold" />
+
+            <Grid ColumnDefinitions="150,*" RowDefinitions="Auto,Auto,Auto,Auto">
+              <TextBlock Text="Recipe" VerticalAlignment="Center" />
+              <TextBox Grid.Column="1" Text="{Binding RecipeCode}" />
+
+              <TextBlock Grid.Row="1" Text="Container" VerticalAlignment="Center" />
+              <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding ContainerPresent}">Есть контейнер</CheckBox>
+
+              <TextBlock Grid.Row="2" Text="D clamp form" VerticalAlignment="Center" />
+              <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DClampForm}" />
+
+              <TextBlock Grid.Row="3" Text="D clamp cont" VerticalAlignment="Center" />
+              <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DClampCont}" />
+            </Grid>
+
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="10">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="Визуализация" FontSize="16" FontWeight="SemiBold" />
+              <!-- NOTE: '&' must be escaped in XML -->
+              <TextBlock Grid.Column="1" Text="drag&amp;drop" Classes="muted" VerticalAlignment="Center" />
+            </Grid>
+
+            <controls:RecipePlotControl Height="360"
+                                       Points="{Binding Points}"
+                                       SelectedPoint="{Binding SelectedPoint}"
+                                       Progress="{Binding Progress}"
+                                       Settings="{Binding AppSettings}" />
+
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto" RowDefinitions="Auto,Auto">
+              <Button Command="{Binding PlayPauseCommand}" Classes="accent">▶ / ❚❚</Button>
+              <Button Grid.Column="1" Command="{Binding StopCommand}" Classes="ghost">⏹</Button>
+
+              <TextBlock Grid.Column="2" Text="Скорость" VerticalAlignment="Center" Classes="muted" />
+              <Slider Grid.Column="3" Minimum="0.2" Maximum="3" Value="{Binding SpeedMultiplier}" Width="140" />
+
+              <TextBlock Grid.Row="1" Grid.ColumnSpan="4" Text="Прогресс" Classes="muted" />
+              <Slider Grid.Row="1" Grid.ColumnSpan="4" Minimum="0" Maximum="1" Value="{Binding Progress}" />
+            </Grid>
+
+            <TextBlock Text="Линия: Robot/Tool path (оранжевый), точки: Safe=0/1 (зелёный/циан)." Classes="muted" />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="card">
+          <StackPanel Spacing="6">
+            <TextBlock Text="Выбранная точка" FontSize="16" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding SelectedPoint}" Classes="muted" TextWrapping="Wrap" />
+            <TextBlock Text="Подсказка: клик по точке на графике выбирает строку. Перетаскивание обновляет R/Z." Classes="muted" TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+    </Grid>
+  </Grid>
+</UserControl>

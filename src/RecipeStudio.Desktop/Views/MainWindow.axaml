@@ -1,0 +1,52 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:RecipeStudio.Desktop.ViewModels"
+        xmlns:pages="clr-namespace:RecipeStudio.Desktop.Views.Pages"
+        x:Class="RecipeStudio.Desktop.Views.MainWindow"
+        Width="1280" Height="800"
+        MinWidth="1100" MinHeight="700"
+        Title="Recipe Studio">
+
+  <Window.DataTemplates>
+    <DataTemplate DataType="vm:DashboardViewModel">
+      <pages:DashboardView />
+    </DataTemplate>
+    <DataTemplate DataType="vm:EditorViewModel">
+      <pages:EditorView />
+    </DataTemplate>
+    <DataTemplate DataType="vm:SettingsViewModel">
+      <pages:SettingsView />
+    </DataTemplate>
+  </Window.DataTemplates>
+
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="240" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
+
+    <!-- Sidebar -->
+    <Border Grid.Column="0" Classes="sidebar">
+      <DockPanel LastChildFill="True">
+        <StackPanel DockPanel.Dock="Top" Margin="18,16,18,10">
+          <TextBlock Text="Recipe Studio" FontSize="20" FontWeight="SemiBold" />
+          <TextBlock Text="v0.1.0" Classes="muted" Margin="0,6,0,0" />
+        </StackPanel>
+
+        <StackPanel Margin="10,6,10,10" Spacing="8">
+          <Button Command="{Binding NavigateDashboardCommand}" Classes="ghost">Дашборд</Button>
+          <Button Command="{Binding NavigateEditorCommand}" Classes="ghost">Редактор</Button>
+          <Button Command="{Binding NavigateSettingsCommand}" Classes="ghost">Настройки</Button>
+        </StackPanel>
+
+        <StackPanel DockPanel.Dock="Bottom" Margin="18,12,18,16" Spacing="6">
+          <TextBlock Text="CNC-KAMA-TYRES" Classes="muted" />
+          <TextBlock Text="Конфигуратор рецептов" Classes="muted" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- Main content -->
+    <ContentControl Grid.Column="1" Content="{Binding CurrentPage}" />
+  </Grid>
+</Window>

@@ -1,0 +1,128 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!--
+    Avalonia: <Styles> can only contain styles/includes at the top level.
+    Put colors/brushes into Styles.Resources, otherwise XAML parsing fails.
+  -->
+  <Styles.Resources>
+    <!-- Color system (picked to be close to the provided mockups) -->
+    <Color x:Key="C_Background">#121826</Color>
+    <Color x:Key="C_Panel">#182235</Color>
+    <Color x:Key="C_Card">#1E2B42</Color>
+    <Color x:Key="C_Stroke">#2B3B59</Color>
+    <Color x:Key="C_StrokeSoft">#22314B</Color>
+    <Color x:Key="C_TextSoft">#A8B3CF</Color>
+    <Color x:Key="C_Accent">#3B82F6</Color>
+    <Color x:Key="C_Accent2">#22C55E</Color>
+    <Color x:Key="C_Danger">#EF4444</Color>
+
+    <SolidColorBrush x:Key="B_Background" Color="{StaticResource C_Background}" />
+    <SolidColorBrush x:Key="B_Panel" Color="{StaticResource C_Panel}" />
+    <SolidColorBrush x:Key="B_Card" Color="{StaticResource C_Card}" />
+    <SolidColorBrush x:Key="B_Stroke" Color="{StaticResource C_Stroke}" />
+    <SolidColorBrush x:Key="B_StrokeSoft" Color="{StaticResource C_StrokeSoft}" />
+    <SolidColorBrush x:Key="B_TextSoft" Color="{StaticResource C_TextSoft}" />
+    <SolidColorBrush x:Key="B_Accent" Color="{StaticResource C_Accent}" />
+    <SolidColorBrush x:Key="B_Accent2" Color="{StaticResource C_Accent2}" />
+    <SolidColorBrush x:Key="B_Danger" Color="{StaticResource C_Danger}" />
+  </Styles.Resources>
+
+  <!-- Global defaults -->
+  <Style Selector="Window">
+    <Setter Property="Background" Value="{StaticResource B_Background}" />
+  </Style>
+
+  <Style Selector="TextBlock.h1">
+    <Setter Property="FontSize" Value="22" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <Style Selector="TextBlock.muted">
+    <Setter Property="Foreground" Value="{StaticResource B_TextSoft}" />
+  </Style>
+
+  <!-- Card -->
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{StaticResource B_Card}" />
+    <Setter Property="BorderBrush" Value="{StaticResource B_Stroke}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="14" />
+  </Style>
+
+  <!-- Sidebar -->
+  <Style Selector="Border.sidebar">
+    <Setter Property="Background" Value="{StaticResource B_Panel}" />
+    <Setter Property="BorderBrush" Value="{StaticResource B_StrokeSoft}" />
+    <Setter Property="BorderThickness" Value="0,0,1,0" />
+  </Style>
+
+  <!-- Buttons -->
+  <Style Selector="Button">
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="12,8" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+  <Style Selector="Button.accent">
+    <Setter Property="Background" Value="{StaticResource B_Accent}" />
+    <Setter Property="BorderBrush" Value="{StaticResource B_Accent}" />
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+
+  <Style Selector="Button.good">
+    <Setter Property="Background" Value="#172A22" />
+    <Setter Property="BorderBrush" Value="{StaticResource B_Accent2}" />
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+
+  <Style Selector="Button.danger">
+    <Setter Property="Background" Value="#2A1717" />
+    <Setter Property="BorderBrush" Value="{StaticResource B_Danger}" />
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+
+  <Style Selector="Button.ghost">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{StaticResource B_Stroke}" />
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+
+  <!-- DataGrid (we keep it light like in mockups) -->
+  <Style Selector="DataGrid">
+    <Setter Property="Background" Value="#0B1220" />
+    <Setter Property="BorderBrush" Value="{StaticResource B_StrokeSoft}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="RowBackground" Value="#EEF2F7" />
+    <Setter Property="GridLinesVisibility" Value="All" />
+    <Setter Property="HorizontalGridLinesBrush" Value="#CBD5E1" />
+    <Setter Property="VerticalGridLinesBrush" Value="#CBD5E1" />
+    <Setter Property="CanUserSortColumns" Value="True" />
+  </Style>
+
+  <!-- AlternatingRowBackground is not supported on Avalonia DataGrid in some versions; emulate via row styles -->
+  <Style Selector="DataGridRow">
+    <Setter Property="Background" Value="#EEF2F7" />
+  </Style>
+  <Style Selector="DataGridRow:nth-child(even)">
+    <Setter Property="Background" Value="#E9EEF6" />
+  </Style>
+
+
+  <Style Selector="DataGridColumnHeader">
+    <Setter Property="Background" Value="#E2E8F0" />
+    <Setter Property="Foreground" Value="#0F172A" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="BorderBrush" Value="#CBD5E1" />
+    <Setter Property="BorderThickness" Value="0,0,1,1" />
+  </Style>
+
+  <Style Selector="DataGridCell">
+    <Setter Property="Foreground" Value="#0F172A" />
+    <Setter Property="BorderBrush" Value="#CBD5E1" />
+    <Setter Property="BorderThickness" Value="0,0,1,1" />
+    <Setter Property="Padding" Value="6,2" />
+  </Style>
+
+</Styles>
