@@ -38,7 +38,7 @@
             <TextBlock Text="{Binding Document.RecipeId, StringFormat='ID: {0}'}" Classes="muted" Margin="12,0,0,0" VerticalAlignment="Center" />
           </StackPanel>
 
-          <DataGrid Classes="editor-grid" ItemsSource="{Binding Points}"
+          <DataGrid ItemsSource="{Binding Points}"
                     SelectedItem="{Binding SelectedPoint}"
                     AutoGenerateColumns="False"
                     CanUserResizeColumns="True"

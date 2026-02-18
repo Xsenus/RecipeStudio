@@ -263,7 +263,7 @@
     <Setter Property="Foreground" Value="#FFDCDC" />
   </Style>
 
-  <Style Selector="DataGrid.editor-grid">
+  <Style Selector="DataGrid">
     <Setter Property="Background" Value="#11161F" />
     <Setter Property="BorderBrush" Value="#2A3142" />
     <Setter Property="BorderThickness" Value="1" />
@@ -274,19 +274,19 @@
     <Setter Property="CanUserSortColumns" Value="True" />
   </Style>
 
-  <Style Selector="DataGrid.editor-grid DataGridRow">
+  <Style Selector="DataGridRow">
     <Setter Property="Background" Value="#181C24" />
   </Style>
 
-  <Style Selector="DataGrid.editor-grid DataGridRow:nth-child(even)">
+  <Style Selector="DataGridRow:nth-child(even)">
     <Setter Property="Background" Value="#161A22" />
   </Style>
 
-  <Style Selector="DataGrid.editor-grid DataGridRow:selected">
+  <Style Selector="DataGridRow:selected">
     <Setter Property="Background" Value="#2B537D" />
   </Style>
 
-  <Style Selector="DataGrid.editor-grid DataGridColumnHeader">
+  <Style Selector="DataGridColumnHeader">
     <Setter Property="Background" Value="#20252D" />
     <Setter Property="Foreground" Value="#AEB8CB" />
     <Setter Property="FontWeight" Value="SemiBold" />
@@ -294,7 +294,7 @@
     <Setter Property="BorderThickness" Value="0,0,1,1" />
   </Style>
 
-  <Style Selector="DataGrid.editor-grid DataGridCell">
+  <Style Selector="DataGridCell">
     <Setter Property="Foreground" Value="#DCE5F5" />
     <Setter Property="BorderBrush" Value="#2A2F3A" />
     <Setter Property="BorderThickness" Value="0,0,1,1" />
