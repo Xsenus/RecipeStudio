@@ -53,7 +53,7 @@ public static class RecipeCalculator
             }
             else
             {
-                deg = -Math.Atan(dz / dr) * 180.0 / Math.PI;
+                deg = -Math.Atan(dz / dr) * 180.0 / ExcelPi;
             }
 
             cur.RecommendedAlfa = Math.Round(deg, 0, MidpointRounding.AwayFromZero) + 90;
