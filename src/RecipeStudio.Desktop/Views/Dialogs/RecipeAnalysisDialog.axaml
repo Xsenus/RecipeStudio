@@ -1,0 +1,44 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:RecipeStudio.Desktop.Controls"
+        x:Class="RecipeStudio.Desktop.Views.Dialogs.RecipeAnalysisDialog"
+        Width="1060"
+        Height="760"
+        MinWidth="900"
+        MinHeight="620"
+        CanResize="True"
+        WindowStartupLocation="CenterOwner"
+        SystemDecorations="None"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Title="Анализ Рецепта">
+
+  <Border Classes="modal-surface" Background="#0B1B3E" BorderBrush="#304766" CornerRadius="14">
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+      <Border Background="#0D1D45" Padding="20,14" PointerPressed="Header_PointerPressed">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="∿" Foreground="#59A4FF" FontSize="24" />
+            <TextBlock Text="Анализ Рецепта" FontSize="34" FontWeight="SemiBold" />
+          </StackPanel>
+          <Button Grid.Column="1" Classes="window-btn" Click="Close_Click">✕</Button>
+        </Grid>
+      </Border>
+
+      <TabControl Grid.Row="1" x:Name="Tabs" Background="#1A2B4A" BorderBrush="#3D5476" BorderThickness="0,1,0,1">
+        <TabItem Header="↗ Скорости" />
+        <TabItem Header="⊙ Углы (Alpha/Beta)" />
+        <TabItem Header="✥ Координаты" />
+        <TabItem Header="∿ Ускорения" />
+      </TabControl>
+
+      <Grid Grid.Row="2" Margin="14,8,14,8">
+        <controls:RecipeAnalysisChartControl x:Name="Chart" />
+      </Grid>
+
+      <Border Grid.Row="3" Background="#1A2B4A" Padding="12,10">
+        <TextBlock Text="Используйте зум (если доступен) или наведите курсор для деталей." Classes="muted" HorizontalAlignment="Center" />
+      </Border>
+    </Grid>
+  </Border>
+</Window>

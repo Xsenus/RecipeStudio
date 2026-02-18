@@ -1,6 +1,7 @@
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
+using RecipeStudio.Desktop.Views.Dialogs;
 using RecipeStudio.Desktop.ViewModels;
 
 namespace RecipeStudio.Desktop.Views.Pages;
@@ -26,6 +27,7 @@ public sealed partial class EditorView : UserControl
         {
             _vm.RequestImportExcel -= OnRequestImportExcel;
             _vm.RequestExportExcel -= OnRequestExportExcel;
+            _vm.RequestShowCharts -= OnRequestShowCharts;
         }
 
         _vm = DataContext as EditorViewModel;
@@ -33,7 +35,18 @@ public sealed partial class EditorView : UserControl
         {
             _vm.RequestImportExcel += OnRequestImportExcel;
             _vm.RequestExportExcel += OnRequestExportExcel;
+            _vm.RequestShowCharts += OnRequestShowCharts;
         }
+    }
+
+    private async void OnRequestShowCharts()
+    {
+        if (_vm is null) return;
+        var owner = TopLevel.GetTopLevel(this) as Window;
+        if (owner is null) return;
+
+        var dialog = new RecipeAnalysisDialog(_vm.Points);
+        await dialog.ShowDialog(owner);
     }
 
     private async void OnRequestImportExcel()

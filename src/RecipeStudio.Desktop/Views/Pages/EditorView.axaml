@@ -9,13 +9,11 @@
   <Grid RowDefinitions="Auto,*" Margin="18">
 
     <!-- Header -->
-    <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,12">
-      <StackPanel>
-        <TextBlock Text="Редактор рецепта" Classes="h1" />
-        <TextBlock Text="SQLite + импорт/экспорт Excel + визуализация траектории" Classes="muted" />
-      </StackPanel>
+    <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,12">
+      <Button Command="{Binding BackCommand}" Classes="ghost" Width="40" Height="34" FontSize="20" Padding="0">←</Button>
 
-      <Button Grid.Column="1" Command="{Binding BackCommand}" Classes="ghost">Назад</Button>
+      <TextBlock Grid.Column="1" Text="Редактор рецепта" Classes="h1" VerticalAlignment="Center" Margin="12,0,0,0" />
+
       <Button Grid.Column="2" Command="{Binding SaveCommand}" Classes="accent">Сохранить</Button>
     </Grid>
 
@@ -32,6 +30,7 @@
             <Button Command="{Binding MoveUpCommand}" Classes="ghost">↑</Button>
             <Button Command="{Binding MoveDownCommand}" Classes="ghost">↓</Button>
             <Button Command="{Binding RecalculateCommand}" Classes="ghost">Пересчитать</Button>
+            <Button Command="{Binding ShowChartsCommand}" Classes="ghost">Графики</Button>
 
             <Button Command="{Binding ImportExcelCommand}" Classes="ghost">Импорт Excel</Button>
             <Button Command="{Binding ExportExcelCommand}" Classes="ghost">Экспорт Excel</Button>

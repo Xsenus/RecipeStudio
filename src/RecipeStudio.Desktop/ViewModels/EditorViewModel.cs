@@ -41,6 +41,7 @@ public sealed class EditorViewModel : ViewModelBase
 
         ExportExcelCommand = new RelayCommand(ExportExcelRequested, () => HasDocument);
         ImportExcelCommand = new RelayCommand(ImportExcelRequested, () => HasDocument);
+        ShowChartsCommand = new RelayCommand(ShowChartsRequested, () => HasDocument);
 
         AddPointCommand = new RelayCommand(AddPoint, () => HasDocument);
         RemovePointCommand = new RelayCommand(RemoveSelectedPoint, () => HasDocument && SelectedPoint is not null);
@@ -81,6 +82,7 @@ public sealed class EditorViewModel : ViewModelBase
                 RecalculateCommand.RaiseCanExecuteChanged();
                 ExportExcelCommand.RaiseCanExecuteChanged();
                 ImportExcelCommand.RaiseCanExecuteChanged();
+                ShowChartsCommand.RaiseCanExecuteChanged();
                 AddPointCommand.RaiseCanExecuteChanged();
                 PlayPauseCommand.RaiseCanExecuteChanged();
                 StopCommand.RaiseCanExecuteChanged();
@@ -165,6 +167,7 @@ public sealed class EditorViewModel : ViewModelBase
 
     public event Action? RequestExportExcel;
     public event Action? RequestImportExcel;
+    public event Action? RequestShowCharts;
 
     public RelayCommand AddPointCommand { get; }
     public RelayCommand RemovePointCommand { get; }
@@ -174,6 +177,7 @@ public sealed class EditorViewModel : ViewModelBase
 
     public RelayCommand PlayPauseCommand { get; }
     public RelayCommand StopCommand { get; }
+    public RelayCommand ShowChartsCommand { get; }
 
     public bool IsPlaying
     {
@@ -262,6 +266,9 @@ public sealed class EditorViewModel : ViewModelBase
 
     private void ImportExcelRequested()
         => RequestImportExcel?.Invoke();
+
+    private void ShowChartsRequested()
+        => RequestShowCharts?.Invoke();
 
     public void ExportToExcel(string path)
     {

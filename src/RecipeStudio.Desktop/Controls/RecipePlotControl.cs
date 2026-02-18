@@ -362,7 +362,7 @@ public sealed class RecipePlotControl : Control
 
     private void DrawPoints(DrawingContext ctx, IList<RecipePoint> points, AppSettings settings, double hZone)
     {
-        var r = Math.Max(2, settings.PlotPointRadius);
+        var r = Math.Max(4, settings.PlotPointRadius);
 
         foreach (var p in points)
         {
@@ -376,7 +376,8 @@ public sealed class RecipePlotControl : Control
 
             var brush = new SolidColorBrush(color);
 
-            ctx.DrawEllipse(brush, null, sp, r, r);
+            var outline = new Pen(new SolidColorBrush(Color.FromRgb(226, 232, 240)), 1.2);
+            ctx.DrawEllipse(brush, outline, sp, r, r);
 
             if (p == SelectedPoint)
             {
