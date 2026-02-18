@@ -315,17 +315,8 @@ public sealed class EditorViewModel : ViewModelBase
 
         p.NPoint = Points.Count + 1;
 
-        // Make newly added point visibly distinct from the previous one in both grid and plot.
-        if (last is not null)
-        {
-            p.ZCrd = Math.Max(0, p.ZCrd - 5);
-        }
-
         Points.Add(p);
-        if (last is null)
-        {
-            p.PropertyChanged += OnPointPropertyChanged;
-        }
+        p.PropertyChanged += OnPointPropertyChanged;
         SelectedPoint = p;
 
         Recalculate();
@@ -340,6 +331,7 @@ public sealed class EditorViewModel : ViewModelBase
         clone.NPoint = idx + 2;
 
         Points.Insert(idx + 1, clone);
+        clone.PropertyChanged += OnPointPropertyChanged;
         SelectedPoint = clone;
         Recalculate();
     }
@@ -347,8 +339,9 @@ public sealed class EditorViewModel : ViewModelBase
     private void RemoveSelectedPoint()
     {
         if (SelectedPoint is null) return;
-        var idx = SelectedPoint.NPoint - 1;
-        SelectedPoint.PropertyChanged -= OnPointPropertyChanged;
+        var pointToRemove = SelectedPoint;
+        var idx = pointToRemove.NPoint - 1;
+        pointToRemove.PropertyChanged -= OnPointPropertyChanged;
         Points.RemoveAt(idx);
         SelectedPoint = Points.ElementAtOrDefault(Math.Clamp(idx, 0, Points.Count - 1));
         Recalculate();

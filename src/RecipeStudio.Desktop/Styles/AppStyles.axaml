@@ -263,36 +263,40 @@
     <Setter Property="Foreground" Value="#FFDCDC" />
   </Style>
 
-  <Style Selector="DataGrid">
-    <Setter Property="Background" Value="#0B1220" />
-    <Setter Property="BorderBrush" Value="{StaticResource B_StrokeSoft}" />
+  <Style Selector="DataGrid.editor-grid">
+    <Setter Property="Background" Value="#11161F" />
+    <Setter Property="BorderBrush" Value="#2A3142" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="RowBackground" Value="#EEF2F7" />
+    <Setter Property="RowBackground" Value="#181C24" />
     <Setter Property="GridLinesVisibility" Value="All" />
-    <Setter Property="HorizontalGridLinesBrush" Value="#CBD5E1" />
-    <Setter Property="VerticalGridLinesBrush" Value="#CBD5E1" />
+    <Setter Property="HorizontalGridLinesBrush" Value="#2A2F3A" />
+    <Setter Property="VerticalGridLinesBrush" Value="#2A2F3A" />
     <Setter Property="CanUserSortColumns" Value="True" />
   </Style>
 
-  <Style Selector="DataGridRow">
-    <Setter Property="Background" Value="#EEF2F7" />
+  <Style Selector="DataGrid.editor-grid DataGridRow">
+    <Setter Property="Background" Value="#181C24" />
   </Style>
 
-  <Style Selector="DataGridRow:nth-child(even)">
-    <Setter Property="Background" Value="#E9EEF6" />
+  <Style Selector="DataGrid.editor-grid DataGridRow:nth-child(even)">
+    <Setter Property="Background" Value="#161A22" />
   </Style>
 
-  <Style Selector="DataGridColumnHeader">
-    <Setter Property="Background" Value="#E2E8F0" />
-    <Setter Property="Foreground" Value="#0F172A" />
+  <Style Selector="DataGrid.editor-grid DataGridRow:selected">
+    <Setter Property="Background" Value="#2B537D" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridColumnHeader">
+    <Setter Property="Background" Value="#20252D" />
+    <Setter Property="Foreground" Value="#AEB8CB" />
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="BorderBrush" Value="#CBD5E1" />
+    <Setter Property="BorderBrush" Value="#2A3142" />
     <Setter Property="BorderThickness" Value="0,0,1,1" />
   </Style>
 
-  <Style Selector="DataGridCell">
-    <Setter Property="Foreground" Value="#0F172A" />
-    <Setter Property="BorderBrush" Value="#CBD5E1" />
+  <Style Selector="DataGrid.editor-grid DataGridCell">
+    <Setter Property="Foreground" Value="#DCE5F5" />
+    <Setter Property="BorderBrush" Value="#2A2F3A" />
     <Setter Property="BorderThickness" Value="0,0,1,1" />
     <Setter Property="Padding" Value="6,2" />
   </Style>

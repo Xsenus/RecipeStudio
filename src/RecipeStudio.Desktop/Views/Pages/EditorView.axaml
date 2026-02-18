@@ -38,51 +38,53 @@
             <TextBlock Text="{Binding Document.RecipeId, StringFormat='ID: {0}'}" Classes="muted" Margin="12,0,0,0" VerticalAlignment="Center" />
           </StackPanel>
 
-          <DataGrid ItemsSource="{Binding Points}"
+          <DataGrid Classes="editor-grid" ItemsSource="{Binding Points}"
                     SelectedItem="{Binding SelectedPoint}"
                     AutoGenerateColumns="False"
                     CanUserResizeColumns="True"
                     CanUserReorderColumns="True"
                     CanUserSortColumns="True"
                     IsReadOnly="False"
+                    HeadersVisibility="All"
+                    MinHeight="360"
 >
 
             <DataGrid.Columns>
 
               <DataGridTextColumn Header="#" Binding="{Binding NPoint}" IsReadOnly="True" Width="45" />
-              <DataGridCheckBoxColumn Header="Act" Binding="{Binding Act}" Width="55" />
-              <DataGridCheckBoxColumn Header="Safe" Binding="{Binding Safe}" Width="60" />
+              <DataGridCheckBoxColumn Header="A" Binding="{Binding Act}" Width="55" />
+              <DataGridCheckBoxColumn Header="S" Binding="{Binding Safe}" Width="60" />
 
               <!-- Core input -->
-              <DataGridTextColumn Header="R, мм" Binding="{Binding RCrd}" Width="90" />
-              <DataGridTextColumn Header="Z, мм" Binding="{Binding ZCrd}" Width="90" />
+              <DataGridTextColumn Header="R" Binding="{Binding RCrd}" Width="90" />
+              <DataGridTextColumn Header="Z" Binding="{Binding ZCrd}" Width="90" />
               <DataGridTextColumn Header="place" Binding="{Binding Place}" Width="70" />
               <DataGridCheckBoxColumn Header="hidden" Binding="{Binding Hidden}" Width="75" />
 
-              <DataGridTextColumn Header="a_nozzle" Binding="{Binding ANozzle}" Width="90" />
+              <DataGridTextColumn Header="a" Binding="{Binding ANozzle}" Width="90" />
               <DataGridTextColumn Header="α rec" Binding="{Binding RecommendedAlfa}" IsReadOnly="True" Width="75" />
               <DataGridTextColumn Header="α" Binding="{Binding Alfa}" Width="75" />
               <DataGridTextColumn Header="β" Binding="{Binding Betta}" Width="75" />
 
-              <DataGridTextColumn Header="ω" Binding="{Binding SpeedTable}" Width="70" />
-              <DataGridTextColumn Header="t, сек" Binding="{Binding TimeSec}" IsReadOnly="True" Width="75" />
-              <DataGridTextColumn Header="V, мм/мин" Binding="{Binding NozzleSpeedMmMin}" IsReadOnly="True" Width="95" />
-              <DataGridTextColumn Header="G rec" Binding="{Binding RecommendedIceRate}" IsReadOnly="True" Width="75" />
+              <DataGridTextColumn Header="Speed" Binding="{Binding SpeedTable}" Width="70" />
+              <DataGridTextColumn Header="Time" Binding="{Binding TimeSec}" IsReadOnly="True" Width="75" />
+              <DataGridTextColumn Header="Vel" Binding="{Binding NozzleSpeedMmMin}" IsReadOnly="True" Width="95" />
+              <DataGridTextColumn Header="Flow" Binding="{Binding RecommendedIceRate}" IsReadOnly="True" Width="75" />
 
-              <DataGridTextColumn Header="ice_rate" Binding="{Binding IceRate}" Width="90" />
-              <DataGridTextColumn Header="ice_grind" Binding="{Binding IceGrind}" Width="90" />
-              <DataGridTextColumn Header="air_p" Binding="{Binding AirPressure}" Width="75" />
-              <DataGridTextColumn Header="air_t" Binding="{Binding AirTemp}" Width="75" />
+              <DataGridTextColumn Header="Ice.R" Binding="{Binding IceRate}" Width="90" />
+              <DataGridTextColumn Header="Ice.G" Binding="{Binding IceGrind}" Width="90" />
+              <DataGridTextColumn Header="Air.P" Binding="{Binding AirPressure}" Width="75" />
+              <DataGridTextColumn Header="Air.T" Binding="{Binding AirTemp}" Width="75" />
 
               <DataGridCheckBoxColumn Header="cont" Binding="{Binding Container}" Width="70" />
               <DataGridTextColumn Header="D form" Binding="{Binding DClampForm}" Width="90" />
               <DataGridTextColumn Header="D cont" Binding="{Binding DClampCont}" Width="90" />
-              <DataGridTextColumn Header="desc" Binding="{Binding Description}" Width="90" />
+              <DataGridTextColumn Header="Desc" Binding="{Binding Description}" Width="90" />
 
               <!-- Outputs -->
-              <DataGridTextColumn Header="Xr0" Binding="{Binding Xr0}" IsReadOnly="True" Width="80" />
-              <DataGridTextColumn Header="Yx0" Binding="{Binding Yx0}" IsReadOnly="True" Width="80" />
-              <DataGridTextColumn Header="Zr0" Binding="{Binding Zr0}" IsReadOnly="True" Width="80" />
+              <DataGridTextColumn Header="Xr" Binding="{Binding Xr0}" IsReadOnly="True" Width="80" />
+              <DataGridTextColumn Header="Yr" Binding="{Binding Yx0}" IsReadOnly="True" Width="80" />
+              <DataGridTextColumn Header="Zr" Binding="{Binding Zr0}" IsReadOnly="True" Width="80" />
 
               <DataGridTextColumn Header="dX" Binding="{Binding DX}" IsReadOnly="True" Width="80" />
               <DataGridTextColumn Header="dY" Binding="{Binding DY}" IsReadOnly="True" Width="80" />
@@ -91,12 +93,12 @@
               <DataGridTextColumn Header="dA" Binding="{Binding DA}" IsReadOnly="True" Width="80" />
               <DataGridTextColumn Header="aB" Binding="{Binding AB}" IsReadOnly="True" Width="80" />
 
-              <DataGridTextColumn Header="Xpuls" Binding="{Binding XPuls}" IsReadOnly="True" Width="90" />
-              <DataGridTextColumn Header="Ypuls" Binding="{Binding YPuls}" IsReadOnly="True" Width="90" />
-              <DataGridTextColumn Header="Zpuls" Binding="{Binding ZPuls}" IsReadOnly="True" Width="90" />
+              <DataGridTextColumn Header="Xp" Binding="{Binding XPuls}" IsReadOnly="True" Width="90" />
+              <DataGridTextColumn Header="Yp" Binding="{Binding YPuls}" IsReadOnly="True" Width="90" />
+              <DataGridTextColumn Header="Zp" Binding="{Binding ZPuls}" IsReadOnly="True" Width="90" />
 
-              <DataGridTextColumn Header="Apuls" Binding="{Binding APuls}" IsReadOnly="True" Width="90" />
-              <DataGridTextColumn Header="Bpuls" Binding="{Binding BPuls}" IsReadOnly="True" Width="90" />
+              <DataGridTextColumn Header="Ap" Binding="{Binding APuls}" IsReadOnly="True" Width="90" />
+              <DataGridTextColumn Header="Bp" Binding="{Binding BPuls}" IsReadOnly="True" Width="90" />
 
               <DataGridTextColumn Header="Top_p" Binding="{Binding TopPuls}" IsReadOnly="True" Width="95" />
               <DataGridTextColumn Header="Top_Hz" Binding="{Binding TopHz}" IsReadOnly="True" Width="90" />
