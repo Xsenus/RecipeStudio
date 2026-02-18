@@ -1,0 +1,72 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:RecipeStudio.Desktop.Controls"
+        x:Class="RecipeStudio.Desktop.Views.Dialogs.RecipeAnalysisDialog"
+        Width="1060"
+        Height="760"
+        MinWidth="900"
+        MinHeight="620"
+        CanResize="True"
+        WindowStartupLocation="CenterOwner"
+        SystemDecorations="None"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Title="Анализ Рецепта">
+
+  <Window.Styles>
+    <Style Selector="Button.analysis-tab">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="Padding" Value="0,12" />
+      <Setter Property="Foreground" Value="#9DAAC0" />
+      <Setter Property="FontSize" Value="17" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="Button.analysis-tab:pointerover">
+      <Setter Property="Background" Value="#233556" />
+      <Setter Property="Foreground" Value="#DDE6F7" />
+    </Style>
+
+    <Style Selector="Button.analysis-tab.active">
+      <Setter Property="Background" Value="#22314A" />
+      <Setter Property="Foreground" Value="#63A9FF" />
+      <Setter Property="BorderBrush" Value="#2D7FFF" />
+      <Setter Property="BorderThickness" Value="0,0,0,2" />
+    </Style>
+  </Window.Styles>
+
+  <Border Classes="modal-surface" Background="#0B1B3E" BorderBrush="#304766" CornerRadius="14">
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+      <Border Background="#0D1D45" Padding="20,14" PointerPressed="Header_PointerPressed">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="∿" Foreground="#59A4FF" FontSize="24" />
+            <TextBlock Text="Анализ Рецепта" FontSize="34" FontWeight="SemiBold" />
+          </StackPanel>
+          <Button Grid.Column="1" Classes="window-btn" Click="Close_Click">✕</Button>
+        </Grid>
+      </Border>
+
+      <Border Grid.Row="1" Background="#1A2B4A" BorderBrush="#3D5476" BorderThickness="0,1,0,1" Padding="14,0">
+        <Grid ColumnDefinitions="*,*,*,*" HorizontalAlignment="Stretch">
+          <Button x:Name="SpeedsTabButton" Classes="analysis-tab active" Content="↗ Скорости" Click="TabButton_Click" Tag="Speeds" />
+          <Button x:Name="AnglesTabButton" Grid.Column="1" Classes="analysis-tab" Content="⊙ Углы (Alpha/Beta)" Click="TabButton_Click" Tag="Angles" />
+          <Button x:Name="CoordinatesTabButton" Grid.Column="2" Classes="analysis-tab" Content="✥ Координаты" Click="TabButton_Click" Tag="Coordinates" />
+          <Button x:Name="AccelerationTabButton" Grid.Column="3" Classes="analysis-tab" Content="∿ Ускорения" Click="TabButton_Click" Tag="Acceleration" />
+        </Grid>
+      </Border>
+
+      <Grid Grid.Row="2" Margin="18,12,18,8" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+        <controls:RecipeAnalysisChartControl x:Name="Chart" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="760" MinHeight="420" />
+      </Grid>
+
+      <Border Grid.Row="3" Background="#1A2B4A" Padding="12,10">
+        <TextBlock Text="Используйте зум (если доступен) или наведите курсор для деталей." Classes="muted" HorizontalAlignment="Center" />
+      </Border>
+    </Grid>
+  </Border>
+</Window>

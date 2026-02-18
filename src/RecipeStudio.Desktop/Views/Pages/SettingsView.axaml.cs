@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Input;
+using Avalonia.Markup.Xaml;
 using Avalonia.Platform.Storage;
 using RecipeStudio.Desktop.ViewModels;
 
@@ -14,7 +15,7 @@ public sealed partial class SettingsView : UserControl
 {
     public SettingsView()
     {
-        InitializeComponent();
+        AvaloniaXamlLoader.Load(this);
 
         var recipesFolderBox = this.FindControl<TextBox>("RecipesFolderTextBox");
         recipesFolderBox?.AddHandler(InputElement.PointerPressedEvent, RecipesFolder_PointerPressed, RoutingStrategies.Tunnel, true);

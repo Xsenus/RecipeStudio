@@ -39,12 +39,12 @@
     <Setter Property="Width" Value="36" />
     <Setter Property="Height" Value="26" />
     <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="CornerRadius" Value="5" />
     <Setter Property="FontSize" Value="13" />
-    <Setter Property="HorizontalContentAlignment" Value="Center" />
-    <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
 
   <Style Selector="Button.window-btn:pointerover">
@@ -195,6 +195,37 @@
     <Setter Property="Foreground" Value="White" />
   </Style>
 
+
+
+
+  <Style Selector="Button.panel-icon-btn">
+    <Setter Property="Width" Value="34" />
+    <Setter Property="Height" Value="34" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+
+  <Style Selector="Button.panel-close-btn">
+    <Setter Property="Width" Value="28" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="CornerRadius" Value="7" />
+  </Style>
+
+  <Style Selector="Button.back-arrow">
+    <Setter Property="FontSize" Value="17" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
   <Style Selector="Button.nav">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
@@ -236,10 +267,10 @@
     <Setter Property="Width" Value="36" />
     <Setter Property="Height" Value="30" />
     <Setter Property="Padding" Value="0" />
-    <Setter Property="FontSize" Value="14" />
-    <Setter Property="BorderThickness" Value="1" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="BorderThickness" Value="1" />
   </Style>
 
   <Style Selector="Button.icon.action.edit">
@@ -254,38 +285,211 @@
     <Setter Property="Foreground" Value="#FFDCDC" />
   </Style>
 
-  <Style Selector="DataGrid">
-    <Setter Property="Background" Value="#0B1220" />
-    <Setter Property="BorderBrush" Value="{StaticResource B_StrokeSoft}" />
+  <Style Selector="Border.floating-panel">
+    <Setter Property="Background" Value="#1A1E28" />
+    <Setter Property="BorderBrush" Value="#2A3142" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="RowBackground" Value="#EEF2F7" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="12" />
+  </Style>
+
+  <Style Selector="Border.panel-resize-handle">
+    <Setter Property="Width" Value="12" />
+    <Setter Property="Height" Value="12" />
+    <Setter Property="Background" Value="#4B5E7F" />
+    <Setter Property="BorderBrush" Value="#8AA3CB" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="3" />
+  </Style>
+
+  <Style Selector="TextBlock.grid-hdr">
+    <Setter Property="Foreground" Value="#8D97AA" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="TextBlock.hdr-green">
+    <Setter Property="Foreground" Value="#39E883" />
+  </Style>
+
+  <Style Selector="TextBlock.hdr-blue">
+    <Setter Property="Foreground" Value="#66A7FF" />
+  </Style>
+
+  <Style Selector="TextBlock.hdr-violet">
+    <Setter Property="Foreground" Value="#D7B7FF" />
+  </Style>
+
+  <Style Selector="TextBlock.hdr-orange">
+    <Setter Property="Foreground" Value="#FF9C37" />
+  </Style>
+
+  <Style Selector="TextBlock.hdr-red">
+    <Setter Property="Foreground" Value="#81232B" />
+  </Style>
+
+  <Style Selector="TextBlock.hdr-deep-blue">
+    <Setter Property="Foreground" Value="#1D4BB5" />
+  </Style>
+
+
+  <Style Selector="DataGrid">
+    <Setter Property="Background" Value="#11161F" />
+    <Setter Property="BorderBrush" Value="#2A3142" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="RowBackground" Value="#181C24" />
     <Setter Property="GridLinesVisibility" Value="All" />
-    <Setter Property="HorizontalGridLinesBrush" Value="#CBD5E1" />
-    <Setter Property="VerticalGridLinesBrush" Value="#CBD5E1" />
+    <Setter Property="HorizontalGridLinesBrush" Value="#2A2F3A" />
+    <Setter Property="VerticalGridLinesBrush" Value="#2A2F3A" />
     <Setter Property="CanUserSortColumns" Value="True" />
   </Style>
 
   <Style Selector="DataGridRow">
-    <Setter Property="Background" Value="#EEF2F7" />
+    <Setter Property="Background" Value="#181C24" />
   </Style>
 
   <Style Selector="DataGridRow:nth-child(even)">
-    <Setter Property="Background" Value="#E9EEF6" />
+    <Setter Property="Background" Value="#161A22" />
+  </Style>
+
+  <Style Selector="DataGridRow:selected">
+    <Setter Property="Background" Value="#2B537D" />
   </Style>
 
   <Style Selector="DataGridColumnHeader">
-    <Setter Property="Background" Value="#E2E8F0" />
-    <Setter Property="Foreground" Value="#0F172A" />
+    <Setter Property="Background" Value="#20252D" />
+    <Setter Property="Foreground" Value="#AEB8CB" />
     <Setter Property="FontWeight" Value="SemiBold" />
-    <Setter Property="BorderBrush" Value="#CBD5E1" />
+    <Setter Property="BorderBrush" Value="#2A3142" />
     <Setter Property="BorderThickness" Value="0,0,1,1" />
   </Style>
 
   <Style Selector="DataGridCell">
-    <Setter Property="Foreground" Value="#0F172A" />
-    <Setter Property="BorderBrush" Value="#CBD5E1" />
+    <Setter Property="Foreground" Value="#DCE5F5" />
+    <Setter Property="BorderBrush" Value="#2A2F3A" />
     <Setter Property="BorderThickness" Value="0,0,1,1" />
     <Setter Property="Padding" Value="6,2" />
+  </Style>
+
+  <Style Selector="DataGridCell:readonly">
+    <Setter Property="Background" Value="#202838" />
+    <Setter Property="Foreground" Value="#9FB2D8" />
+  </Style>
+
+  <Style Selector="DataGridCell:current">
+    <Setter Property="BorderBrush" Value="#4E84C7" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+
+  <Style Selector="DataGrid.editor-grid">
+    <Setter Property="Background" Value="#12151D" />
+    <Setter Property="BorderBrush" Value="#2A3142" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="RowBackground" Value="#171B22" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="RowHeight" Value="34" />
+    <Setter Property="HorizontalGridLinesBrush" Value="#2A3140" />
+    <Setter Property="VerticalGridLinesBrush" Value="#2A3140" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridColumnHeader">
+    <Setter Property="Background" Value="#1D212A" />
+    <Setter Property="Foreground" Value="#8D97AA" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="BorderBrush" Value="#2A3142" />
+    <Setter Property="BorderThickness" Value="0,0,1,1" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridColumnHeader:pointerover">
+    <Setter Property="Background" Value="#242A36" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridRow">
+    <Setter Property="Background" Value="#171B22" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridRow:nth-child(even)">
+    <Setter Property="Background" Value="#151920" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridRow:selected">
+    <Setter Property="Background" Value="#264E78" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridCell">
+    <Setter Property="Foreground" Value="#8FA6C9" />
+    <Setter Property="BorderBrush" Value="#252D3B" />
+    <Setter Property="BorderThickness" Value="0,0,1,1" />
+    <Setter Property="Padding" Value="4,1" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridCell:readonly">
+    <Setter Property="Background" Value="#1D2432" />
+    <Setter Property="Foreground" Value="#5E6D89" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridCell:current">
+    <Setter Property="Background" Value="#2E4A6A" />
+    <Setter Property="Foreground" Value="#E8F0FF" />
+    <Setter Property="BorderBrush" Value="#5EA2ED" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(4)">
+    <Setter Property="Foreground" Value="#42E885" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(5)">
+    <Setter Property="Foreground" Value="#42E885" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(13)">
+    <Setter Property="Foreground" Value="#D8BBFF" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(14)">
+    <Setter Property="Foreground" Value="#D8BBFF" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(15)">
+    <Setter Property="Foreground" Value="#D8BBFF" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(16)">
+    <Setter Property="Foreground" Value="#D8BBFF" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(17)">
+    <Setter Property="Foreground" Value="#FFAB56" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(18)">
+    <Setter Property="Foreground" Value="#FFAB56" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(24)">
+    <Setter Property="Foreground" Value="#8C343A" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(25)">
+    <Setter Property="Foreground" Value="#8C343A" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(26)">
+    <Setter Property="Foreground" Value="#8C343A" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(27)">
+    <Setter Property="Foreground" Value="#2D58BF" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(28)">
+    <Setter Property="Foreground" Value="#2D58BF" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(29)">
+    <Setter Property="Foreground" Value="#2D58BF" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(30)">
+    <Setter Property="Foreground" Value="#2D58BF" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(31)">
+    <Setter Property="Foreground" Value="#2D58BF" />
   </Style>
 
 

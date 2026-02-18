@@ -7,6 +7,9 @@ namespace RecipeStudio.Desktop.Services;
 
 public static class RecipeCalculator
 {
+    // Excel template uses literal 3.14 in nozzle speed formula: R * 2 * 3.14 * ω.
+    private const double ExcelPi = 3.14;
+
     public static void Recalculate(RecipeDocument doc, AppSettings settings)
     {
         if (doc.Points.Count == 0)
@@ -50,7 +53,7 @@ public static class RecipeCalculator
             }
             else
             {
-                deg = -Math.Atan(dz / dr) * 180.0 / Math.PI;
+                deg = -Math.Atan(dz / dr) * 180.0 / ExcelPi;
             }
 
             cur.RecommendedAlfa = Math.Round(deg, 0, MidpointRounding.AwayFromZero) + 90;
@@ -61,7 +64,7 @@ public static class RecipeCalculator
         {
             var p = doc.Points[i];
             p.TimeSec = p.SpeedTable == 0 ? 0 : 60.0 / p.SpeedTable;
-            p.NozzleSpeedMmMin = p.RCrd * 2.0 * Math.PI * p.SpeedTable;
+            p.NozzleSpeedMmMin = Math.Round(p.RCrd * 2.0 * ExcelPi * p.SpeedTable, 0, MidpointRounding.AwayFromZero);
         }
 
         var baseIce = doc.Points[0].IceRate;

@@ -41,6 +41,7 @@ public sealed class EditorViewModel : ViewModelBase
 
         ExportExcelCommand = new RelayCommand(ExportExcelRequested, () => HasDocument);
         ImportExcelCommand = new RelayCommand(ImportExcelRequested, () => HasDocument);
+        ShowChartsCommand = new RelayCommand(ShowChartsRequested, () => HasDocument);
 
         AddPointCommand = new RelayCommand(AddPoint, () => HasDocument);
         RemovePointCommand = new RelayCommand(RemoveSelectedPoint, () => HasDocument && SelectedPoint is not null);
@@ -81,6 +82,7 @@ public sealed class EditorViewModel : ViewModelBase
                 RecalculateCommand.RaiseCanExecuteChanged();
                 ExportExcelCommand.RaiseCanExecuteChanged();
                 ImportExcelCommand.RaiseCanExecuteChanged();
+                ShowChartsCommand.RaiseCanExecuteChanged();
                 AddPointCommand.RaiseCanExecuteChanged();
                 PlayPauseCommand.RaiseCanExecuteChanged();
                 StopCommand.RaiseCanExecuteChanged();
@@ -165,6 +167,7 @@ public sealed class EditorViewModel : ViewModelBase
 
     public event Action? RequestExportExcel;
     public event Action? RequestImportExcel;
+    public event Action? RequestShowCharts;
 
     public RelayCommand AddPointCommand { get; }
     public RelayCommand RemovePointCommand { get; }
@@ -174,6 +177,7 @@ public sealed class EditorViewModel : ViewModelBase
 
     public RelayCommand PlayPauseCommand { get; }
     public RelayCommand StopCommand { get; }
+    public RelayCommand ShowChartsCommand { get; }
 
     public bool IsPlaying
     {
@@ -263,6 +267,9 @@ public sealed class EditorViewModel : ViewModelBase
     private void ImportExcelRequested()
         => RequestImportExcel?.Invoke();
 
+    private void ShowChartsRequested()
+        => RequestShowCharts?.Invoke();
+
     public void ExportToExcel(string path)
     {
         if (Document is null) return;
@@ -307,7 +314,9 @@ public sealed class EditorViewModel : ViewModelBase
             : last.Clone();
 
         p.NPoint = Points.Count + 1;
+
         Points.Add(p);
+        p.PropertyChanged += OnPointPropertyChanged;
         SelectedPoint = p;
 
         Recalculate();
@@ -322,6 +331,7 @@ public sealed class EditorViewModel : ViewModelBase
         clone.NPoint = idx + 2;
 
         Points.Insert(idx + 1, clone);
+        clone.PropertyChanged += OnPointPropertyChanged;
         SelectedPoint = clone;
         Recalculate();
     }
@@ -329,7 +339,9 @@ public sealed class EditorViewModel : ViewModelBase
     private void RemoveSelectedPoint()
     {
         if (SelectedPoint is null) return;
-        var idx = SelectedPoint.NPoint - 1;
+        var pointToRemove = SelectedPoint;
+        var idx = pointToRemove.NPoint - 1;
+        pointToRemove.PropertyChanged -= OnPointPropertyChanged;
         Points.RemoveAt(idx);
         SelectedPoint = Points.ElementAtOrDefault(Math.Clamp(idx, 0, Points.Count - 1));
         Recalculate();
