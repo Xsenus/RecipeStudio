@@ -24,6 +24,8 @@ public sealed class SettingsService
 
         SettingsPath = Path.Combine(AppDataRoot, "settings.json");
 
+        TryMigrateLegacySettings();
+
         Settings = Load();
 
         if (string.IsNullOrWhiteSpace(Settings.RecipesFolder))
@@ -67,23 +69,73 @@ public sealed class SettingsService
         }
     }
 
-    private static string ResolveSettingsRoot()
+    private void TryMigrateLegacySettings()
     {
-        var executableFolder = AppContext.BaseDirectory;
-
         try
         {
-            Directory.CreateDirectory(executableFolder);
-            var probePath = Path.Combine(executableFolder, ".settings-write-probe");
-            File.WriteAllText(probePath, "ok");
-            File.Delete(probePath);
-            return executableFolder;
+            if (File.Exists(SettingsPath))
+                return;
+
+            var legacyRoot = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "recipe-studio");
+            var legacyPath = Path.Combine(legacyRoot, "settings.json");
+
+            if (!File.Exists(legacyPath))
+                return;
+
+            File.Copy(legacyPath, SettingsPath, overwrite: false);
         }
         catch
         {
-            return Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "recipe-studio");
+            // ignore migration issues
+        }
+    }
+
+    private static string ResolveSettingsRoot()
+    {
+        var executableFolder = TryGetExecutableFolder();
+
+        if (!string.IsNullOrWhiteSpace(executableFolder) && CanWriteTo(executableFolder))
+        {
+            return executableFolder;
+        }
+
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "recipe-studio");
+    }
+
+    private static string? TryGetExecutableFolder()
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Environment.ProcessPath))
+            {
+                return Path.GetDirectoryName(Environment.ProcessPath);
+            }
+        }
+        catch
+        {
+            // ignore
+        }
+
+        return AppContext.BaseDirectory;
+    }
+
+    private static bool CanWriteTo(string folder)
+    {
+        try
+        {
+            Directory.CreateDirectory(folder);
+            var probePath = Path.Combine(folder, ".settings-write-probe");
+            File.WriteAllText(probePath, "ok");
+            File.Delete(probePath);
+            return true;
+        }
+        catch
+        {
+            return false;
         }
     }
 }

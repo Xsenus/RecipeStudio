@@ -89,16 +89,16 @@
                   <TextBlock Text="Геометрия и смещения" FontWeight="SemiBold" />
                   <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto">
                     <TextBlock Text="Смещение X (Xm)" VerticalAlignment="Center" ToolTip.Tip="Смещение по оси X, мм" Margin="0,0,0,8" />
-                    <TextBox Grid.Column="1" Text="{Binding Xm}" Margin="10,0,0,8" ToolTip.Tip="Смещение по оси X, мм" />
+                    <TextBox Grid.Column="1" Classes="value-box" Text="{Binding Xm}" Margin="10,0,0,8" ToolTip.Tip="Смещение по оси X, мм" />
 
                     <TextBlock Grid.Row="1" Text="Смещение Y (Ym)" VerticalAlignment="Center" ToolTip.Tip="Смещение по оси Y, мм" Margin="0,0,0,8" />
-                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Ym}" Margin="10,0,0,8" ToolTip.Tip="Смещение по оси Y, мм" />
+                    <TextBox Grid.Row="1" Grid.Column="1" Classes="value-box" Text="{Binding Ym}" Margin="10,0,0,8" ToolTip.Tip="Смещение по оси Y, мм" />
 
                     <TextBlock Grid.Row="2" Text="Смещение Z (Zm)" VerticalAlignment="Center" ToolTip.Tip="Смещение по оси Z, мм" Margin="0,0,0,8" />
-                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Zm}" Margin="10,0,0,8" ToolTip.Tip="Смещение по оси Z, мм" />
+                    <TextBox Grid.Row="2" Grid.Column="1" Classes="value-box" Text="{Binding Zm}" Margin="10,0,0,8" ToolTip.Tip="Смещение по оси Z, мм" />
 
                     <TextBlock Grid.Row="3" Text="Длина сопла (Lz)" VerticalAlignment="Center" ToolTip.Tip="Длина сопла, мм" />
-                    <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Lz}" Margin="10,0,0,0" ToolTip.Tip="Длина сопла, мм" />
+                    <TextBox Grid.Row="3" Grid.Column="1" Classes="value-box" Text="{Binding Lz}" Margin="10,0,0,0" ToolTip.Tip="Длина сопла, мм" />
                   </Grid>
                 </StackPanel>
               </Border>
@@ -108,13 +108,13 @@
                   <TextBlock Text="Безопасность и зоны" FontWeight="SemiBold" />
                   <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto">
                     <TextBlock Text="Высота перехода (H_cont)" VerticalAlignment="Center" ToolTip.Tip="Безопасная высота перехода, мм" Margin="0,0,0,8" />
-                    <TextBox Grid.Column="1" Text="{Binding HContMax}" Margin="10,0,0,8" ToolTip.Tip="Безопасная высота перехода, мм" />
+                    <TextBox Grid.Column="1" Classes="value-box" Text="{Binding HContMax}" Margin="10,0,0,8" ToolTip.Tip="Безопасная высота перехода, мм" />
 
                     <TextBlock Grid.Row="1" Text="Зона безопасности (H_zone)" VerticalAlignment="Center" ToolTip.Tip="Максимальная рабочая зона по высоте, мм" Margin="0,0,0,8" />
-                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding HZone}" Margin="10,0,0,8" ToolTip.Tip="Максимальная рабочая зона по высоте, мм" />
+                    <TextBox Grid.Row="1" Grid.Column="1" Classes="value-box" Text="{Binding HZone}" Margin="10,0,0,8" ToolTip.Tip="Максимальная рабочая зона по высоте, мм" />
 
                     <TextBlock Grid.Row="2" Text="Боковой предел (H_bok)" VerticalAlignment="Center" ToolTip.Tip="Боковое ограничение, мм" />
-                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding HBokMax}" Margin="10,0,0,0" ToolTip.Tip="Боковое ограничение, мм" />
+                    <TextBox Grid.Row="2" Grid.Column="1" Classes="value-box" Text="{Binding HBokMax}" Margin="10,0,0,0" ToolTip.Tip="Боковое ограничение, мм" />
                   </Grid>
                 </StackPanel>
               </Border>
@@ -131,20 +131,20 @@
                 <TextBlock Grid.Column="2" Text="VPULSE_Z" Margin="12,0,0,6" ToolTip.Tip="Коэффициент импульсов по оси Z" />
                 <TextBlock Grid.Column="3" Text="VPULSE_A" Margin="12,0,0,6" ToolTip.Tip="Коэффициент импульсов по оси A" />
 
-                <TextBox Grid.Row="1" Text="{Binding PulseX}" Margin="0,0,0,10" ToolTip.Tip="Коэффициент импульсов по оси X" />
-                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding PulseY}" Margin="12,0,0,10" ToolTip.Tip="Коэффициент импульсов по оси Y" />
-                <TextBox Grid.Row="1" Grid.Column="2" Text="{Binding PulseZ}" Margin="12,0,0,10" ToolTip.Tip="Коэффициент импульсов по оси Z" />
-                <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding PulseA}" Margin="12,0,0,10" ToolTip.Tip="Коэффициент импульсов по оси A" />
+                <TextBox Grid.Row="1" Classes="value-box" Text="{Binding PulseX}" Margin="0,0,0,10" ToolTip.Tip="Коэффициент импульсов по оси X" />
+                <TextBox Grid.Row="1" Grid.Column="1" Classes="value-box" Text="{Binding PulseY}" Margin="12,0,0,10" ToolTip.Tip="Коэффициент импульсов по оси Y" />
+                <TextBox Grid.Row="1" Grid.Column="2" Classes="value-box" Text="{Binding PulseZ}" Margin="12,0,0,10" ToolTip.Tip="Коэффициент импульсов по оси Z" />
+                <TextBox Grid.Row="1" Grid.Column="3" Classes="value-box" Text="{Binding PulseA}" Margin="12,0,0,10" ToolTip.Tip="Коэффициент импульсов по оси A" />
 
                 <TextBlock Grid.Row="2" Text="VPULSE_B" ToolTip.Tip="Коэффициент импульсов по оси B" Margin="0,0,0,6" />
                 <TextBlock Grid.Row="2" Grid.Column="1" Text="VPULSE_TOP" Margin="12,0,0,6" ToolTip.Tip="Коэффициент верхнего механизма" />
                 <TextBlock Grid.Row="2" Grid.Column="2" Text="VPULSE_LOW" Margin="12,0,0,6" ToolTip.Tip="Коэффициент нижнего механизма" />
                 <TextBlock Grid.Row="2" Grid.Column="3" Text="VPULSE_CLAMP" Margin="12,0,0,6" ToolTip.Tip="Коэффициент зажима" />
 
-                <TextBox Grid.Row="3" Text="{Binding PulseB}" ToolTip.Tip="Коэффициент импульсов по оси B" />
-                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding PulseTop}" Margin="12,0,0,0" ToolTip.Tip="Коэффициент верхнего механизма" />
-                <TextBox Grid.Row="3" Grid.Column="2" Text="{Binding PulseLow}" Margin="12,0,0,0" ToolTip.Tip="Коэффициент нижнего механизма" />
-                <TextBox Grid.Row="3" Grid.Column="3" Text="{Binding PulseClamp}" Margin="12,0,0,0" ToolTip.Tip="Коэффициент зажима" />
+                <TextBox Grid.Row="3" Classes="value-box" Text="{Binding PulseB}" ToolTip.Tip="Коэффициент импульсов по оси B" />
+                <TextBox Grid.Row="3" Grid.Column="1" Classes="value-box" Text="{Binding PulseTop}" Margin="12,0,0,0" ToolTip.Tip="Коэффициент верхнего механизма" />
+                <TextBox Grid.Row="3" Grid.Column="2" Classes="value-box" Text="{Binding PulseLow}" Margin="12,0,0,0" ToolTip.Tip="Коэффициент нижнего механизма" />
+                <TextBox Grid.Row="3" Grid.Column="3" Classes="value-box" Text="{Binding PulseClamp}" Margin="12,0,0,0" ToolTip.Tip="Коэффициент зажима" />
               </Grid>
             </StackPanel>
           </Border>
@@ -170,13 +170,13 @@
                 <Border Grid.Column="1" Classes="card" Padding="12" Margin="12,0,0,0">
                   <Grid ColumnDefinitions="180,*" RowDefinitions="Auto,Auto,Auto" Margin="0,2,0,0">
                     <TextBlock Text="Толщина линии" VerticalAlignment="Center" ToolTip.Tip="Толщина основной линии графика" Margin="0,0,0,10" />
-                    <TextBox Grid.Column="1" Text="{Binding PlotStrokeThickness}" Margin="10,0,0,10" ToolTip.Tip="Толщина основной линии графика" />
+                    <TextBox Grid.Column="1" Classes="value-box" Text="{Binding PlotStrokeThickness}" Margin="10,0,0,10" ToolTip.Tip="Толщина основной линии графика" />
 
                     <TextBlock Grid.Row="1" Text="Радиус точек" VerticalAlignment="Center" ToolTip.Tip="Размер отображаемых точек на графике" Margin="0,0,0,10" />
-                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding PlotPointRadius}" Margin="10,0,0,10" ToolTip.Tip="Размер отображаемых точек на графике" />
+                    <TextBox Grid.Row="1" Grid.Column="1" Classes="value-box" Text="{Binding PlotPointRadius}" Margin="10,0,0,10" ToolTip.Tip="Размер отображаемых точек на графике" />
 
                     <TextBlock Grid.Row="2" Text="Сегменты сглаживания" VerticalAlignment="Center" ToolTip.Tip="Чем выше значение, тем более плавная кривая и выше нагрузка" />
-                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding SmoothSegmentsPerSpan}" Margin="10,0,0,0" ToolTip.Tip="Чем выше значение, тем более плавная кривая и выше нагрузка" />
+                    <TextBox Grid.Row="2" Grid.Column="1" Classes="value-box" Text="{Binding SmoothSegmentsPerSpan}" Margin="10,0,0,0" ToolTip.Tip="Чем выше значение, тем более плавная кривая и выше нагрузка" />
                   </Grid>
                 </Border>
               </Grid>

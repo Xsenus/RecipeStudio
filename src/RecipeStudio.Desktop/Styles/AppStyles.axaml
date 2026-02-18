@@ -154,6 +154,10 @@
     <Setter Property="Background" Value="#151C2A" />
   </Style>
 
+
+  <Style Selector="TextBox.value-box">
+    <Setter Property="TextAlignment" Value="Center" />
+  </Style>
   <Style Selector="Button">
     <Setter Property="CornerRadius" Value="6" />
     <Setter Property="Padding" Value="10,6" />
