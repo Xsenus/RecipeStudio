@@ -14,8 +14,8 @@
           <TextBlock Text="Система готова к работе. Выберите рецепт для начала." Classes="muted" Margin="0,6,0,0" />
         </StackPanel>
 
-        <Button Grid.Column="1" Command="{Binding RefreshCommand}" Classes="icon-btn" Margin="0,0,10,0">⟳</Button>
-        <Button Grid.Column="2" Command="{Binding NewRecipeCommand}" Classes="accent big">+ СОЗДАТЬ</Button>
+        <Button Grid.Column="1" Command="{Binding NewRecipeCommand}" Classes="accent big" Margin="0,0,10,0">+ СОЗДАТЬ</Button>
+        <Button Grid.Column="2" Command="{Binding RefreshCommand}" Classes="icon-btn">⟳</Button>
       </Grid>
 
       <Border Height="1" Background="#222633" />
