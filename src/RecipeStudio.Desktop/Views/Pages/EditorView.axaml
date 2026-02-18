@@ -17,9 +17,9 @@
       <TextBlock Grid.Column="1" Text="Редактор рецепта" Classes="h1" VerticalAlignment="Center" Margin="12,0,0,0" />
 
       <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,8,0">
-        <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать панель параметров" Click="ShowParametersPanel_Click">⚙</Button>
-        <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать панель визуализации" Click="ShowVisualizationPanel_Click">📈</Button>
-        <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать панель выбранной точки" Click="ShowSelectedPointPanel_Click">◎</Button>
+        <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать/скрыть панель параметров" Click="ShowParametersPanel_Click">⚙</Button>
+        <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать/скрыть панель визуализации" Click="ShowVisualizationPanel_Click">📈</Button>
+        <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать/скрыть панель выбранной точки" Click="ShowSelectedPointPanel_Click">◎</Button>
         <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Сбросить панели" Click="ResetPanels_Click">↺</Button>
       </StackPanel>
 
@@ -80,165 +80,165 @@
                 </DataGridCheckBoxColumn.Header>
               </DataGridCheckBoxColumn>
 
-              <DataGridTextColumn Binding="{Binding RCrd}" Width="66">
+              <DataGridTextColumn Binding="{Binding RCrd}" Width="52">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="R" Classes="grid-hdr hdr-green" ToolTip.Tip="Радиальная координата, мм" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
-              <DataGridTextColumn Binding="{Binding ZCrd}" Width="66">
+              <DataGridTextColumn Binding="{Binding ZCrd}" Width="52">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Z" Classes="grid-hdr hdr-green" ToolTip.Tip="Высота Z, мм" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
-              <DataGridTextColumn Binding="{Binding ANozzle}" Width="56">
+              <DataGridTextColumn Binding="{Binding ANozzle}" Width="48">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="a" Classes="grid-hdr" ToolTip.Tip="Диаметр сопла a, мм" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
-              <DataGridTextColumn Binding="{Binding Alfa}" Width="56">
+              <DataGridTextColumn Binding="{Binding Alfa}" Width="48">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="α" Classes="grid-hdr" ToolTip.Tip="Угол альфа, °" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
-              <DataGridTextColumn Binding="{Binding Betta}" Width="56">
+              <DataGridTextColumn Binding="{Binding Betta}" Width="48">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="β" Classes="grid-hdr" ToolTip.Tip="Угол бета, °" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
-              <DataGridTextColumn Binding="{Binding Place}" Width="62">
+              <DataGridTextColumn Binding="{Binding Place}" Width="52">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Top" Classes="grid-hdr hdr-blue" ToolTip.Tip="Сторона/уровень обработки (Top)" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
-              <DataGridCheckBoxColumn Binding="{Binding Hidden}" Width="72">
+              <DataGridCheckBoxColumn Binding="{Binding Hidden}" Width="62">
                 <DataGridCheckBoxColumn.Header>
                   <TextBlock Text="Micro" Classes="grid-hdr" ToolTip.Tip="Микро-режим (скрытая/служебная точка)" />
                 </DataGridCheckBoxColumn.Header>
               </DataGridCheckBoxColumn>
 
-              <DataGridTextColumn Binding="{Binding SpeedTable}" Width="72">
+              <DataGridTextColumn Binding="{Binding SpeedTable}" Width="62">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Speed" Classes="grid-hdr" ToolTip.Tip="ω — скорость стола, об/мин" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
-              <DataGridTextColumn Binding="{Binding TimeSec}" IsReadOnly="True" Width="64">
+              <DataGridTextColumn Binding="{Binding TimeSec}" IsReadOnly="True" Width="56">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Time" Classes="grid-hdr" ToolTip.Tip="t, сек — время прохода" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
-              <DataGridTextColumn Binding="{Binding IceRate}" Width="74">
+              <DataGridTextColumn Binding="{Binding IceRate}" Width="62">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Ice.R" Classes="grid-hdr hdr-violet" ToolTip.Tip="G_изм, кг/ч — фактический расход" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
-              <DataGridTextColumn Binding="{Binding IceGrind}" Width="74">
+              <DataGridTextColumn Binding="{Binding IceGrind}" Width="62">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Ice.G" Classes="grid-hdr hdr-violet" ToolTip.Tip="Степень помола/настройка льда" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
-              <DataGridTextColumn Binding="{Binding AirPressure}" Width="74">
+              <DataGridTextColumn Binding="{Binding AirPressure}" Width="62">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Air.P" Classes="grid-hdr hdr-violet" ToolTip.Tip="P, атм — давление воздуха" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
-              <DataGridTextColumn Binding="{Binding AirTemp}" Width="74">
+              <DataGridTextColumn Binding="{Binding AirTemp}" Width="62">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Air.T" Classes="grid-hdr hdr-violet" ToolTip.Tip="T, °C — температура воздуха" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
-              <DataGridTextColumn Binding="{Binding NozzleSpeedMmMin}" IsReadOnly="True" Width="66">
+              <DataGridTextColumn Binding="{Binding NozzleSpeedMmMin}" IsReadOnly="True" Width="52">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Vel" Classes="grid-hdr hdr-orange" ToolTip.Tip="V, мм/мин = round(2 * π * R * Speed / 60), где π = 3.14" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
-              <DataGridTextColumn Binding="{Binding RecommendedIceRate}" IsReadOnly="True" Width="66">
+              <DataGridTextColumn Binding="{Binding RecommendedIceRate}" IsReadOnly="True" Width="52">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Flow" Classes="grid-hdr hdr-orange" ToolTip.Tip="Рекомендованный расход G, кг/ч" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
-              <DataGridTextColumn Binding="{Binding DX}" IsReadOnly="True" Width="56">
+              <DataGridTextColumn Binding="{Binding DX}" IsReadOnly="True" Width="48">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Xm" Classes="grid-hdr" ToolTip.Tip="Машинная координата X" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
-              <DataGridTextColumn Binding="{Binding DY}" IsReadOnly="True" Width="56">
+              <DataGridTextColumn Binding="{Binding DY}" IsReadOnly="True" Width="48">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Ym" Classes="grid-hdr" ToolTip.Tip="Машинная координата Y" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
-              <DataGridTextColumn Binding="{Binding DZ}" IsReadOnly="True" Width="56">
+              <DataGridTextColumn Binding="{Binding DZ}" IsReadOnly="True" Width="48">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Zm" Classes="grid-hdr" ToolTip.Tip="Машинная координата Z" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
-              <DataGridTextColumn Binding="{Binding DA}" IsReadOnly="True" Width="56">
+              <DataGridTextColumn Binding="{Binding DA}" IsReadOnly="True" Width="48">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Am" Classes="grid-hdr" ToolTip.Tip="Машинная координата A" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
-              <DataGridTextColumn Binding="{Binding AB}" IsReadOnly="True" Width="56">
+              <DataGridTextColumn Binding="{Binding AB}" IsReadOnly="True" Width="48">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Bm" Classes="grid-hdr" ToolTip.Tip="Машинная координата B" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
-              <DataGridTextColumn Binding="{Binding Xr0}" IsReadOnly="True" Width="56">
+              <DataGridTextColumn Binding="{Binding Xr0}" IsReadOnly="True" Width="48">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Xr" Classes="grid-hdr hdr-red" ToolTip.Tip="Робот-координата X" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
-              <DataGridTextColumn Binding="{Binding Yx0}" IsReadOnly="True" Width="56">
+              <DataGridTextColumn Binding="{Binding Yx0}" IsReadOnly="True" Width="48">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Yr" Classes="grid-hdr hdr-red" ToolTip.Tip="Робот-координата Y" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
-              <DataGridTextColumn Binding="{Binding Zr0}" IsReadOnly="True" Width="56">
+              <DataGridTextColumn Binding="{Binding Zr0}" IsReadOnly="True" Width="48">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Zr" Classes="grid-hdr hdr-red" ToolTip.Tip="Робот-координата Z" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
-              <DataGridTextColumn Binding="{Binding XPuls}" IsReadOnly="True" Width="58">
+              <DataGridTextColumn Binding="{Binding XPuls}" IsReadOnly="True" Width="52">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Xp" Classes="grid-hdr hdr-deep-blue" ToolTip.Tip="Импульсы X" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
-              <DataGridTextColumn Binding="{Binding YPuls}" IsReadOnly="True" Width="58">
+              <DataGridTextColumn Binding="{Binding YPuls}" IsReadOnly="True" Width="52">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Yp" Classes="grid-hdr hdr-deep-blue" ToolTip.Tip="Импульсы Y" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
-              <DataGridTextColumn Binding="{Binding ZPuls}" IsReadOnly="True" Width="58">
+              <DataGridTextColumn Binding="{Binding ZPuls}" IsReadOnly="True" Width="52">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Zp" Classes="grid-hdr hdr-deep-blue" ToolTip.Tip="Импульсы Z" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
-              <DataGridTextColumn Binding="{Binding APuls}" IsReadOnly="True" Width="58">
+              <DataGridTextColumn Binding="{Binding APuls}" IsReadOnly="True" Width="52">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Ap" Classes="grid-hdr hdr-deep-blue" ToolTip.Tip="Импульсы A" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
-              <DataGridTextColumn Binding="{Binding BPuls}" IsReadOnly="True" Width="58">
+              <DataGridTextColumn Binding="{Binding BPuls}" IsReadOnly="True" Width="52">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Bp" Classes="grid-hdr hdr-deep-blue" ToolTip.Tip="Импульсы B" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
-              <DataGridTextColumn Binding="{Binding Description}" Width="140">
+              <DataGridTextColumn Binding="{Binding Description}" Width="120">
                 <DataGridTextColumn.Header>
                   <TextBlock Text="Desc" Classes="grid-hdr" ToolTip.Tip="Комментарий к точке" />
                 </DataGridTextColumn.Header>
@@ -299,7 +299,7 @@
                 <Button Grid.Column="1" Command="{Binding StopCommand}" Classes="ghost">⏹</Button>
 
                 <TextBlock Grid.Column="2" Text="Скорость" VerticalAlignment="Center" Classes="muted" />
-                <Slider Grid.Column="3" Minimum="0.2" Maximum="3" Value="{Binding SpeedMultiplier}" Width="140" />
+                <Slider Grid.Column="3" Minimum="0.2" Maximum="3" Value="{Binding SpeedMultiplier}" Width="120" />
               </Grid>
             </Grid>
           </Grid>

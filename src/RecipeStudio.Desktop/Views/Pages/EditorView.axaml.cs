@@ -281,23 +281,26 @@ public sealed partial class EditorView : UserControl
 
     private void ShowParametersPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        ParametersPanel.IsVisible = true;
-        ParametersResizeHandle.IsVisible = true;
-        UpdateResizeHandleFor(ParametersPanel);
+        ParametersPanel.IsVisible = !ParametersPanel.IsVisible;
+        ParametersResizeHandle.IsVisible = ParametersPanel.IsVisible;
+        if (ParametersPanel.IsVisible)
+            UpdateResizeHandleFor(ParametersPanel);
     }
 
     private void ShowVisualizationPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        VisualizationPanel.IsVisible = true;
-        VisualizationResizeHandle.IsVisible = true;
-        UpdateResizeHandleFor(VisualizationPanel);
+        VisualizationPanel.IsVisible = !VisualizationPanel.IsVisible;
+        VisualizationResizeHandle.IsVisible = VisualizationPanel.IsVisible;
+        if (VisualizationPanel.IsVisible)
+            UpdateResizeHandleFor(VisualizationPanel);
     }
 
     private void ShowSelectedPointPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        SelectedPointPanel.IsVisible = true;
-        SelectedPointResizeHandle.IsVisible = true;
-        UpdateResizeHandleFor(SelectedPointPanel);
+        SelectedPointPanel.IsVisible = !SelectedPointPanel.IsVisible;
+        SelectedPointResizeHandle.IsVisible = SelectedPointPanel.IsVisible;
+        if (SelectedPointPanel.IsVisible)
+            UpdateResizeHandleFor(SelectedPointPanel);
     }
 
     private void ResetPanels_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
