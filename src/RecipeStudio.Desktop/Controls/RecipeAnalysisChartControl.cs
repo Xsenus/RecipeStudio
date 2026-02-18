@@ -227,7 +227,7 @@ public sealed class RecipeAnalysisChartControl : Control
             DrawText(ctx, $"{value:0.#}", new Point(chartRect.Right + 6, y), 13, new SolidColorBrush(Color.FromRgb(255, 102, 112)), HorizontalAlignment.Left, VerticalAlignment.Center);
         }
 
-        DrawText(ctx, title, new Point(chartRect.Right + 42, chartRect.Top + chartRect.Height / 2), 14, new SolidColorBrush(Color.FromRgb(166, 174, 190)), VerticalAlignment.Center);
+        DrawText(ctx, title, new Point(chartRect.Right + 42, chartRect.Top + chartRect.Height / 2), 14, new SolidColorBrush(Color.FromRgb(166, 174, 190)), vertical: VerticalAlignment.Center);
     }
 
     private static void DrawSeries(DrawingContext ctx, Rect chartRect, int[] xValues, SeriesInfo series, int minX, int maxX, double minY, double maxY)
@@ -237,7 +237,7 @@ public sealed class RecipeAnalysisChartControl : Control
         var pen = new Pen(series.Color, 2, dashStyle: series.Dashed ? new DashStyle(new[] { 3.0, 3.0 }, 0) : null);
 
         StreamGeometry? geometry = null;
-        using (var g = new StreamGeometry())
+        var g = new StreamGeometry();
         {
             using var sg = g.Open();
             var start = ToScreen(chartRect, xValues[0], series.Values[0], minX, maxX, minY, maxY);
@@ -396,8 +396,8 @@ public sealed class RecipeAnalysisChartControl : Control
                 return new List<SeriesInfo>
                 {
                     new("Height (Z)", points.Select(p => p.ZCrd).ToList(), new SolidColorBrush(Color.FromRgb(89, 166, 255)), "mm"),
-                    new("Machine X", points.Select(p => p.Xr0 + p.DX).ToList(), new SolidColorBrush(Color.FromRgb(255, 133, 133)), "mm", dashed: true),
-                    new("Machine Z", points.Select(p => p.Zr0 + p.DZ).ToList(), new SolidColorBrush(Color.FromRgb(255, 201, 61)), "mm", dashed: true),
+                    new("Machine X", points.Select(p => p.Xr0 + p.DX).ToList(), new SolidColorBrush(Color.FromRgb(255, 133, 133)), "mm", Dashed: true),
+                    new("Machine Z", points.Select(p => p.Zr0 + p.DZ).ToList(), new SolidColorBrush(Color.FromRgb(255, 201, 61)), "mm", Dashed: true),
                     new("Radius (R)", points.Select(p => p.RCrd).ToList(), new SolidColorBrush(Color.FromRgb(60, 232, 166)), "mm")
                 };
 
@@ -424,7 +424,7 @@ public sealed class RecipeAnalysisChartControl : Control
             default:
                 return new List<SeriesInfo>
                 {
-                    new("Flow Rate", points.Select(p => p.IceRate).ToList(), new SolidColorBrush(Color.FromRgb(255, 100, 100)), "V (mm/s)", rightAxis: true),
+                    new("Flow Rate", points.Select(p => p.IceRate).ToList(), new SolidColorBrush(Color.FromRgb(255, 100, 100)), "V (mm/s)", RightAxis: true),
                     new("V (Sim)", points.Select(p => p.NozzleSpeedMmMin / 60.0).ToList(), new SolidColorBrush(Color.FromRgb(86, 164, 255)), "V (mm/s)"),
                     new("V (Table)", points.Select(p => p.SpeedTable).ToList(), new SolidColorBrush(Color.FromRgb(154, 163, 176)), "V (mm/s)")
                 };
