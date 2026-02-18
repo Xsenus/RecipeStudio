@@ -16,8 +16,8 @@
 
       <Border Height="1" Background="#222633" />
 
-      <Grid ColumnDefinitions="*,*,*" ColumnSpacing="18">
-        <Border Classes="stat-card">
+      <Grid ColumnDefinitions="*,*,*">
+        <Border Grid.Column="0" Classes="stat-card">
           <Grid ColumnDefinitions="*,Auto">
             <StackPanel Spacing="8">
               <TextBlock Text="ВСЕГО РЕЦЕПТОВ" Classes="muted tiny section-label" />
@@ -28,7 +28,7 @@
           </Grid>
         </Border>
 
-        <Border Classes="stat-card">
+        <Border Grid.Column="1" Classes="stat-card" Margin="18,0,0,0">
           <Grid ColumnDefinitions="*,Auto">
             <StackPanel Spacing="8">
               <TextBlock Text="СИСТЕМА" Classes="muted tiny section-label" />
@@ -39,7 +39,7 @@
           </Grid>
         </Border>
 
-        <Border Classes="stat-card">
+        <Border Grid.Column="2" Classes="stat-card" Margin="18,0,0,0">
           <Grid ColumnDefinitions="*,Auto">
             <StackPanel Spacing="8">
               <TextBlock Text="ПОСЛЕДНЯЯ АКТИВНОСТЬ" Classes="muted tiny section-label" />
