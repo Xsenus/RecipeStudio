@@ -21,9 +21,9 @@
 
       <!-- Left: table -->
       <Border Classes="card" Margin="0,0,12,0">
-        <DockPanel LastChildFill="True">
+        <Grid RowDefinitions="Auto,*">
 
-          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,10">
+          <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,10">
             <Button Command="{Binding AddPointCommand}" Classes="good">+ Точка</Button>
             <Button Command="{Binding DuplicatePointCommand}" Classes="ghost">Дублировать</Button>
             <Button Command="{Binding RemovePointCommand}" Classes="danger">Удалить</Button>
@@ -38,7 +38,7 @@
             <TextBlock Text="{Binding Document.RecipeId, StringFormat='ID: {0}'}" Classes="muted" Margin="12,0,0,0" VerticalAlignment="Center" />
           </StackPanel>
 
-          <DataGrid ItemsSource="{Binding Points}"
+          <DataGrid Grid.Row="1" ItemsSource="{Binding Points}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
                     SelectedItem="{Binding SelectedPoint}"
                     AutoGenerateColumns="False"
                     CanUserResizeColumns="True"
@@ -46,7 +46,8 @@
                     CanUserSortColumns="True"
                     IsReadOnly="False"
                     HeadersVisibility="All"
-                    MinHeight="360"
+                    Height="620"
+                    MinHeight="500"
 >
 
             <DataGrid.Columns>
@@ -109,71 +110,83 @@
             </DataGrid.Columns>
           </DataGrid>
 
-        </DockPanel>
+        </Grid>
       </Border>
 
-      <!-- Right: parameters + plots -->
-      <StackPanel Grid.Column="1" Spacing="12">
+      <!-- Right: movable panels -->
+      <Grid Grid.Column="1" RowDefinitions="Auto,*">
+        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right" Margin="0,0,0,8">
+          <Button Classes="ghost" Click="ShowParametersPanel_Click">Параметры</Button>
+          <Button Classes="ghost" Click="ShowVisualizationPanel_Click">Визуализация</Button>
+          <Button Classes="ghost" Click="ShowSelectedPointPanel_Click">Точка</Button>
+          <Button Classes="ghost" Click="ResetPanels_Click">Сбросить</Button>
+        </StackPanel>
 
-        <Border Classes="card">
-          <StackPanel Spacing="10">
-            <TextBlock Text="Параметры" FontSize="16" FontWeight="SemiBold" />
+        <Canvas x:Name="PanelsCanvas" Grid.Row="1" ClipToBounds="True">
+          <Border x:Name="ParametersPanel" Classes="card" Width="400">
+            <StackPanel Spacing="10">
+              <Grid ColumnDefinitions="*,Auto" PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+                <TextBlock Text="Параметры" FontSize="16" FontWeight="SemiBold" />
+                <Button Grid.Column="1" Classes="ghost" Width="28" Height="24" Padding="0" Click="HideParametersPanel_Click">✕</Button>
+              </Grid>
 
-            <Grid ColumnDefinitions="150,*" RowDefinitions="Auto,Auto,Auto,Auto">
-              <TextBlock Text="Recipe" VerticalAlignment="Center" />
-              <TextBox Grid.Column="1" Text="{Binding RecipeCode}" />
+              <Grid ColumnDefinitions="150,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                <TextBlock Text="Recipe" VerticalAlignment="Center" />
+                <TextBox Grid.Column="1" Text="{Binding RecipeCode}" />
 
-              <TextBlock Grid.Row="1" Text="Container" VerticalAlignment="Center" />
-              <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding ContainerPresent}">Есть контейнер</CheckBox>
+                <TextBlock Grid.Row="1" Text="Container" VerticalAlignment="Center" />
+                <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding ContainerPresent}">Есть контейнер</CheckBox>
 
-              <TextBlock Grid.Row="2" Text="D clamp form" VerticalAlignment="Center" />
-              <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DClampForm}" />
+                <TextBlock Grid.Row="2" Text="D clamp form" VerticalAlignment="Center" />
+                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DClampForm}" />
 
-              <TextBlock Grid.Row="3" Text="D clamp cont" VerticalAlignment="Center" />
-              <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DClampCont}" />
-            </Grid>
+                <TextBlock Grid.Row="3" Text="D clamp cont" VerticalAlignment="Center" />
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DClampCont}" />
+              </Grid>
+            </StackPanel>
+          </Border>
 
-          </StackPanel>
-        </Border>
+          <Border x:Name="VisualizationPanel" Classes="card" Width="400">
+            <StackPanel Spacing="10">
+              <Grid ColumnDefinitions="*,Auto,Auto" PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+                <TextBlock Text="Визуализация" FontSize="16" FontWeight="SemiBold" />
+                <TextBlock Grid.Column="1" Text="drag&amp;drop" Classes="muted" VerticalAlignment="Center" />
+                <Button Grid.Column="2" Classes="ghost" Width="28" Height="24" Padding="0" Click="HideVisualizationPanel_Click">✕</Button>
+              </Grid>
 
-        <Border Classes="card">
-          <StackPanel Spacing="10">
-            <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Text="Визуализация" FontSize="16" FontWeight="SemiBold" />
-              <!-- NOTE: '&' must be escaped in XML -->
-              <TextBlock Grid.Column="1" Text="drag&amp;drop" Classes="muted" VerticalAlignment="Center" />
-            </Grid>
+              <controls:RecipePlotControl Height="320"
+                                         Points="{Binding Points}"
+                                         SelectedPoint="{Binding SelectedPoint}"
+                                         Progress="{Binding Progress}"
+                                         Settings="{Binding AppSettings}" />
 
-            <controls:RecipePlotControl Height="360"
-                                       Points="{Binding Points}"
-                                       SelectedPoint="{Binding SelectedPoint}"
-                                       Progress="{Binding Progress}"
-                                       Settings="{Binding AppSettings}" />
+              <Grid ColumnDefinitions="Auto,Auto,*,Auto" RowDefinitions="Auto,Auto">
+                <Button Command="{Binding PlayPauseCommand}" Classes="accent">▶ / ❚❚</Button>
+                <Button Grid.Column="1" Command="{Binding StopCommand}" Classes="ghost">⏹</Button>
 
-            <Grid ColumnDefinitions="Auto,Auto,*,Auto" RowDefinitions="Auto,Auto">
-              <Button Command="{Binding PlayPauseCommand}" Classes="accent">▶ / ❚❚</Button>
-              <Button Grid.Column="1" Command="{Binding StopCommand}" Classes="ghost">⏹</Button>
+                <TextBlock Grid.Column="2" Text="Скорость" VerticalAlignment="Center" Classes="muted" />
+                <Slider Grid.Column="3" Minimum="0.2" Maximum="3" Value="{Binding SpeedMultiplier}" Width="140" />
 
-              <TextBlock Grid.Column="2" Text="Скорость" VerticalAlignment="Center" Classes="muted" />
-              <Slider Grid.Column="3" Minimum="0.2" Maximum="3" Value="{Binding SpeedMultiplier}" Width="140" />
+                <TextBlock Grid.Row="1" Grid.ColumnSpan="4" Text="Прогресс" Classes="muted" />
+                <Slider Grid.Row="1" Grid.ColumnSpan="4" Minimum="0" Maximum="1" Value="{Binding Progress}" />
+              </Grid>
 
-              <TextBlock Grid.Row="1" Grid.ColumnSpan="4" Text="Прогресс" Classes="muted" />
-              <Slider Grid.Row="1" Grid.ColumnSpan="4" Minimum="0" Maximum="1" Value="{Binding Progress}" />
-            </Grid>
+              <TextBlock Text="Линия: Robot/Tool path (оранжевый), точки: Safe=0/1 (зелёный/циан)." Classes="muted" />
+            </StackPanel>
+          </Border>
 
-            <TextBlock Text="Линия: Robot/Tool path (оранжевый), точки: Safe=0/1 (зелёный/циан)." Classes="muted" />
-          </StackPanel>
-        </Border>
-
-        <Border Classes="card">
-          <StackPanel Spacing="6">
-            <TextBlock Text="Выбранная точка" FontSize="16" FontWeight="SemiBold" />
-            <TextBlock Text="{Binding SelectedPoint}" Classes="muted" TextWrapping="Wrap" />
-            <TextBlock Text="Подсказка: клик по точке на графике выбирает строку. Перетаскивание обновляет R/Z." Classes="muted" TextWrapping="Wrap" />
-          </StackPanel>
-        </Border>
-
-      </StackPanel>
+          <Border x:Name="SelectedPointPanel" Classes="card" Width="400">
+            <StackPanel Spacing="6">
+              <Grid ColumnDefinitions="*,Auto" PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+                <TextBlock Text="Выбранная точка" FontSize="16" FontWeight="SemiBold" />
+                <Button Grid.Column="1" Classes="ghost" Width="28" Height="24" Padding="0" Click="HideSelectedPointPanel_Click">✕</Button>
+              </Grid>
+              <TextBlock Text="{Binding SelectedPoint}" Classes="muted" TextWrapping="Wrap" />
+              <TextBlock Text="Подсказка: клик по точке на графике выбирает строку. Перетаскивание обновляет R/Z." Classes="muted" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+        </Canvas>
+      </Grid>
     </Grid>
   </Grid>
 </UserControl>

@@ -1,8 +1,11 @@
+using System;
 using System.Linq;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Platform.Storage;
-using RecipeStudio.Desktop.Views.Dialogs;
 using RecipeStudio.Desktop.ViewModels;
+using RecipeStudio.Desktop.Views.Dialogs;
 
 namespace RecipeStudio.Desktop.Views.Pages;
 
@@ -13,10 +16,17 @@ public sealed partial class EditorView : UserControl
         InitializeComponent();
 
         DataContextChanged += (_, __) => HookVm();
-        AttachedToVisualTree += (_, __) => HookVm();
+        AttachedToVisualTree += (_, __) =>
+        {
+            HookVm();
+            InitializePanelsLayout();
+        };
     }
 
     private EditorViewModel? _vm;
+    private Border? _dragPanel;
+    private Point _dragOffset;
+    private bool _panelsInitialized;
 
     private void HookVm()
     {
@@ -78,8 +88,6 @@ public sealed partial class EditorView : UserControl
         var path = file.Path.LocalPath;
         if (string.IsNullOrWhiteSpace(path)) return;
 
-        // NOTE: runs on UI thread (simple prototype). If needed, we can move the heavy read to background
-        // and apply results via Dispatcher.
         _vm.ImportFromExcel(path);
     }
 
@@ -112,5 +120,90 @@ public sealed partial class EditorView : UserControl
         if (string.IsNullOrWhiteSpace(path)) return;
 
         _vm.ExportToExcel(path);
+    }
+
+    private void InitializePanelsLayout()
+    {
+        if (_panelsInitialized)
+            return;
+
+        _panelsInitialized = true;
+
+        Canvas.SetLeft(ParametersPanel, 0);
+        Canvas.SetTop(ParametersPanel, 0);
+
+        Canvas.SetLeft(VisualizationPanel, 0);
+        Canvas.SetTop(VisualizationPanel, 230);
+
+        Canvas.SetLeft(SelectedPointPanel, 0);
+        Canvas.SetTop(SelectedPointPanel, 620);
+    }
+
+    private void Panel_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        var control = sender as Control;
+        while (control is not null && control is not Border)
+        {
+            control = control.Parent as Control;
+        }
+
+        if (control is not Border panel) return;
+
+        _dragPanel = panel;
+        var pos = e.GetPosition(PanelsCanvas);
+        _dragOffset = new Point(pos.X - Canvas.GetLeft(panel), pos.Y - Canvas.GetTop(panel));
+        panel.ZIndex = 10;
+        e.Pointer.Capture(panel);
+    }
+
+    private void Panel_PointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (_dragPanel is null) return;
+
+        var pos = e.GetPosition(PanelsCanvas);
+        var newLeft = Math.Max(0, pos.X - _dragOffset.X);
+        var newTop = Math.Max(0, pos.Y - _dragOffset.Y);
+
+        var maxLeft = Math.Max(0, PanelsCanvas.Bounds.Width - _dragPanel.Bounds.Width);
+        var maxTop = Math.Max(0, PanelsCanvas.Bounds.Height - _dragPanel.Bounds.Height);
+
+        Canvas.SetLeft(_dragPanel, Math.Min(newLeft, maxLeft));
+        Canvas.SetTop(_dragPanel, Math.Min(newTop, maxTop));
+    }
+
+    private void Panel_PointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (_dragPanel is null) return;
+
+        _dragPanel.ZIndex = 0;
+        e.Pointer.Capture(null);
+        _dragPanel = null;
+    }
+
+    private void HideParametersPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => ParametersPanel.IsVisible = false;
+
+    private void HideVisualizationPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => VisualizationPanel.IsVisible = false;
+
+    private void HideSelectedPointPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => SelectedPointPanel.IsVisible = false;
+
+    private void ShowParametersPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => ParametersPanel.IsVisible = true;
+
+    private void ShowVisualizationPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => VisualizationPanel.IsVisible = true;
+
+    private void ShowSelectedPointPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => SelectedPointPanel.IsVisible = true;
+
+    private void ResetPanels_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        ParametersPanel.IsVisible = true;
+        VisualizationPanel.IsVisible = true;
+        SelectedPointPanel.IsVisible = true;
+        _panelsInitialized = false;
+        InitializePanelsLayout();
     }
 }
