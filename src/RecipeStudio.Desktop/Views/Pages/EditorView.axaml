@@ -9,12 +9,21 @@
   <Grid RowDefinitions="Auto,*" Margin="18">
 
     <!-- Header -->
-    <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,12">
-      <Button Command="{Binding BackCommand}" Classes="ghost back-arrow" Width="42" Height="34" Padding="0"><TextBlock Text="←" HorizontalAlignment="Center" VerticalAlignment="Center" /></Button>
+    <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,0,0,12">
+      <Button Command="{Binding BackCommand}" Classes="ghost back-arrow" Width="42" Height="34" Padding="0">
+        <TextBlock Text="←" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Button>
 
       <TextBlock Grid.Column="1" Text="Редактор рецепта" Classes="h1" VerticalAlignment="Center" Margin="12,0,0,0" />
 
-      <Button Grid.Column="2" Command="{Binding SaveCommand}" Classes="accent">Сохранить</Button>
+      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,8,0">
+        <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать панель параметров" Click="ShowParametersPanel_Click">⚙</Button>
+        <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать панель визуализации" Click="ShowVisualizationPanel_Click">📈</Button>
+        <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать панель выбранной точки" Click="ShowSelectedPointPanel_Click">◎</Button>
+        <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Сбросить панели" Click="ResetPanels_Click">↺</Button>
+      </StackPanel>
+
+      <Button Grid.Column="3" Command="{Binding SaveCommand}" Classes="accent">Сохранить</Button>
     </Grid>
 
     <Grid Grid.Row="1">
@@ -38,145 +47,284 @@
             <TextBlock Text="{Binding Document.RecipeId, StringFormat='ID: {0}'}" Classes="muted" Margin="12,0,0,0" VerticalAlignment="Center" />
           </StackPanel>
 
-          <DataGrid Grid.Row="1" Classes="editor-grid" ItemsSource="{Binding Points}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+          <DataGrid Grid.Row="1"
+                    Classes="editor-grid"
+                    ItemsSource="{Binding Points}"
                     SelectedItem="{Binding SelectedPoint}"
                     AutoGenerateColumns="False"
                     CanUserResizeColumns="True"
-                    CanUserReorderColumns="True"
-                    CanUserSortColumns="True"
+                    CanUserReorderColumns="False"
+                    CanUserSortColumns="False"
                     IsReadOnly="False"
                     HeadersVisibility="All"
-                    MinHeight="520" FontSize="13" RowHeight="34"
->
+                    MinHeight="520"
+                    FontSize="13"
+                    RowHeight="34">
 
             <DataGrid.Columns>
+              <DataGridTextColumn Binding="{Binding NPoint}" IsReadOnly="True" Width="40">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="#" Classes="grid-hdr" ToolTip.Tip="Порядковый номер точки" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
 
-              <DataGridTextColumn Header="#" Binding="{Binding NPoint}" IsReadOnly="True" Width="45" />
-              <DataGridCheckBoxColumn Header="A" Binding="{Binding Act}" Width="55" />
-              <DataGridCheckBoxColumn Header="S" Binding="{Binding Safe}" Width="60" />
+              <DataGridCheckBoxColumn Binding="{Binding Act}" Width="40">
+                <DataGridCheckBoxColumn.Header>
+                  <TextBlock Text="A" Classes="grid-hdr" ToolTip.Tip="Активность точки: 1 — участвует, 0 — выключена" />
+                </DataGridCheckBoxColumn.Header>
+              </DataGridCheckBoxColumn>
 
-              <!-- Core input -->
-              <DataGridTextColumn Header="R" Binding="{Binding RCrd}" Width="90" />
-              <DataGridTextColumn Header="Z" Binding="{Binding ZCrd}" Width="90" />
-              <DataGridTextColumn Header="place" Binding="{Binding Place}" Width="70" />
-              <DataGridCheckBoxColumn Header="hidden" Binding="{Binding Hidden}" Width="75" />
+              <DataGridCheckBoxColumn Binding="{Binding Safe}" Width="40">
+                <DataGridCheckBoxColumn.Header>
+                  <TextBlock Text="S" Classes="grid-hdr" ToolTip.Tip="Зона безопасности (Safe)" />
+                </DataGridCheckBoxColumn.Header>
+              </DataGridCheckBoxColumn>
 
-              <DataGridTextColumn Header="a" Binding="{Binding ANozzle}" Width="90" />
-              <DataGridTextColumn Header="α rec" Binding="{Binding RecommendedAlfa}" IsReadOnly="True" Width="75" />
-              <DataGridTextColumn Header="α" Binding="{Binding Alfa}" Width="75" />
-              <DataGridTextColumn Header="β" Binding="{Binding Betta}" Width="75" />
+              <DataGridTextColumn Binding="{Binding RCrd}" Width="66">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="R" Classes="grid-hdr hdr-green" ToolTip.Tip="Радиальная координата, мм" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
 
-              <DataGridTextColumn Header="Speed" Binding="{Binding SpeedTable}" Width="70" />
-              <DataGridTextColumn Header="Time" Binding="{Binding TimeSec}" IsReadOnly="True" Width="75" />
-              <DataGridTextColumn Header="Vel" Binding="{Binding NozzleSpeedMmMin}" IsReadOnly="True" Width="95" />
-              <DataGridTextColumn Header="Flow" Binding="{Binding RecommendedIceRate}" IsReadOnly="True" Width="75" />
+              <DataGridTextColumn Binding="{Binding ZCrd}" Width="66">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Z" Classes="grid-hdr hdr-green" ToolTip.Tip="Высота Z, мм" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
 
-              <DataGridTextColumn Header="Ice.R" Binding="{Binding IceRate}" Width="90" />
-              <DataGridTextColumn Header="Ice.G" Binding="{Binding IceGrind}" Width="90" />
-              <DataGridTextColumn Header="Air.P" Binding="{Binding AirPressure}" Width="75" />
-              <DataGridTextColumn Header="Air.T" Binding="{Binding AirTemp}" Width="75" />
+              <DataGridTextColumn Binding="{Binding ANozzle}" Width="56">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="a" Classes="grid-hdr" ToolTip.Tip="Диаметр сопла a, мм" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
 
-              <DataGridCheckBoxColumn Header="cont" Binding="{Binding Container}" Width="70" />
-              <DataGridTextColumn Header="D form" Binding="{Binding DClampForm}" Width="90" />
-              <DataGridTextColumn Header="D cont" Binding="{Binding DClampCont}" Width="90" />
-              <DataGridTextColumn Header="Desc" Binding="{Binding Description}" Width="90" />
+              <DataGridTextColumn Binding="{Binding Alfa}" Width="56">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="α" Classes="grid-hdr" ToolTip.Tip="Угол альфа, °" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
 
-              <!-- Outputs (trimmed to match compact prototype) -->
-              <DataGridTextColumn Header="Xm" Binding="{Binding DX}" IsReadOnly="True" Width="80" />
-              <DataGridTextColumn Header="Ym" Binding="{Binding DY}" IsReadOnly="True" Width="80" />
-              <DataGridTextColumn Header="Zm" Binding="{Binding DZ}" IsReadOnly="True" Width="80" />
-              <DataGridTextColumn Header="Am" Binding="{Binding DA}" IsReadOnly="True" Width="80" />
-              <DataGridTextColumn Header="Bm" Binding="{Binding AB}" IsReadOnly="True" Width="80" />
+              <DataGridTextColumn Binding="{Binding Betta}" Width="56">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="β" Classes="grid-hdr" ToolTip.Tip="Угол бета, °" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
 
-              <DataGridTextColumn Header="Xr" Binding="{Binding Xr0}" IsReadOnly="True" Width="80" />
-              <DataGridTextColumn Header="Yr" Binding="{Binding Yx0}" IsReadOnly="True" Width="80" />
-              <DataGridTextColumn Header="Zr" Binding="{Binding Zr0}" IsReadOnly="True" Width="80" />
+              <DataGridTextColumn Binding="{Binding Place}" Width="62">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Top" Classes="grid-hdr hdr-blue" ToolTip.Tip="Сторона/уровень обработки (Top)" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
 
-              <DataGridTextColumn Header="Xp" Binding="{Binding XPuls}" IsReadOnly="True" Width="90" />
-              <DataGridTextColumn Header="Yp" Binding="{Binding YPuls}" IsReadOnly="True" Width="90" />
-              <DataGridTextColumn Header="Zp" Binding="{Binding ZPuls}" IsReadOnly="True" Width="90" />
-              <DataGridTextColumn Header="Ap" Binding="{Binding APuls}" IsReadOnly="True" Width="90" />
-              <DataGridTextColumn Header="Bp" Binding="{Binding BPuls}" IsReadOnly="True" Width="90" />
+              <DataGridCheckBoxColumn Binding="{Binding Hidden}" Width="72">
+                <DataGridCheckBoxColumn.Header>
+                  <TextBlock Text="Micro" Classes="grid-hdr" ToolTip.Tip="Микро-режим (скрытая/служебная точка)" />
+                </DataGridCheckBoxColumn.Header>
+              </DataGridCheckBoxColumn>
 
+              <DataGridTextColumn Binding="{Binding SpeedTable}" Width="72">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Speed" Classes="grid-hdr" ToolTip.Tip="ω — скорость стола, об/мин" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
+
+              <DataGridTextColumn Binding="{Binding TimeSec}" IsReadOnly="True" Width="64">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Time" Classes="grid-hdr" ToolTip.Tip="t, сек — время прохода" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
+
+              <DataGridTextColumn Binding="{Binding IceRate}" Width="74">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Ice.R" Classes="grid-hdr hdr-violet" ToolTip.Tip="G_изм, кг/ч — фактический расход" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
+
+              <DataGridTextColumn Binding="{Binding IceGrind}" Width="74">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Ice.G" Classes="grid-hdr hdr-violet" ToolTip.Tip="Степень помола/настройка льда" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
+
+              <DataGridTextColumn Binding="{Binding AirPressure}" Width="74">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Air.P" Classes="grid-hdr hdr-violet" ToolTip.Tip="P, атм — давление воздуха" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
+
+              <DataGridTextColumn Binding="{Binding AirTemp}" Width="74">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Air.T" Classes="grid-hdr hdr-violet" ToolTip.Tip="T, °C — температура воздуха" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
+
+              <DataGridTextColumn Binding="{Binding NozzleSpeedMmMin}" IsReadOnly="True" Width="66">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Vel" Classes="grid-hdr hdr-orange" ToolTip.Tip="V, мм/мин = round(2 * π * R * Speed / 60), где π = 3.14" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
+
+              <DataGridTextColumn Binding="{Binding RecommendedIceRate}" IsReadOnly="True" Width="66">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Flow" Classes="grid-hdr hdr-orange" ToolTip.Tip="Рекомендованный расход G, кг/ч" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
+
+              <DataGridTextColumn Binding="{Binding DX}" IsReadOnly="True" Width="56">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Xm" Classes="grid-hdr" ToolTip.Tip="Машинная координата X" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
+              <DataGridTextColumn Binding="{Binding DY}" IsReadOnly="True" Width="56">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Ym" Classes="grid-hdr" ToolTip.Tip="Машинная координата Y" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
+              <DataGridTextColumn Binding="{Binding DZ}" IsReadOnly="True" Width="56">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Zm" Classes="grid-hdr" ToolTip.Tip="Машинная координата Z" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
+              <DataGridTextColumn Binding="{Binding DA}" IsReadOnly="True" Width="56">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Am" Classes="grid-hdr" ToolTip.Tip="Машинная координата A" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
+              <DataGridTextColumn Binding="{Binding AB}" IsReadOnly="True" Width="56">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Bm" Classes="grid-hdr" ToolTip.Tip="Машинная координата B" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
+
+              <DataGridTextColumn Binding="{Binding Xr0}" IsReadOnly="True" Width="56">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Xr" Classes="grid-hdr hdr-red" ToolTip.Tip="Робот-координата X" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
+              <DataGridTextColumn Binding="{Binding Yx0}" IsReadOnly="True" Width="56">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Yr" Classes="grid-hdr hdr-red" ToolTip.Tip="Робот-координата Y" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
+              <DataGridTextColumn Binding="{Binding Zr0}" IsReadOnly="True" Width="56">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Zr" Classes="grid-hdr hdr-red" ToolTip.Tip="Робот-координата Z" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
+
+              <DataGridTextColumn Binding="{Binding XPuls}" IsReadOnly="True" Width="58">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Xp" Classes="grid-hdr hdr-deep-blue" ToolTip.Tip="Импульсы X" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
+              <DataGridTextColumn Binding="{Binding YPuls}" IsReadOnly="True" Width="58">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Yp" Classes="grid-hdr hdr-deep-blue" ToolTip.Tip="Импульсы Y" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
+              <DataGridTextColumn Binding="{Binding ZPuls}" IsReadOnly="True" Width="58">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Zp" Classes="grid-hdr hdr-deep-blue" ToolTip.Tip="Импульсы Z" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
+              <DataGridTextColumn Binding="{Binding APuls}" IsReadOnly="True" Width="58">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Ap" Classes="grid-hdr hdr-deep-blue" ToolTip.Tip="Импульсы A" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
+              <DataGridTextColumn Binding="{Binding BPuls}" IsReadOnly="True" Width="58">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Bp" Classes="grid-hdr hdr-deep-blue" ToolTip.Tip="Импульсы B" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
+
+              <DataGridTextColumn Binding="{Binding Description}" Width="140">
+                <DataGridTextColumn.Header>
+                  <TextBlock Text="Desc" Classes="grid-hdr" ToolTip.Tip="Комментарий к точке" />
+                </DataGridTextColumn.Header>
+              </DataGridTextColumn>
             </DataGrid.Columns>
           </DataGrid>
 
         </Grid>
       </Border>
 
-      <!-- Right: movable panels -->
-      <Grid RowDefinitions="Auto,*" Margin="0">
-        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right" Margin="0,0,0,8">
-          <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать панель параметров" Click="ShowParametersPanel_Click">⚙</Button>
-          <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать панель визуализации" Click="ShowVisualizationPanel_Click">📈</Button>
-          <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать панель выбранной точки" Click="ShowSelectedPointPanel_Click">◎</Button>
-          <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Сбросить панели" Click="ResetPanels_Click">↺</Button>
-        </StackPanel>
+      <!-- Movable / resizable panels overlay -->
+      <Canvas x:Name="PanelsCanvas" ClipToBounds="True">
+        <Border x:Name="ParametersPanel" Classes="card floating-panel"
+                Width="390" Height="210" MinWidth="320" MinHeight="170"
+                PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+          <Grid RowDefinitions="Auto,*">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="Параметры" FontSize="16" FontWeight="SemiBold" />
+              <Button Grid.Column="1" Classes="ghost panel-close-btn" Click="HideParametersPanel_Click">✕</Button>
+            </Grid>
 
-        <Canvas x:Name="PanelsCanvas" Grid.Row="1" ClipToBounds="True">
-          <Border x:Name="ParametersPanel" Classes="card" Width="390" PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
-            <StackPanel Spacing="10">
-              <Grid ColumnDefinitions="*,Auto" PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
-                <TextBlock Text="Параметры" FontSize="16" FontWeight="SemiBold" />
-                <Button Grid.Column="1" Classes="ghost panel-close-btn" Click="HideParametersPanel_Click">✕</Button>
-              </Grid>
+            <Grid Grid.Row="1" ColumnDefinitions="150,*" RowDefinitions="Auto,Auto,Auto,Auto" Margin="0,10,0,0">
+              <TextBlock Text="Recipe" VerticalAlignment="Center" />
+              <TextBox Grid.Column="1" Text="{Binding RecipeCode}" />
 
-              <Grid ColumnDefinitions="150,*" RowDefinitions="Auto,Auto,Auto,Auto">
-                <TextBlock Text="Recipe" VerticalAlignment="Center" />
-                <TextBox Grid.Column="1" Text="{Binding RecipeCode}" />
+              <TextBlock Grid.Row="1" Text="Container" VerticalAlignment="Center" />
+              <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding ContainerPresent}">Есть контейнер</CheckBox>
 
-                <TextBlock Grid.Row="1" Text="Container" VerticalAlignment="Center" />
-                <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding ContainerPresent}">Есть контейнер</CheckBox>
+              <TextBlock Grid.Row="2" Text="D clamp form" VerticalAlignment="Center" />
+              <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DClampForm}" />
 
-                <TextBlock Grid.Row="2" Text="D clamp form" VerticalAlignment="Center" />
-                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DClampForm}" />
+              <TextBlock Grid.Row="3" Text="D clamp cont" VerticalAlignment="Center" />
+              <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DClampCont}" />
+            </Grid>
+          </Grid>
+        </Border>
+        <Border x:Name="ParametersResizeHandle" Classes="panel-resize-handle"
+                PointerPressed="ResizeHandle_PointerPressed" PointerMoved="ResizeHandle_PointerMoved" PointerReleased="ResizeHandle_PointerReleased" />
 
-                <TextBlock Grid.Row="3" Text="D clamp cont" VerticalAlignment="Center" />
-                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding DClampCont}" />
-              </Grid>
-            </StackPanel>
-          </Border>
+        <Border x:Name="VisualizationPanel" Classes="card floating-panel"
+                Width="520" Height="360" MinWidth="380" MinHeight="260"
+                PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+          <Grid RowDefinitions="Auto,*">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="PROFILE VIEWER (R-Z)" FontSize="16" FontWeight="SemiBold" />
+              <Button Grid.Column="1" Classes="ghost panel-close-btn" Click="HideVisualizationPanel_Click">✕</Button>
+            </Grid>
 
-          <Border x:Name="VisualizationPanel" Classes="card" Width="390" PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
-            <StackPanel Spacing="10">
-              <Grid ColumnDefinitions="*,Auto" PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
-                <TextBlock Text="Визуализация" FontSize="16" FontWeight="SemiBold" />
-                <Button Grid.Column="1" Classes="ghost panel-close-btn" Click="HideVisualizationPanel_Click">✕</Button>
-              </Grid>
-
-              <controls:RecipePlotControl Height="320"
+            <Grid Grid.Row="1" RowDefinitions="*,Auto" Margin="0,10,0,0">
+              <controls:RecipePlotControl Height="250"
                                          Points="{Binding Points}"
                                          SelectedPoint="{Binding SelectedPoint}"
                                          Progress="{Binding Progress}"
                                          Settings="{Binding AppSettings}" />
 
-              <Grid ColumnDefinitions="Auto,Auto,*,Auto" RowDefinitions="Auto,Auto">
+              <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*,Auto" Margin="0,8,0,0">
                 <Button Command="{Binding PlayPauseCommand}" Classes="accent">▶ / ❚❚</Button>
                 <Button Grid.Column="1" Command="{Binding StopCommand}" Classes="ghost">⏹</Button>
 
                 <TextBlock Grid.Column="2" Text="Скорость" VerticalAlignment="Center" Classes="muted" />
                 <Slider Grid.Column="3" Minimum="0.2" Maximum="3" Value="{Binding SpeedMultiplier}" Width="140" />
-
-                <TextBlock Grid.Row="1" Grid.ColumnSpan="4" Text="Прогресс" Classes="muted" />
-                <Slider Grid.Row="1" Grid.ColumnSpan="4" Minimum="0" Maximum="1" Value="{Binding Progress}" />
               </Grid>
+            </Grid>
+          </Grid>
+        </Border>
+        <Border x:Name="VisualizationResizeHandle" Classes="panel-resize-handle"
+                PointerPressed="ResizeHandle_PointerPressed" PointerMoved="ResizeHandle_PointerMoved" PointerReleased="ResizeHandle_PointerReleased" />
 
-              <TextBlock Text="Линия: Robot/Tool path (оранжевый), точки: Safe=0/1 (зелёный/циан)." Classes="muted" />
-            </StackPanel>
-          </Border>
+        <Border x:Name="SelectedPointPanel" Classes="card floating-panel"
+                Width="430" Height="280" MinWidth="340" MinHeight="220"
+                PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+          <Grid RowDefinitions="Auto,*">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="ДЕТАЛИ ТОЧКИ" FontSize="16" FontWeight="SemiBold" />
+              <Button Grid.Column="1" Classes="ghost panel-close-btn" Click="HideSelectedPointPanel_Click">✕</Button>
+            </Grid>
 
-          <Border x:Name="SelectedPointPanel" Classes="card" Width="390" PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
-            <StackPanel Spacing="6">
-              <Grid ColumnDefinitions="*,Auto" PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
-                <TextBlock Text="Выбранная точка" FontSize="16" FontWeight="SemiBold" />
-                <Button Grid.Column="1" Classes="ghost panel-close-btn" Click="HideSelectedPointPanel_Click">✕</Button>
-              </Grid>
+            <StackPanel Grid.Row="1" Spacing="8" Margin="0,10,0,0">
               <TextBlock Text="{Binding SelectedPoint}" Classes="muted" TextWrapping="Wrap" />
-              <TextBlock Text="Подсказка: клик по точке на графике выбирает строку. Перетаскивание обновляет R/Z." Classes="muted" TextWrapping="Wrap" />
+              <TextBlock Text="Перетаскивание точки в визуализации обновляет R/Z." Classes="muted" TextWrapping="Wrap" />
             </StackPanel>
-          </Border>
-        </Canvas>
-      </Grid>
+          </Grid>
+        </Border>
+        <Border x:Name="SelectedPointResizeHandle" Classes="panel-resize-handle"
+                PointerPressed="ResizeHandle_PointerPressed" PointerMoved="ResizeHandle_PointerMoved" PointerReleased="ResizeHandle_PointerReleased" />
+      </Canvas>
     </Grid>
   </Grid>
 </UserControl>

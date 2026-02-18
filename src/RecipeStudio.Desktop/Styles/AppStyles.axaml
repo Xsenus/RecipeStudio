@@ -285,6 +285,55 @@
     <Setter Property="Foreground" Value="#FFDCDC" />
   </Style>
 
+  <Style Selector="Border.floating-panel">
+    <Setter Property="Background" Value="#1A1E28" />
+    <Setter Property="BorderBrush" Value="#2A3142" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="12" />
+  </Style>
+
+  <Style Selector="Border.panel-resize-handle">
+    <Setter Property="Width" Value="12" />
+    <Setter Property="Height" Value="12" />
+    <Setter Property="Background" Value="#4B5E7F" />
+    <Setter Property="BorderBrush" Value="#8AA3CB" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="3" />
+  </Style>
+
+  <Style Selector="TextBlock.grid-hdr">
+    <Setter Property="Foreground" Value="#8D97AA" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="TextBlock.hdr-green">
+    <Setter Property="Foreground" Value="#39E883" />
+  </Style>
+
+  <Style Selector="TextBlock.hdr-blue">
+    <Setter Property="Foreground" Value="#66A7FF" />
+  </Style>
+
+  <Style Selector="TextBlock.hdr-violet">
+    <Setter Property="Foreground" Value="#D7B7FF" />
+  </Style>
+
+  <Style Selector="TextBlock.hdr-orange">
+    <Setter Property="Foreground" Value="#FF9C37" />
+  </Style>
+
+  <Style Selector="TextBlock.hdr-red">
+    <Setter Property="Foreground" Value="#81232B" />
+  </Style>
+
+  <Style Selector="TextBlock.hdr-deep-blue">
+    <Setter Property="Foreground" Value="#1D4BB5" />
+  </Style>
+
+
   <Style Selector="DataGrid">
     <Setter Property="Background" Value="#11161F" />
     <Setter Property="BorderBrush" Value="#2A3142" />
@@ -352,7 +401,11 @@
     <Setter Property="FontSize" Value="12" />
     <Setter Property="BorderBrush" Value="#2A3142" />
     <Setter Property="BorderThickness" Value="0,0,1,1" />
-    <Setter Property="Padding" Value="8,4" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridColumnHeader:pointerover">
+    <Setter Property="Background" Value="#242A36" />
   </Style>
 
   <Style Selector="DataGrid.editor-grid DataGridRow">
