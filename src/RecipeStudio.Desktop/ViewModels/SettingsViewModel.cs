@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using RecipeStudio.Desktop.Services;
 
 namespace RecipeStudio.Desktop.ViewModels;
@@ -36,6 +37,7 @@ public sealed class SettingsViewModel : ViewModelBase
                 RaisePropertyChanged(nameof(IsMachineSection));
                 RaisePropertyChanged(nameof(IsCoefficientsSection));
                 RaisePropertyChanged(nameof(IsGraphicsSection));
+                RaisePropertyChanged(nameof(CurrentSectionTitle));
             }
         }
     }
@@ -45,6 +47,15 @@ public sealed class SettingsViewModel : ViewModelBase
     public bool IsCoefficientsSection => SelectedSection == SectionCoefficients;
     public bool IsGraphicsSection => SelectedSection == SectionGraphics;
 
+    public string CurrentSectionTitle => SelectedSection switch
+    {
+        SectionStorage => "Хранилище рецептов",
+        SectionMachine => "Параметры станка",
+        SectionCoefficients => "Коэффициенты и импульсы",
+        SectionGraphics => "Графика",
+        _ => "Настройки"
+    };
+
     public string RecipesFolder
     {
         get => _settings.Settings.RecipesFolder;
@@ -52,8 +63,12 @@ public sealed class SettingsViewModel : ViewModelBase
         {
             _settings.Settings.RecipesFolder = value;
             RaisePropertyChanged();
+            RaisePropertyChanged(nameof(DatabaseFilePath));
         }
     }
+
+    public string SettingsFilePath => _settings.SettingsPath;
+    public string DatabaseFilePath => Path.Combine(_settings.Settings.RecipesFolder, "recipes.sqlite");
 
     // Machine / constants
     public double HZone { get => _settings.Settings.HZone; set { _settings.Settings.HZone = value; RaisePropertyChanged(); } }
@@ -81,8 +96,11 @@ public sealed class SettingsViewModel : ViewModelBase
         {
             _settings.Settings.PlotOpacity = Math.Clamp(value, 0.05, 0.90);
             RaisePropertyChanged();
+            RaisePropertyChanged(nameof(PlotOpacityDisplay));
         }
     }
+
+    public string PlotOpacityDisplay => $"{PlotOpacity:0.00}";
 
     public double PlotStrokeThickness { get => _settings.Settings.PlotStrokeThickness; set { _settings.Settings.PlotStrokeThickness = value; RaisePropertyChanged(); } }
     public double PlotPointRadius { get => _settings.Settings.PlotPointRadius; set { _settings.Settings.PlotPointRadius = value; RaisePropertyChanged(); } }
@@ -106,5 +124,7 @@ public sealed class SettingsViewModel : ViewModelBase
     {
         _settings.Save();
         _onChanged();
+        RaisePropertyChanged(nameof(SettingsFilePath));
+        RaisePropertyChanged(nameof(DatabaseFilePath));
     }
 }

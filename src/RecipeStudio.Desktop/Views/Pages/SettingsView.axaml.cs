@@ -1,3 +1,6 @@
+using System;
+using System.Diagnostics;
+using System.IO;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -34,6 +37,22 @@ public sealed partial class SettingsView : UserControl
         }
     }
 
+    private void OpenFolder_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not SettingsViewModel vm)
+            return;
+
+        OpenFolder(vm.RecipesFolder);
+    }
+
+    private void RecipesFolder_DoubleTapped(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not SettingsViewModel vm)
+            return;
+
+        OpenFolder(vm.RecipesFolder);
+    }
+
     private void SettingsTree_SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (DataContext is not SettingsViewModel vm)
@@ -45,6 +64,36 @@ public sealed partial class SettingsView : UserControl
         if (e.AddedItems[0] is TreeViewItem item && item.Tag is string section)
         {
             vm.SelectedSection = section;
+        }
+    }
+
+    private static void OpenFolder(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+            return;
+
+        try
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                Process.Start(new ProcessStartInfo("explorer.exe", $"\"{path}\"") { UseShellExecute = true });
+                return;
+            }
+
+            if (OperatingSystem.IsMacOS())
+            {
+                Process.Start("open", path);
+                return;
+            }
+
+            if (OperatingSystem.IsLinux())
+            {
+                Process.Start("xdg-open", path);
+            }
+        }
+        catch
+        {
+            // ignore in prototype
         }
     }
 }
