@@ -26,7 +26,7 @@ public sealed class MainViewModel : ViewModelBase
 
         _currentPage = Dashboard;
 
-        NavigateDashboardCommand = new RelayCommand(() => CurrentPage = Dashboard);
+        NavigateDashboardCommand = new RelayCommand(NavigateToDashboard);
         NavigateEditorCommand = new RelayCommand(() => CurrentPage = Editor, () => CanAccessRecipePages);
         NavigateSimulationCommand = new RelayCommand(() => CurrentPage = Simulation, () => CanAccessRecipePages);
         NavigateSettingsCommand = new RelayCommand(() => CurrentPage = Settings);
@@ -80,6 +80,7 @@ public sealed class MainViewModel : ViewModelBase
 
     private void NavigateToDashboard()
     {
+        Editor.CloseDocument();
         Dashboard.Refresh();
         CurrentPage = Dashboard;
     }

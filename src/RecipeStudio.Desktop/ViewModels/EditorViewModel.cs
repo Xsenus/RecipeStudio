@@ -196,6 +196,15 @@ public sealed class EditorViewModel : ViewModelBase
         set => SetProperty(ref _progress, value);
     }
 
+    public void CloseDocument()
+    {
+        Stop();
+        UnhookPoints();
+        Points.Clear();
+        SelectedPoint = null;
+        Document = null;
+    }
+
     public void LoadDocument(RecipeDocument doc)
     {
         UnhookPoints();
