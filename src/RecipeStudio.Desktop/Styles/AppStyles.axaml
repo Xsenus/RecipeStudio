@@ -26,7 +26,7 @@
   <Style Selector="Window">
     <Setter Property="Background" Value="{StaticResource B_Background}" />
     <Setter Property="Foreground" Value="#E6EAF2" />
-    <Setter Property="FontSize" Value="15" />
+    <Setter Property="FontSize" Value="14" />
   </Style>
 
   <Style Selector="Border.titlebar">
@@ -145,6 +145,15 @@
     <Setter Property="BorderThickness" Value="1" />
   </Style>
 
+  <Style Selector="Border.recipe-card:pointerover">
+    <Setter Property="Background" Value="#1D2331" />
+    <Setter Property="BorderBrush" Value="#36517A" />
+  </Style>
+
+  <Style Selector="Border.recipe-card:pressed">
+    <Setter Property="Background" Value="#151C2A" />
+  </Style>
+
   <Style Selector="Button">
     <Setter Property="CornerRadius" Value="6" />
     <Setter Property="Padding" Value="10,6" />
@@ -220,10 +229,10 @@
   </Style>
 
   <Style Selector="Button.icon.action">
-    <Setter Property="Width" Value="38" />
-    <Setter Property="Height" Value="32" />
+    <Setter Property="Width" Value="36" />
+    <Setter Property="Height" Value="30" />
     <Setter Property="Padding" Value="0" />
-    <Setter Property="FontSize" Value="15" />
+    <Setter Property="FontSize" Value="14" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
