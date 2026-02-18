@@ -26,15 +26,16 @@
   <Style Selector="Window">
     <Setter Property="Background" Value="{StaticResource B_Background}" />
     <Setter Property="Foreground" Value="#E6EAF2" />
+    <Setter Property="FontSize" Value="15" />
   </Style>
 
   <Style Selector="TextBlock.h1">
-    <Setter Property="FontSize" Value="50" />
+    <Setter Property="FontSize" Value="24" />
     <Setter Property="FontWeight" Value="Bold" />
   </Style>
 
   <Style Selector="TextBlock.dashboard-title">
-    <Setter Property="LetterSpacing" Value="1.4" />
+    <Setter Property="LetterSpacing" Value="1.1" />
   </Style>
 
   <Style Selector="TextBlock.muted">
@@ -42,17 +43,22 @@
   </Style>
 
   <Style Selector="TextBlock.tiny">
-    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontSize" Value="11" />
   </Style>
 
   <Style Selector="TextBlock.section-label">
-    <Setter Property="FontSize" Value="28" />
-    <Setter Property="LetterSpacing" Value="1.2" />
+    <Setter Property="FontSize" Value="20" />
+    <Setter Property="LetterSpacing" Value="1" />
     <Setter Property="Foreground" Value="#A2AABC" />
   </Style>
 
+  <Style Selector="TextBlock.stat-title">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="LetterSpacing" Value="0.9" />
+  </Style>
+
   <Style Selector="TextBlock.brand">
-    <Setter Property="FontSize" Value="31" />
+    <Setter Property="FontSize" Value="13" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Foreground" Value="#8BA2D8" />
   </Style>
@@ -76,21 +82,21 @@
     <Setter Property="BorderBrush" Value="#2A3245" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="6" />
-    <Setter Property="Padding" Value="14,10" />
+    <Setter Property="Padding" Value="12,8" />
   </Style>
 
   <Style Selector="Border.stat-card">
     <Setter Property="Background" Value="#171B27" />
     <Setter Property="BorderBrush" Value="#2A3143" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="Padding" Value="20" />
-    <Setter Property="MinHeight" Value="156" />
+    <Setter Property="Padding" Value="16" />
+    <Setter Property="MinHeight" Value="132" />
   </Style>
 
   <Style Selector="TextBlock.stat-icon">
-    <Setter Property="FontSize" Value="68" />
+    <Setter Property="FontSize" Value="50" />
     <Setter Property="VerticalAlignment" Value="Top" />
-    <Setter Property="Opacity" Value="0.5" />
+    <Setter Property="Opacity" Value="0.45" />
   </Style>
 
   <Style Selector="Border.recipe-card">
@@ -101,9 +107,10 @@
 
   <Style Selector="Button">
     <Setter Property="CornerRadius" Value="6" />
-    <Setter Property="Padding" Value="12,8" />
+    <Setter Property="Padding" Value="10,6" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="14" />
   </Style>
 
   <Style Selector="Button.accent">
@@ -113,8 +120,8 @@
   </Style>
 
   <Style Selector="Button.big">
-    <Setter Property="Padding" Value="24,14" />
-    <Setter Property="FontSize" Value="22" />
+    <Setter Property="Padding" Value="20,10" />
+    <Setter Property="FontSize" Value="16" />
   </Style>
 
   <Style Selector="Button.good">
@@ -139,8 +146,8 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="Foreground" Value="#B4BBCD" />
-    <Setter Property="Padding" Value="18,10" />
-    <Setter Property="FontSize" Value="22" />
+    <Setter Property="Padding" Value="14,8" />
+    <Setter Property="FontSize" Value="13" />
   </Style>
 
   <Style Selector="Button.nav:pointerover">
@@ -156,9 +163,9 @@
   <Style Selector="Button.icon-btn">
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
-    <Setter Property="FontSize" Value="34" />
+    <Setter Property="FontSize" Value="26" />
     <Setter Property="Foreground" Value="#8E98AD" />
-    <Setter Property="Padding" Value="14,4" />
+    <Setter Property="Padding" Value="12,2" />
   </Style>
 
   <Style Selector="Button.create-recipe">
@@ -166,10 +173,11 @@
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="#354056" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="FontSize" Value="34" />
+    <Setter Property="FontSize" Value="52" />
     <Setter Property="Foreground" Value="#75809A" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="FontWeight" Value="Light" />
   </Style>
 
   <Style Selector="DataGrid">
