@@ -2,82 +2,240 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="RecipeStudio.Desktop.Views.Pages.SettingsView">
 
-  <ScrollViewer>
-    <StackPanel Margin="18" Spacing="12">
+  <Grid ColumnDefinitions="290,*" Margin="18">
 
-      <StackPanel>
-        <TextBlock Text="Настройки" Classes="h1" />
-        <TextBlock Text="Параметры пути, константы и папка хранения рецептов" Classes="muted" />
-      </StackPanel>
+    <Border Grid.Column="0" Classes="card" Padding="12">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Spacing="10">
+          <TextBlock Text="Настройки системы" Classes="h1" />
+          <TextBlock Text="Навигация по разделам" Classes="muted" />
 
-      <Border Classes="card">
-        <StackPanel Spacing="10">
-          <TextBlock Text="Хранилище рецептов" FontSize="16" FontWeight="SemiBold" />
-
-          <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-            <TextBlock Grid.Row="0" Grid.Column="0" Text="Папка" Classes="muted" />
-
-            <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding RecipesFolder}" />
-            <Button Grid.Row="1" Grid.Column="1" Classes="ghost" Click="BrowseFolder_Click" Margin="10,0,0,0">Обзор…</Button>
-          </Grid>
+          <TreeView SelectionChanged="SettingsTree_SelectionChanged">
+            <TreeViewItem Header="Система" IsExpanded="True">
+              <TreeViewItem Header="Хранилище" Tag="storage" />
+              <TreeViewItem Header="Параметры станка" Tag="machine" />
+              <TreeViewItem Header="Коэффициенты" Tag="coefficients" />
+              <TreeViewItem Header="Графика" Tag="graphics" />
+              <TreeViewItem Header="Логирование" Tag="logging" />
+            </TreeViewItem>
+          </TreeView>
         </StackPanel>
+
+        <!--
+        <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,16,0,0">
+          <TextBlock Text="Файлы приложения" FontWeight="SemiBold" />
+          <StackPanel Spacing="2">
+            <TextBlock Text="Файл настроек:" Classes="muted tiny" />
+            <TextBlock Text="{Binding SettingsFilePath}" TextWrapping="Wrap" ToolTip.Tip="Путь к settings.json" />
+          </StackPanel>
+          <StackPanel Spacing="2">
+            <TextBlock Text="Файл БД рецептов:" Classes="muted tiny" />
+            <TextBlock Text="{Binding DatabaseFilePath}" TextWrapping="Wrap" ToolTip.Tip="Путь к SQLite базе recipes.sqlite" />
+          </StackPanel>
+        </StackPanel>
+        -->
+      </DockPanel>
+    </Border>
+
+    <Grid Grid.Column="1" Margin="12,0,0,0" RowDefinitions="Auto,*">
+      <Border Grid.Row="0" Classes="card">
+        <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+          <TextBlock Text="{Binding CurrentSectionTitle}" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Command="{Binding SaveCommand}" Classes="accent" ToolTip.Tip="Сохранить все изменения">Сохранить</Button>
+        </Grid>
       </Border>
 
-      <Border Classes="card">
-        <StackPanel Spacing="10">
-          <TextBlock Text="Константы" FontSize="16" FontWeight="SemiBold" />
-          <TextBlock Text="(по умолчанию значения из Excel CONST)" Classes="muted" />
+      <ScrollViewer Grid.Row="1" Margin="0,12,0,0">
+        <StackPanel Spacing="16">
 
-          <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto">
-            <TextBlock Text="H_zone" VerticalAlignment="Center" />
-            <TextBox Grid.Column="1" Text="{Binding HZone}" Margin="10,0,0,0" />
+          <Border Classes="card" IsVisible="{Binding IsStorageSection}">
+            <StackPanel Spacing="10">
+              <TextBlock Text="Папка хранения" Classes="muted" Margin="0,0,0,4" />
 
-            <TextBlock Grid.Row="1" Text="Lz (длина сопла)" VerticalAlignment="Center" />
-            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Lz}" Margin="10,0,0,0" />
+              <Grid ColumnDefinitions="*,Auto,Auto">
+                <TextBox Name="RecipesFolderTextBox"
+                         Grid.Column="0"
+                         Text="{Binding RecipesFolder}"
+                         ToolTip.Tip="Путь к папке с рецептами и SQLite базой. Двойной клик открывает каталог" />
 
-            <TextBlock Grid.Row="2" Text="PulseClamp" VerticalAlignment="Center" />
-            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding PulseClamp}" Margin="10,0,0,0" />
-          </Grid>
+                <Button Grid.Column="1"
+                        Click="OpenFolder_Click"
+                        Classes="ghost"
+                        Margin="8,0,0,0"
+                        Width="40"
+                        Height="34"
+                        FontSize="16"
+                        ToolTip.Tip="Открыть текущий каталог рецептов">
+                  📂
+                </Button>
 
-          <TextBlock Text="(остальные коэффициенты пульсаций также доступны в settings.json)" Classes="muted" />
+                <Button Grid.Column="2"
+                        Click="BrowseFolder_Click"
+                        Classes="ghost"
+                        Margin="8,0,0,0"
+                        Width="40"
+                        Height="34"
+                        FontSize="16"
+                        ToolTip.Tip="Выбрать другую папку рецептов">
+                  🗁
+                </Button>
+              </Grid>
+            </StackPanel>
+          </Border>
+
+          <Border Classes="card" IsVisible="{Binding IsMachineSection}">
+            <Grid ColumnDefinitions="*,*">
+              <Border Classes="card" Padding="12">
+                <StackPanel Spacing="10">
+                  <TextBlock Text="Геометрия и смещения" FontWeight="SemiBold" />
+                  <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                    <TextBlock Text="Смещение X (Xm)" VerticalAlignment="Center" ToolTip.Tip="Смещение по оси X, мм" Margin="0,0,0,8" />
+                    <TextBox Grid.Column="1" Classes="value-box" Text="{Binding Xm}" Margin="10,0,0,8" ToolTip.Tip="Смещение по оси X, мм" />
+
+                    <TextBlock Grid.Row="1" Text="Смещение Y (Ym)" VerticalAlignment="Center" ToolTip.Tip="Смещение по оси Y, мм" Margin="0,0,0,8" />
+                    <TextBox Grid.Row="1" Grid.Column="1" Classes="value-box" Text="{Binding Ym}" Margin="10,0,0,8" ToolTip.Tip="Смещение по оси Y, мм" />
+
+                    <TextBlock Grid.Row="2" Text="Смещение Z (Zm)" VerticalAlignment="Center" ToolTip.Tip="Смещение по оси Z, мм" Margin="0,0,0,8" />
+                    <TextBox Grid.Row="2" Grid.Column="1" Classes="value-box" Text="{Binding Zm}" Margin="10,0,0,8" ToolTip.Tip="Смещение по оси Z, мм" />
+
+                    <TextBlock Grid.Row="3" Text="Длина сопла (Lz)" VerticalAlignment="Center" ToolTip.Tip="Длина сопла, мм" />
+                    <TextBox Grid.Row="3" Grid.Column="1" Classes="value-box" Text="{Binding Lz}" Margin="10,0,0,0" ToolTip.Tip="Длина сопла, мм" />
+                  </Grid>
+                </StackPanel>
+              </Border>
+
+              <Border Grid.Column="1" Classes="card" Padding="12" Margin="12,0,0,0">
+                <StackPanel Spacing="10">
+                  <TextBlock Text="Безопасность и зоны" FontWeight="SemiBold" />
+                  <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto">
+                    <TextBlock Text="Высота перехода (H_cont)" VerticalAlignment="Center" ToolTip.Tip="Безопасная высота перехода, мм" Margin="0,0,0,8" />
+                    <TextBox Grid.Column="1" Classes="value-box" Text="{Binding HContMax}" Margin="10,0,0,8" ToolTip.Tip="Безопасная высота перехода, мм" />
+
+                    <TextBlock Grid.Row="1" Text="Зона безопасности (H_zone)" VerticalAlignment="Center" ToolTip.Tip="Максимальная рабочая зона по высоте, мм" Margin="0,0,0,8" />
+                    <TextBox Grid.Row="1" Grid.Column="1" Classes="value-box" Text="{Binding HZone}" Margin="10,0,0,8" ToolTip.Tip="Максимальная рабочая зона по высоте, мм" />
+
+                    <TextBlock Grid.Row="2" Text="Боковой предел (H_bok)" VerticalAlignment="Center" ToolTip.Tip="Боковое ограничение, мм" />
+                    <TextBox Grid.Row="2" Grid.Column="1" Classes="value-box" Text="{Binding HBokMax}" Margin="10,0,0,0" ToolTip.Tip="Боковое ограничение, мм" />
+                  </Grid>
+                </StackPanel>
+              </Border>
+            </Grid>
+          </Border>
+
+          <Border Classes="card" IsVisible="{Binding IsCoefficientsSection}">
+            <StackPanel Spacing="10">
+              <TextBlock Text="Импульсов на мм. Параметры используются для пересчёта траекторий." Classes="muted" />
+
+              <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                <TextBlock Text="VPULSE_X" ToolTip.Tip="Коэффициент импульсов по оси X" Margin="0,0,0,6" />
+                <TextBlock Grid.Column="1" Text="VPULSE_Y" Margin="12,0,0,6" ToolTip.Tip="Коэффициент импульсов по оси Y" />
+                <TextBlock Grid.Column="2" Text="VPULSE_Z" Margin="12,0,0,6" ToolTip.Tip="Коэффициент импульсов по оси Z" />
+                <TextBlock Grid.Column="3" Text="VPULSE_A" Margin="12,0,0,6" ToolTip.Tip="Коэффициент импульсов по оси A" />
+
+                <TextBox Grid.Row="1" Classes="value-box" Text="{Binding PulseX}" Margin="0,0,0,10" ToolTip.Tip="Коэффициент импульсов по оси X" />
+                <TextBox Grid.Row="1" Grid.Column="1" Classes="value-box" Text="{Binding PulseY}" Margin="12,0,0,10" ToolTip.Tip="Коэффициент импульсов по оси Y" />
+                <TextBox Grid.Row="1" Grid.Column="2" Classes="value-box" Text="{Binding PulseZ}" Margin="12,0,0,10" ToolTip.Tip="Коэффициент импульсов по оси Z" />
+                <TextBox Grid.Row="1" Grid.Column="3" Classes="value-box" Text="{Binding PulseA}" Margin="12,0,0,10" ToolTip.Tip="Коэффициент импульсов по оси A" />
+
+                <TextBlock Grid.Row="2" Text="VPULSE_B" ToolTip.Tip="Коэффициент импульсов по оси B" Margin="0,0,0,6" />
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="VPULSE_TOP" Margin="12,0,0,6" ToolTip.Tip="Коэффициент верхнего механизма" />
+                <TextBlock Grid.Row="2" Grid.Column="2" Text="VPULSE_LOW" Margin="12,0,0,6" ToolTip.Tip="Коэффициент нижнего механизма" />
+                <TextBlock Grid.Row="2" Grid.Column="3" Text="VPULSE_CLAMP" Margin="12,0,0,6" ToolTip.Tip="Коэффициент зажима" />
+
+                <TextBox Grid.Row="3" Classes="value-box" Text="{Binding PulseB}" ToolTip.Tip="Коэффициент импульсов по оси B" />
+                <TextBox Grid.Row="3" Grid.Column="1" Classes="value-box" Text="{Binding PulseTop}" Margin="12,0,0,0" ToolTip.Tip="Коэффициент верхнего механизма" />
+                <TextBox Grid.Row="3" Grid.Column="2" Classes="value-box" Text="{Binding PulseLow}" Margin="12,0,0,0" ToolTip.Tip="Коэффициент нижнего механизма" />
+                <TextBox Grid.Row="3" Grid.Column="3" Classes="value-box" Text="{Binding PulseClamp}" Margin="12,0,0,0" ToolTip.Tip="Коэффициент зажима" />
+              </Grid>
+            </StackPanel>
+          </Border>
+
+          <Border Classes="card" IsVisible="{Binding IsGraphicsSection}">
+            <StackPanel Spacing="14">
+              <Grid ColumnDefinitions="220,*,70">
+                <TextBlock Text="Прозрачность линии" VerticalAlignment="Center" ToolTip.Tip="Прозрачность кривой на графике (0.05–0.90)" />
+                <Slider Grid.Column="1" Minimum="0.05" Maximum="0.90" Value="{Binding PlotOpacity}" Margin="10,0,10,0" ToolTip.Tip="Прозрачность кривой на графике (0.05–0.90)" />
+                <TextBlock Grid.Column="2" Text="{Binding PlotOpacityDisplay}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+              </Grid>
+
+              <Grid ColumnDefinitions="*,*">
+                <Border Classes="card" Padding="12">
+                  <StackPanel Spacing="10">
+                    <CheckBox IsChecked="{Binding PlotShowPolyline}" ToolTip.Tip="Показывать ломаную линию исходных точек">Показывать ломаную (polyline)</CheckBox>
+                    <CheckBox IsChecked="{Binding PlotShowSmooth}" ToolTip.Tip="Показывать сглаженную кривую">Показывать сглаженную линию (spline)</CheckBox>
+                    <CheckBox IsChecked="{Binding PlotShowTargetPoints}" ToolTip.Tip="Показывать целевые точки рецепта">Показывать точки</CheckBox>
+                    <CheckBox IsChecked="{Binding PlotEnableDrag}" ToolTip.Tip="Разрешить перетаскивание точек мышью на графике">Разрешить перетаскивание точек на графике</CheckBox>
+                  </StackPanel>
+                </Border>
+
+                <Border Grid.Column="1" Classes="card" Padding="12" Margin="12,0,0,0">
+                  <Grid ColumnDefinitions="180,*" RowDefinitions="Auto,Auto,Auto" Margin="0,2,0,0">
+                    <TextBlock Text="Толщина линии" VerticalAlignment="Center" ToolTip.Tip="Толщина основной линии графика" Margin="0,0,0,10" />
+                    <TextBox Grid.Column="1" Classes="value-box" Text="{Binding PlotStrokeThickness}" Margin="10,0,0,10" ToolTip.Tip="Толщина основной линии графика" />
+
+                    <TextBlock Grid.Row="1" Text="Радиус точек" VerticalAlignment="Center" ToolTip.Tip="Размер отображаемых точек на графике" Margin="0,0,0,10" />
+                    <TextBox Grid.Row="1" Grid.Column="1" Classes="value-box" Text="{Binding PlotPointRadius}" Margin="10,0,0,10" ToolTip.Tip="Размер отображаемых точек на графике" />
+
+                    <TextBlock Grid.Row="2" Text="Сегменты сглаживания" VerticalAlignment="Center" ToolTip.Tip="Чем выше значение, тем более плавная кривая и выше нагрузка" />
+                    <TextBox Grid.Row="2" Grid.Column="1" Classes="value-box" Text="{Binding SmoothSegmentsPerSpan}" Margin="10,0,0,0" ToolTip.Tip="Чем выше значение, тем более плавная кривая и выше нагрузка" />
+                  </Grid>
+                </Border>
+              </Grid>
+            </StackPanel>
+          </Border>
+
+          <Border Classes="card" IsVisible="{Binding IsLoggingSection}">
+            <StackPanel Spacing="12">
+              <TextBlock Text="Параметры логирования" FontSize="16" FontWeight="SemiBold" />
+
+              <CheckBox IsChecked="{Binding LoggingEnabled}" ToolTip.Tip="Включить или выключить запись в файл логов">Включить запись логов в файл</CheckBox>
+
+              <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                <TextBlock Text="Режим логирования" VerticalAlignment="Center" ToolTip.Tip="Info — все сообщения, Warning — предупреждения и ошибки, Error — только ошибки" />
+                <ComboBox Grid.Column="1" Margin="10,0,0,0" ItemsSource="{Binding LogModes}" SelectedItem="{Binding LogMode}" ToolTip.Tip="Выбор фильтра логов: Info/Warning/Error" />
+
+                <TextBlock Grid.Row="1" Grid.Column="1" Margin="10,6,0,0" Text="{Binding LogModeDescription}" Classes="muted tiny" TextWrapping="Wrap" />
+
+                <TextBlock Grid.Row="2" Text="Хранить логи (дней)" VerticalAlignment="Center" Margin="0,8,0,0" ToolTip.Tip="Текущий день + предыдущие дни по значению" />
+                <TextBox Grid.Row="2" Grid.Column="1" Classes="value-box" Text="{Binding LogRetentionDays}" Margin="10,8,0,0" ToolTip.Tip="От 1 до 3650 дней" />
+
+                <TextBlock Grid.Row="3" Text="Файл лога за сегодня" VerticalAlignment="Center" Margin="0,8,0,0" ToolTip.Tip="Логи хранятся по дням: dd.MM.yyyy.log" />
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding LogFilePath}" Margin="10,8,0,0" IsReadOnly="True" />
+              </Grid>
+
+              <Grid ColumnDefinitions="*,Auto,Auto">
+                <TextBox Grid.Column="0"
+                         Text="{Binding LogsFolder}"
+                         Name="LogsFolderTextBox"
+                         ToolTip.Tip="Папка с ежедневными лог-файлами" />
+
+                <Button Grid.Column="1"
+                        Click="OpenLogsFolder_Click"
+                        Classes="ghost"
+                        Margin="8,0,0,0"
+                        Width="40"
+                        Height="34"
+                        FontSize="16"
+                        ToolTip.Tip="Открыть папку логов">
+                  📂
+                </Button>
+
+                <Button Grid.Column="2"
+                        Click="BrowseLogsFolder_Click"
+                        Classes="ghost"
+                        Margin="8,0,0,0"
+                        Width="40"
+                        Height="34"
+                        FontSize="16"
+                        ToolTip.Tip="Выбрать папку для логов">
+                  🗁
+                </Button>
+              </Grid>
+            </StackPanel>
+          </Border>
         </StackPanel>
-      </Border>
+      </ScrollViewer>
+    </Grid>
 
-      <Border Classes="card">
-        <StackPanel Spacing="10">
-          <TextBlock Text="Графика" FontSize="16" FontWeight="SemiBold" />
-          <TextBlock Text="Прозрачность и отображение линий/точек" Classes="muted" />
-
-          <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto">
-            <TextBlock Text="Opacity (0.05–0.90)" VerticalAlignment="Center" />
-            <Slider Grid.Column="1" Minimum="0.05" Maximum="0.90" Value="{Binding PlotOpacity}" Margin="10,0,0,0" />
-
-            <TextBlock Grid.Row="1" Text="Толщина линии" VerticalAlignment="Center" />
-            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding PlotStrokeThickness}" Margin="10,0,0,0" />
-
-            <CheckBox Grid.Row="2" Grid.ColumnSpan="2" IsChecked="{Binding PlotShowPolyline}">Показывать ломаную (polyline)</CheckBox>
-            <CheckBox Grid.Row="3" Grid.ColumnSpan="2" IsChecked="{Binding PlotShowSmooth}">Показывать сглаженную линию (spline)</CheckBox>
-          </Grid>
-
-          <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto">
-            <CheckBox Grid.Row="0" Grid.ColumnSpan="2" IsChecked="{Binding PlotShowTargetPoints}">Показывать точки</CheckBox>
-            <CheckBox Grid.Row="1" Grid.ColumnSpan="2" IsChecked="{Binding PlotEnableDrag}">Разрешить перетаскивание точек на графике</CheckBox>
-          </Grid>
-
-          <Grid ColumnDefinitions="220,*" RowDefinitions="Auto">
-            <TextBlock Text="Сегменты сглаживания" VerticalAlignment="Center" />
-            <TextBox Grid.Column="1" Text="{Binding SmoothSegmentsPerSpan}" Margin="10,0,0,0" />
-          </Grid>
-
-        </StackPanel>
-      </Border>
-
-      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-        <Button Command="{Binding SaveCommand}" Classes="accent">Сохранить</Button>
-      </StackPanel>
-
-      <TextBlock Text="Файл настроек: %APPDATA%/recipe-studio/settings.json" Classes="muted" />
-
-    </StackPanel>
-  </ScrollViewer>
+  </Grid>
 </UserControl>

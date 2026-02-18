@@ -9,6 +9,7 @@
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaChromeHints="NoChrome"
         Title="Recipe Studio"
+        WindowStartupLocation="CenterScreen"
         Closing="OnWindowClosing">
 
   <Window.DataTemplates>

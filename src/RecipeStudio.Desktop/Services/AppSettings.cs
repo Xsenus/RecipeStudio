@@ -34,4 +34,28 @@ public sealed class AppSettings
     public bool PlotEnableDrag { get; set; } = true;
 
     public int SmoothSegmentsPerSpan { get; set; } = 16;
+
+    public WindowPlacementSettings WindowPlacement { get; set; } = new();
+
+    // Logging
+    public bool LoggingEnabled { get; set; } = true;
+    public int LogRetentionDays { get; set; } = 14;
+    public string LogsFolder { get; set; } = "";
+    public string LogMode { get; set; } = LogSeverity.Info;
+}
+
+public static class LogSeverity
+{
+    public const string Error = "Error";
+    public const string Warning = "Warning";
+    public const string Info = "Info";
+}
+
+public sealed class WindowPlacementSettings
+{
+    public int? X { get; set; }
+    public int? Y { get; set; }
+    public double? Width { get; set; }
+    public double? Height { get; set; }
+    public bool IsMaximized { get; set; }
 }
