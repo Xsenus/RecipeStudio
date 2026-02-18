@@ -71,6 +71,7 @@ public sealed class EditorViewModel : ViewModelBase
         {
             if (SetProperty(ref _document, value))
             {
+                RaisePropertyChanged(nameof(HasDocument));
                 RaisePropertyChanged(nameof(RecipeCode));
                 RaisePropertyChanged(nameof(FilePath));
                 RaisePropertyChanged(nameof(ContainerPresent));
@@ -193,6 +194,15 @@ public sealed class EditorViewModel : ViewModelBase
     {
         get => _progress;
         set => SetProperty(ref _progress, value);
+    }
+
+    public void CloseDocument()
+    {
+        Stop();
+        UnhookPoints();
+        Points.Clear();
+        SelectedPoint = null;
+        Document = null;
     }
 
     public void LoadDocument(RecipeDocument doc)

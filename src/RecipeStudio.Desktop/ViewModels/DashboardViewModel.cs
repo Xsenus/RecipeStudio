@@ -1,6 +1,5 @@
 using System;
 using System.Collections.ObjectModel;
-using System.Linq;
 using RecipeStudio.Desktop.Services;
 
 namespace RecipeStudio.Desktop.ViewModels;
@@ -11,10 +10,12 @@ public sealed class DashboardViewModel : ViewModelBase
     private readonly Action<long> _openRecipe;
 
     public ObservableCollection<RecipeCardViewModel> Recipes { get; } = new();
+    public ObservableCollection<object> DashboardTiles { get; } = new();
 
     public RelayCommand RefreshCommand { get; }
-
     public RelayCommand NewRecipeCommand { get; }
+
+    public event Action? RequestCreateRecipe;
 
     public DashboardViewModel(RecipeRepository repo, Action<long> openRecipe)
     {
@@ -22,7 +23,7 @@ public sealed class DashboardViewModel : ViewModelBase
         _openRecipe = openRecipe;
 
         RefreshCommand = new RelayCommand(Refresh);
-        NewRecipeCommand = new RelayCommand(CreateNewRecipe);
+        NewRecipeCommand = new RelayCommand(() => RequestCreateRecipe?.Invoke());
 
         Refresh();
     }
@@ -30,18 +31,33 @@ public sealed class DashboardViewModel : ViewModelBase
     public void Refresh()
     {
         Recipes.Clear();
+        DashboardTiles.Clear();
 
         foreach (var r in _repo.GetRecipes())
         {
-            Recipes.Add(new RecipeCardViewModel(r, _openRecipe, _repo, Refresh));
+            var card = new RecipeCardViewModel(r, _openRecipe);
+            Recipes.Add(card);
+            DashboardTiles.Add(card);
         }
+
+        DashboardTiles.Add(new CreateRecipeTileViewModel(NewRecipeCommand));
+        RaisePropertyChanged(nameof(Recipes));
     }
 
-    private void CreateNewRecipe()
+    public void DeleteRecipe(long id)
     {
-        var code = $"recipe_{DateTime.Now:yyyyMMdd_HHmmss}";
+        _repo.Delete(id);
+        Refresh();
+    }
 
-        // Create starter and store in DB
+    public void CreateNewRecipe(string recipeCode)
+    {
+        var code = recipeCode.Trim();
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            return;
+        }
+
         var doc = RecipeDocumentFactory.CreateStarter(code);
         doc.RecipeCode = code;
         var id = _repo.Create(doc);
@@ -54,8 +70,6 @@ public sealed class DashboardViewModel : ViewModelBase
 public sealed class RecipeCardViewModel : ViewModelBase
 {
     private readonly Action<long> _openRecipe;
-    private readonly RecipeRepository _repo;
-    private readonly Action _refresh;
 
     public long Id { get; }
     public string Name { get; }
@@ -63,25 +77,25 @@ public sealed class RecipeCardViewModel : ViewModelBase
     public int PointCount { get; }
 
     public RelayCommand OpenCommand { get; }
-    public RelayCommand DeleteCommand { get; }
 
-    public RecipeCardViewModel(RecipeInfo info, Action<long> openRecipe, RecipeRepository repo, Action refresh)
+    public RecipeCardViewModel(RecipeInfo info, Action<long> openRecipe)
     {
         Id = info.Id;
         Name = info.RecipeCode;
         LastModified = info.ModifiedUtc.ToLocalTime();
         PointCount = info.PointCount;
         _openRecipe = openRecipe;
-        _repo = repo;
-        _refresh = refresh;
 
         OpenCommand = new RelayCommand(() => _openRecipe(Id));
-        DeleteCommand = new RelayCommand(Delete);
     }
+}
 
-    private void Delete()
+public sealed class CreateRecipeTileViewModel : ViewModelBase
+{
+    public RelayCommand CreateCommand { get; }
+
+    public CreateRecipeTileViewModel(RelayCommand createCommand)
     {
-        _repo.Delete(Id);
-        _refresh();
+        CreateCommand = createCommand;
     }
 }

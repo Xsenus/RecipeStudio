@@ -5,7 +5,11 @@
         x:Class="RecipeStudio.Desktop.Views.MainWindow"
         Width="1280" Height="800"
         MinWidth="1100" MinHeight="700"
-        Title="Recipe Studio">
+        SystemDecorations="None"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Title="Recipe Studio"
+        Closing="OnWindowClosing">
 
   <Window.DataTemplates>
     <DataTemplate DataType="vm:DashboardViewModel">
@@ -14,39 +18,47 @@
     <DataTemplate DataType="vm:EditorViewModel">
       <pages:EditorView />
     </DataTemplate>
+    <DataTemplate DataType="vm:SimulationViewModel">
+      <pages:SimulationView />
+    </DataTemplate>
     <DataTemplate DataType="vm:SettingsViewModel">
       <pages:SettingsView />
     </DataTemplate>
   </Window.DataTemplates>
 
-  <Grid>
-    <Grid.ColumnDefinitions>
-      <ColumnDefinition Width="240" />
-      <ColumnDefinition Width="*" />
-    </Grid.ColumnDefinitions>
-
-    <!-- Sidebar -->
-    <Border Grid.Column="0" Classes="sidebar">
-      <DockPanel LastChildFill="True">
-        <StackPanel DockPanel.Dock="Top" Margin="18,16,18,10">
-          <TextBlock Text="Recipe Studio" FontSize="20" FontWeight="SemiBold" />
-          <TextBlock Text="v0.1.0" Classes="muted" Margin="0,6,0,0" />
+  <Grid RowDefinitions="Auto,Auto,*">
+    <Border Grid.Row="0" Classes="titlebar" PointerPressed="TitleBar_PointerPressed">
+      <Grid ColumnDefinitions="Auto,*,Auto" Margin="10,4,10,4">
+        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Border Width="14" Height="14" Background="#2E5C93" CornerRadius="2" />
+          <TextBlock Text="Recipe Studio" FontSize="12" />
         </StackPanel>
 
-        <StackPanel Margin="10,6,10,10" Spacing="8">
-          <Button Command="{Binding NavigateDashboardCommand}" Classes="ghost">Дашборд</Button>
-          <Button Command="{Binding NavigateEditorCommand}" Classes="ghost">Редактор</Button>
-          <Button Command="{Binding NavigateSettingsCommand}" Classes="ghost">Настройки</Button>
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+          <Button Classes="window-btn" Click="Minimize_Click">—</Button>
+          <Button Classes="window-btn" Click="Maximize_Click">▢</Button>
+          <Button Classes="window-btn close" Click="Close_Click">✕</Button>
         </StackPanel>
-
-        <StackPanel DockPanel.Dock="Bottom" Margin="18,12,18,16" Spacing="6">
-          <TextBlock Text="CNC-KAMA-TYRES" Classes="muted" />
-          <TextBlock Text="Конфигуратор рецептов" Classes="muted" />
-        </StackPanel>
-      </DockPanel>
+      </Grid>
     </Border>
 
-    <!-- Main content -->
-    <ContentControl Grid.Column="1" Content="{Binding CurrentPage}" />
+    <Border Grid.Row="1" Classes="topbar" Padding="14,8">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" HorizontalAlignment="Right">
+          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <Button Command="{Binding NavigateDashboardCommand}" Classes="nav" Classes.nav-active="{Binding IsDashboardActive}">ДАШБОРД</Button>
+            <Button Command="{Binding NavigateEditorCommand}" Classes="nav" Classes.nav-active="{Binding IsEditorActive}" IsVisible="{Binding CanAccessRecipePages}">РЕДАКТОР</Button>
+            <Button Command="{Binding NavigateSimulationCommand}" Classes="nav" Classes.nav-active="{Binding IsSimulationActive}" IsVisible="{Binding CanAccessRecipePages}">СИМУЛЯЦИЯ</Button>
+            <Button Command="{Binding NavigateSettingsCommand}" Classes="nav" Classes.nav-active="{Binding IsSettingsActive}">НАСТРОЙКИ</Button>
+          </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Column="2" Classes="status-pill" VerticalAlignment="Center" Margin="12,0,0,0">
+          <Ellipse Width="8" Height="8" Fill="#22C55E" VerticalAlignment="Center" />
+        </Border>
+      </Grid>
+    </Border>
+
+    <ContentControl Grid.Row="2" Content="{Binding CurrentPage}" />
   </Grid>
 </Window>
