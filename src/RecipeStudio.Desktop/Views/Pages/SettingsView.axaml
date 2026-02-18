@@ -190,12 +190,44 @@
 
               <CheckBox IsChecked="{Binding LoggingEnabled}" ToolTip.Tip="Включить или выключить запись в файл логов">Включить запись логов в файл</CheckBox>
 
-              <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto">
-                <TextBlock Text="Хранить логи (дней)" VerticalAlignment="Center" ToolTip.Tip="Старые .log файлы в папке logs будут удаляться автоматически" />
-                <TextBox Grid.Column="1" Classes="value-box" Text="{Binding LogRetentionDays}" Margin="10,0,0,0" ToolTip.Tip="От 1 до 3650 дней" />
+              <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto">
+                <TextBlock Text="Режим логирования" VerticalAlignment="Center" ToolTip.Tip="Info — все сообщения, Warning — предупреждения и ошибки, Error — только ошибки" />
+                <ComboBox Grid.Column="1" Margin="10,0,0,0" ItemsSource="{Binding LogModes}" SelectedItem="{Binding LogMode}" />
 
-                <TextBlock Grid.Row="1" Text="Файл лога" VerticalAlignment="Center" Margin="0,8,0,0" ToolTip.Tip="Текущий путь к файлу лога" />
-                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding LogFilePath}" Margin="10,8,0,0" IsReadOnly="True" />
+                <TextBlock Grid.Row="1" Text="Хранить логи (дней)" VerticalAlignment="Center" Margin="0,8,0,0" ToolTip.Tip="Текущий день + предыдущие дни по значению" />
+                <TextBox Grid.Row="1" Grid.Column="1" Classes="value-box" Text="{Binding LogRetentionDays}" Margin="10,8,0,0" ToolTip.Tip="От 1 до 3650 дней" />
+
+                <TextBlock Grid.Row="2" Text="Файл лога за сегодня" VerticalAlignment="Center" Margin="0,8,0,0" ToolTip.Tip="Логи хранятся по дням: dd.MM.yyyy.log" />
+                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding LogFilePath}" Margin="10,8,0,0" IsReadOnly="True" />
+              </Grid>
+
+              <Grid ColumnDefinitions="*,Auto,Auto">
+                <TextBox Grid.Column="0"
+                         Text="{Binding LogsFolder}"
+                         Name="LogsFolderTextBox"
+                         ToolTip.Tip="Папка с ежедневными лог-файлами" />
+
+                <Button Grid.Column="1"
+                        Click="OpenLogsFolder_Click"
+                        Classes="ghost"
+                        Margin="8,0,0,0"
+                        Width="40"
+                        Height="34"
+                        FontSize="16"
+                        ToolTip.Tip="Открыть папку логов">
+                  📂
+                </Button>
+
+                <Button Grid.Column="2"
+                        Click="BrowseLogsFolder_Click"
+                        Classes="ghost"
+                        Margin="8,0,0,0"
+                        Width="40"
+                        Height="34"
+                        FontSize="16"
+                        ToolTip.Tip="Выбрать папку для логов">
+                  🗁
+                </Button>
               </Grid>
             </StackPanel>
           </Border>

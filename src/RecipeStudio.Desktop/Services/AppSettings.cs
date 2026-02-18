@@ -40,7 +40,15 @@ public sealed class AppSettings
     // Logging
     public bool LoggingEnabled { get; set; } = true;
     public int LogRetentionDays { get; set; } = 14;
+    public string LogsFolder { get; set; } = "";
+    public string LogMode { get; set; } = LogSeverity.Info;
+}
 
+public static class LogSeverity
+{
+    public const string Error = "Error";
+    public const string Warning = "Warning";
+    public const string Info = "Info";
 }
 
 public sealed class WindowPlacementSettings

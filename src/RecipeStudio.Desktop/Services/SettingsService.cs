@@ -31,7 +31,7 @@ public sealed class SettingsService
         Settings = Load(out hadLoadErrors);
 
         EnsureDefaults();
-        _logger.Configure(Settings.LoggingEnabled, Settings.LogRetentionDays);
+        _logger.Configure(Settings.LoggingEnabled, Settings.LogRetentionDays, Settings.LogMode, Settings.LogsFolder);
 
         if (!File.Exists(SettingsPath) || hadLoadErrors)
         {
@@ -85,9 +85,10 @@ public sealed class SettingsService
     {
         try
         {
+            EnsureDefaults();
             var json = JsonSerializer.Serialize(Settings, _jsonOptions);
             File.WriteAllText(SettingsPath, json);
-            _logger.Configure(Settings.LoggingEnabled, Settings.LogRetentionDays);
+            _logger.Configure(Settings.LoggingEnabled, Settings.LogRetentionDays, Settings.LogMode, Settings.LogsFolder);
         }
         catch (Exception ex)
         {
@@ -102,15 +103,26 @@ public sealed class SettingsService
             Settings.RecipesFolder = Path.Combine(AppDataRoot, "recipes");
         }
 
+        if (string.IsNullOrWhiteSpace(Settings.LogsFolder))
+        {
+            Settings.LogsFolder = Path.Combine(AppDataRoot, "logs");
+        }
+
+        Settings.LogMode = NormalizeLogMode(Settings.LogMode);
+        Settings.LogRetentionDays = Math.Clamp(Settings.LogRetentionDays, 1, 3650);
+
         try
         {
             Directory.CreateDirectory(Settings.RecipesFolder);
+            Directory.CreateDirectory(Settings.LogsFolder);
         }
         catch (Exception ex)
         {
-            _logger.Error($"Ошибка создания каталога рецептов: {Settings.RecipesFolder}", ex);
+            _logger.Error("Ошибка создания рабочих каталогов из настроек.", ex);
             Settings.RecipesFolder = Path.Combine(AppDataRoot, "recipes");
+            Settings.LogsFolder = Path.Combine(AppDataRoot, "logs");
             Directory.CreateDirectory(Settings.RecipesFolder);
+            Directory.CreateDirectory(Settings.LogsFolder);
         }
     }
 
@@ -165,9 +177,25 @@ public sealed class SettingsService
             return false;
         }
 
+        if (NormalizeLogMode(s.LogMode) != s.LogMode && !string.IsNullOrWhiteSpace(s.LogMode))
+        {
+            error = "LogMode содержит недопустимое значение.";
+            return false;
+        }
+
         error = string.Empty;
         return true;
     }
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
+
+    private static string NormalizeLogMode(string? mode)
+    {
+        return mode switch
+        {
+            LogSeverity.Error => LogSeverity.Error,
+            LogSeverity.Warning => LogSeverity.Warning,
+            _ => LogSeverity.Info
+        };
+    }
 }

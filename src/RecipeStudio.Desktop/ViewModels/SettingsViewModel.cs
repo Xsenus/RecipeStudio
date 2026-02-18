@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using RecipeStudio.Desktop.Services;
 
@@ -68,7 +69,6 @@ public sealed class SettingsViewModel : ViewModelBase
             _settings.Settings.RecipesFolder = value;
             RaisePropertyChanged();
             RaisePropertyChanged(nameof(DatabaseFilePath));
-            RaisePropertyChanged(nameof(LogFilePath));
         }
     }
 
@@ -125,7 +125,7 @@ public sealed class SettingsViewModel : ViewModelBase
         }
     }
 
-
+    // Logging
     public bool LoggingEnabled
     {
         get => _settings.Settings.LoggingEnabled;
@@ -146,7 +146,30 @@ public sealed class SettingsViewModel : ViewModelBase
         }
     }
 
-    public string LogFilePath => Path.Combine(_settings.AppDataRoot, "logs", "recipe-studio.log");
+    public string LogsFolder
+    {
+        get => _settings.Settings.LogsFolder;
+        set
+        {
+            _settings.Settings.LogsFolder = value;
+            RaisePropertyChanged();
+            RaisePropertyChanged(nameof(LogFilePath));
+        }
+    }
+
+    public IReadOnlyList<string> LogModes { get; } = new[] { LogSeverity.Info, LogSeverity.Warning, LogSeverity.Error };
+
+    public string LogMode
+    {
+        get => _settings.Settings.LogMode;
+        set
+        {
+            _settings.Settings.LogMode = value;
+            RaisePropertyChanged();
+        }
+    }
+
+    public string LogFilePath => Path.Combine(_settings.Settings.LogsFolder, $"{DateTime.Now:dd.MM.yyyy}.log");
 
     private void Save()
     {

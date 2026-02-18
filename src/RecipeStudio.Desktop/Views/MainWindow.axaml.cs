@@ -18,8 +18,10 @@ public sealed partial class MainWindow : Window
 
         InitializeComponent();
 
-        Opened += (_, _) => TryApplyWindowPlacement();
+        ApplyWindowPlacementIfExists();
+
         PositionChanged += (_, _) => SaveWindowPlacementIfNeeded();
+        SizeChanged += (_, _) => SaveWindowPlacementIfNeeded();
         PropertyChanged += (_, e) =>
         {
             if (e.Property == WindowStateProperty)
@@ -88,18 +90,20 @@ public sealed partial class MainWindow : Window
         return result;
     }
 
-    private void TryApplyWindowPlacement()
+    private void ApplyWindowPlacementIfExists()
     {
         var placement = _settings.Settings.WindowPlacement;
 
         if (placement.Width is not > 0 || placement.Height is not > 0 || placement.X is null || placement.Y is null)
         {
+            WindowStartupLocation = WindowStartupLocation.CenterScreen;
             WindowState = WindowState.Normal;
             return;
         }
 
         try
         {
+            WindowStartupLocation = WindowStartupLocation.Manual;
             Width = placement.Width.Value;
             Height = placement.Height.Value;
             Position = new PixelPoint(placement.X.Value, placement.Y.Value);
@@ -107,6 +111,7 @@ public sealed partial class MainWindow : Window
         }
         catch
         {
+            WindowStartupLocation = WindowStartupLocation.CenterScreen;
             WindowState = WindowState.Normal;
         }
     }

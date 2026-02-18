@@ -16,8 +16,11 @@ public sealed partial class SettingsView : UserControl
     {
         InitializeComponent();
 
-        var folderBox = this.FindControl<TextBox>("RecipesFolderTextBox");
-        folderBox?.AddHandler(InputElement.PointerPressedEvent, RecipesFolder_PointerPressed, RoutingStrategies.Tunnel, true);
+        var recipesFolderBox = this.FindControl<TextBox>("RecipesFolderTextBox");
+        recipesFolderBox?.AddHandler(InputElement.PointerPressedEvent, RecipesFolder_PointerPressed, RoutingStrategies.Tunnel, true);
+
+        var logsFolderBox = this.FindControl<TextBox>("LogsFolderTextBox");
+        logsFolderBox?.AddHandler(InputElement.PointerPressedEvent, LogsFolder_PointerPressed, RoutingStrategies.Tunnel, true);
     }
 
     private async void BrowseFolder_Click(object? sender, RoutedEventArgs e)
@@ -41,12 +44,41 @@ public sealed partial class SettingsView : UserControl
         }
     }
 
+    private async void BrowseLogsFolder_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not SettingsViewModel vm)
+            return;
+
+        var top = TopLevel.GetTopLevel(this);
+        if (top?.StorageProvider is null)
+            return;
+
+        var result = await top.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Выберите папку для логов",
+            AllowMultiple = false
+        });
+
+        if (result.Count > 0)
+        {
+            vm.LogsFolder = result[0].Path.LocalPath;
+        }
+    }
+
     private void OpenFolder_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not SettingsViewModel vm)
             return;
 
         OpenFolder(vm.RecipesFolder);
+    }
+
+    private void OpenLogsFolder_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not SettingsViewModel vm)
+            return;
+
+        OpenFolder(vm.LogsFolder);
     }
 
     private void RecipesFolder_PointerPressed(object? sender, PointerPressedEventArgs e)
@@ -58,6 +90,17 @@ public sealed partial class SettingsView : UserControl
             return;
 
         OpenFolder(vm.RecipesFolder);
+    }
+
+    private void LogsFolder_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.ClickCount < 2)
+            return;
+
+        if (DataContext is not SettingsViewModel vm)
+            return;
+
+        OpenFolder(vm.LogsFolder);
     }
 
     private void SettingsTree_SelectionChanged(object? sender, SelectionChangedEventArgs e)
