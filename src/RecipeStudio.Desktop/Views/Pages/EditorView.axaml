@@ -17,10 +17,10 @@
       <Button Grid.Column="2" Command="{Binding SaveCommand}" Classes="accent">Сохранить</Button>
     </Grid>
 
-    <Grid Grid.Row="1" ColumnDefinitions="*,420">
+    <Grid Grid.Row="1">
 
       <!-- Left: table -->
-      <Border Classes="card" Margin="0,0,12,0">
+      <Border Classes="card" Margin="0">
         <Grid RowDefinitions="Auto,*">
 
           <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,10">
@@ -38,7 +38,7 @@
             <TextBlock Text="{Binding Document.RecipeId, StringFormat='ID: {0}'}" Classes="muted" Margin="12,0,0,0" VerticalAlignment="Center" />
           </StackPanel>
 
-          <DataGrid Grid.Row="1" ItemsSource="{Binding Points}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+          <DataGrid Grid.Row="1" Classes="editor-grid" ItemsSource="{Binding Points}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
                     SelectedItem="{Binding SelectedPoint}"
                     AutoGenerateColumns="False"
                     CanUserResizeColumns="True"
@@ -46,8 +46,7 @@
                     CanUserSortColumns="True"
                     IsReadOnly="False"
                     HeadersVisibility="All"
-                    Height="620"
-                    MinHeight="500"
+                    MinHeight="620"
 >
 
             <DataGrid.Columns>
@@ -114,20 +113,20 @@
       </Border>
 
       <!-- Right: movable panels -->
-      <Grid Grid.Column="1" RowDefinitions="Auto,*">
+      <Grid RowDefinitions="Auto,*" Margin="0">
         <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right" Margin="0,0,0,8">
-          <Button Classes="ghost" Click="ShowParametersPanel_Click">Параметры</Button>
-          <Button Classes="ghost" Click="ShowVisualizationPanel_Click">Визуализация</Button>
-          <Button Classes="ghost" Click="ShowSelectedPointPanel_Click">Точка</Button>
-          <Button Classes="ghost" Click="ResetPanels_Click">Сбросить</Button>
+          <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать панель параметров" Click="ShowParametersPanel_Click">⚙</Button>
+          <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать панель визуализации" Click="ShowVisualizationPanel_Click">📈</Button>
+          <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать панель выбранной точки" Click="ShowSelectedPointPanel_Click">◎</Button>
+          <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Сбросить панели" Click="ResetPanels_Click">↺</Button>
         </StackPanel>
 
         <Canvas x:Name="PanelsCanvas" Grid.Row="1" ClipToBounds="True">
-          <Border x:Name="ParametersPanel" Classes="card" Width="400" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+          <Border x:Name="ParametersPanel" Classes="card" Width="390" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
             <StackPanel Spacing="10">
               <Grid ColumnDefinitions="*,Auto" PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
                 <TextBlock Text="Параметры" FontSize="16" FontWeight="SemiBold" />
-                <Button Grid.Column="1" Classes="ghost" Width="28" Height="24" Padding="0" Click="HideParametersPanel_Click">✕</Button>
+                <Button Grid.Column="1" Classes="ghost panel-close-btn" Click="HideParametersPanel_Click">✕</Button>
               </Grid>
 
               <Grid ColumnDefinitions="150,*" RowDefinitions="Auto,Auto,Auto,Auto">
@@ -146,12 +145,12 @@
             </StackPanel>
           </Border>
 
-          <Border x:Name="VisualizationPanel" Classes="card" Width="400" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+          <Border x:Name="VisualizationPanel" Classes="card" Width="390" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
             <StackPanel Spacing="10">
               <Grid ColumnDefinitions="*,Auto,Auto" PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
                 <TextBlock Text="Визуализация" FontSize="16" FontWeight="SemiBold" />
                 <TextBlock Grid.Column="1" Text="drag&amp;drop" Classes="muted" VerticalAlignment="Center" />
-                <Button Grid.Column="2" Classes="ghost" Width="28" Height="24" Padding="0" Click="HideVisualizationPanel_Click">✕</Button>
+                <Button Grid.Column="2" Classes="ghost panel-close-btn" Click="HideVisualizationPanel_Click">✕</Button>
               </Grid>
 
               <controls:RecipePlotControl Height="320"
@@ -175,11 +174,11 @@
             </StackPanel>
           </Border>
 
-          <Border x:Name="SelectedPointPanel" Classes="card" Width="400" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+          <Border x:Name="SelectedPointPanel" Classes="card" Width="390" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
             <StackPanel Spacing="6">
               <Grid ColumnDefinitions="*,Auto" PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
                 <TextBlock Text="Выбранная точка" FontSize="16" FontWeight="SemiBold" />
-                <Button Grid.Column="1" Classes="ghost" Width="28" Height="24" Padding="0" Click="HideSelectedPointPanel_Click">✕</Button>
+                <Button Grid.Column="1" Classes="ghost panel-close-btn" Click="HideSelectedPointPanel_Click">✕</Button>
               </Grid>
               <TextBlock Text="{Binding SelectedPoint}" Classes="muted" TextWrapping="Wrap" />
               <TextBlock Text="Подсказка: клик по точке на графике выбирает строку. Перетаскивание обновляет R/Z." Classes="muted" TextWrapping="Wrap" />
