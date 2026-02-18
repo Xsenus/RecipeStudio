@@ -1,6 +1,9 @@
+using System;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 using RecipeStudio.Desktop.Services;
 using RecipeStudio.Desktop.ViewModels;
 using RecipeStudio.Desktop.Views;
@@ -16,10 +19,37 @@ public sealed partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        var loggerRoot = ResolveAppRoot();
+        var logger = new AppLogger(loggerRoot);
+        logger.Info("Запуск приложения.");
+
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+        {
+            if (e.ExceptionObject is Exception ex)
+            {
+                logger.Error("UnhandledException (AppDomain)", ex);
+            }
+            else
+            {
+                logger.Error($"UnhandledException (AppDomain): {e.ExceptionObject}");
+            }
+        };
+
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            logger.Error("UnobservedTaskException", e.Exception);
+            e.SetObserved();
+        };
+
+        Dispatcher.UIThread.UnhandledException += (_, e) =>
+        {
+            logger.Error("UnhandledException (UIThread)", e.Exception);
+            e.Handled = true;
+        };
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            // Services
-            var settings = new SettingsService();
+            var settings = new SettingsService(logger);
             var repo = new RecipeRepository(settings);
             var excel = new RecipeExcelService();
 
@@ -32,5 +62,26 @@ public sealed partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static string ResolveAppRoot()
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(Environment.ProcessPath))
+            {
+                var processDir = System.IO.Path.GetDirectoryName(Environment.ProcessPath);
+                if (!string.IsNullOrWhiteSpace(processDir))
+                {
+                    return processDir;
+                }
+            }
+        }
+        catch
+        {
+            // ignored
+        }
+
+        return AppContext.BaseDirectory;
     }
 }

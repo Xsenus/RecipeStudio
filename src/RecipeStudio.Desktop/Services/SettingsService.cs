@@ -11,47 +11,71 @@ public sealed class SettingsService
         WriteIndented = true
     };
 
+    private readonly AppLogger _logger;
+
     public string AppDataRoot { get; }
     public string SettingsPath { get; }
 
     public AppSettings Settings { get; private set; }
 
-    public SettingsService()
+    public SettingsService(AppLogger logger)
     {
-        AppDataRoot = ResolveSettingsRoot();
+        _logger = logger;
 
+        AppDataRoot = ResolveSettingsRoot();
         Directory.CreateDirectory(AppDataRoot);
 
         SettingsPath = Path.Combine(AppDataRoot, "settings.json");
 
-        TryMigrateLegacySettings();
+        var hadLoadErrors = false;
+        Settings = Load(out hadLoadErrors);
 
-        Settings = Load();
+        EnsureDefaults();
 
-        if (string.IsNullOrWhiteSpace(Settings.RecipesFolder))
+        if (!File.Exists(SettingsPath) || hadLoadErrors)
         {
-            Settings.RecipesFolder = Path.Combine(AppDataRoot, "recipes");
-            Directory.CreateDirectory(Settings.RecipesFolder);
             Save();
-        }
-        else
-        {
-            Directory.CreateDirectory(Settings.RecipesFolder);
+            if (hadLoadErrors)
+            {
+                _logger.Warn("settings.json прочитан с ошибками, восстановлены настройки по умолчанию.");
+            }
         }
     }
 
-    public AppSettings Load()
+    public AppSettings Load() => Load(out _);
+
+    public AppSettings Load(out bool hadErrors)
     {
+        hadErrors = false;
+
         try
         {
             if (!File.Exists(SettingsPath))
+            {
                 return new AppSettings();
+            }
 
             var json = File.ReadAllText(SettingsPath);
-            return JsonSerializer.Deserialize<AppSettings>(json, _jsonOptions) ?? new AppSettings();
+            var settings = JsonSerializer.Deserialize<AppSettings>(json, _jsonOptions);
+            if (settings is null)
+            {
+                hadErrors = true;
+                return new AppSettings();
+            }
+
+            if (!ValidateSettings(settings, out var validationError))
+            {
+                hadErrors = true;
+                _logger.Warn($"settings.json не прошёл валидацию: {validationError}");
+                return new AppSettings();
+            }
+
+            return settings;
         }
-        catch
+        catch (Exception ex)
         {
+            hadErrors = true;
+            _logger.Error("Ошибка чтения settings.json. Будут применены настройки по умолчанию.", ex);
             return new AppSettings();
         }
     }
@@ -63,56 +87,42 @@ public sealed class SettingsService
             var json = JsonSerializer.Serialize(Settings, _jsonOptions);
             File.WriteAllText(SettingsPath, json);
         }
-        catch
+        catch (Exception ex)
         {
-            // swallow in prototype
+            _logger.Error("Ошибка сохранения settings.json.", ex);
         }
     }
 
-    private void TryMigrateLegacySettings()
+    private void EnsureDefaults()
     {
+        if (string.IsNullOrWhiteSpace(Settings.RecipesFolder))
+        {
+            Settings.RecipesFolder = Path.Combine(AppDataRoot, "recipes");
+        }
+
         try
         {
-            if (File.Exists(SettingsPath))
-                return;
-
-            var legacyRoot = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "recipe-studio");
-            var legacyPath = Path.Combine(legacyRoot, "settings.json");
-
-            if (!File.Exists(legacyPath))
-                return;
-
-            File.Copy(legacyPath, SettingsPath, overwrite: false);
+            Directory.CreateDirectory(Settings.RecipesFolder);
         }
-        catch
+        catch (Exception ex)
         {
-            // ignore migration issues
+            _logger.Error($"Ошибка создания каталога рецептов: {Settings.RecipesFolder}", ex);
+            Settings.RecipesFolder = Path.Combine(AppDataRoot, "recipes");
+            Directory.CreateDirectory(Settings.RecipesFolder);
         }
     }
 
     private static string ResolveSettingsRoot()
     {
-        var executableFolder = TryGetExecutableFolder();
-
-        if (!string.IsNullOrWhiteSpace(executableFolder) && CanWriteTo(executableFolder))
-        {
-            return executableFolder;
-        }
-
-        return Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "recipe-studio");
-    }
-
-    private static string? TryGetExecutableFolder()
-    {
         try
         {
             if (!string.IsNullOrWhiteSpace(Environment.ProcessPath))
             {
-                return Path.GetDirectoryName(Environment.ProcessPath);
+                var processDir = Path.GetDirectoryName(Environment.ProcessPath);
+                if (!string.IsNullOrWhiteSpace(processDir))
+                {
+                    return processDir;
+                }
             }
         }
         catch
@@ -123,19 +133,33 @@ public sealed class SettingsService
         return AppContext.BaseDirectory;
     }
 
-    private static bool CanWriteTo(string folder)
+    private static bool ValidateSettings(AppSettings s, out string error)
     {
-        try
+        if (!IsFinite(s.HZone) || !IsFinite(s.HContMax) || !IsFinite(s.HBokMax) ||
+            !IsFinite(s.Xm) || !IsFinite(s.Ym) || !IsFinite(s.Zm) || !IsFinite(s.Lz) ||
+            !IsFinite(s.PulseX) || !IsFinite(s.PulseY) || !IsFinite(s.PulseZ) || !IsFinite(s.PulseA) ||
+            !IsFinite(s.PulseB) || !IsFinite(s.PulseTop) || !IsFinite(s.PulseLow) || !IsFinite(s.PulseClamp) ||
+            !IsFinite(s.PlotOpacity) || !IsFinite(s.PlotStrokeThickness) || !IsFinite(s.PlotPointRadius))
         {
-            Directory.CreateDirectory(folder);
-            var probePath = Path.Combine(folder, ".settings-write-probe");
-            File.WriteAllText(probePath, "ok");
-            File.Delete(probePath);
-            return true;
-        }
-        catch
-        {
+            error = "Обнаружены нечисловые значения (NaN/Infinity).";
             return false;
         }
+
+        if (s.PlotOpacity < 0.05 || s.PlotOpacity > 0.90)
+        {
+            error = "PlotOpacity вне допустимого диапазона 0.05..0.90.";
+            return false;
+        }
+
+        if (s.SmoothSegmentsPerSpan is < 4 or > 64)
+        {
+            error = "SmoothSegmentsPerSpan вне диапазона 4..64.";
+            return false;
+        }
+
+        error = string.Empty;
+        return true;
     }
+
+    private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 }
