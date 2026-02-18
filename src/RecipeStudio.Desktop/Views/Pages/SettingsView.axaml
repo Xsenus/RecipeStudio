@@ -16,6 +16,7 @@
               <TreeViewItem Header="Параметры станка" Tag="machine" />
               <TreeViewItem Header="Коэффициенты" Tag="coefficients" />
               <TreeViewItem Header="Графика" Tag="graphics" />
+              <TreeViewItem Header="Логирование" Tag="logging" />
             </TreeViewItem>
           </TreeView>
         </StackPanel>
@@ -179,6 +180,22 @@
                     <TextBox Grid.Row="2" Grid.Column="1" Classes="value-box" Text="{Binding SmoothSegmentsPerSpan}" Margin="10,0,0,0" ToolTip.Tip="Чем выше значение, тем более плавная кривая и выше нагрузка" />
                   </Grid>
                 </Border>
+              </Grid>
+            </StackPanel>
+          </Border>
+
+          <Border Classes="card" IsVisible="{Binding IsLoggingSection}">
+            <StackPanel Spacing="12">
+              <TextBlock Text="Параметры логирования" FontSize="16" FontWeight="SemiBold" />
+
+              <CheckBox IsChecked="{Binding LoggingEnabled}" ToolTip.Tip="Включить или выключить запись в файл логов">Включить запись логов в файл</CheckBox>
+
+              <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto">
+                <TextBlock Text="Хранить логи (дней)" VerticalAlignment="Center" ToolTip.Tip="Старые .log файлы в папке logs будут удаляться автоматически" />
+                <TextBox Grid.Column="1" Classes="value-box" Text="{Binding LogRetentionDays}" Margin="10,0,0,0" ToolTip.Tip="От 1 до 3650 дней" />
+
+                <TextBlock Grid.Row="1" Text="Файл лога" VerticalAlignment="Center" Margin="0,8,0,0" ToolTip.Tip="Текущий путь к файлу лога" />
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding LogFilePath}" Margin="10,8,0,0" IsReadOnly="True" />
               </Grid>
             </StackPanel>
           </Border>

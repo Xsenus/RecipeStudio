@@ -31,6 +31,7 @@ public sealed class SettingsService
         Settings = Load(out hadLoadErrors);
 
         EnsureDefaults();
+        _logger.Configure(Settings.LoggingEnabled, Settings.LogRetentionDays);
 
         if (!File.Exists(SettingsPath) || hadLoadErrors)
         {
@@ -86,6 +87,7 @@ public sealed class SettingsService
         {
             var json = JsonSerializer.Serialize(Settings, _jsonOptions);
             File.WriteAllText(SettingsPath, json);
+            _logger.Configure(Settings.LoggingEnabled, Settings.LogRetentionDays);
         }
         catch (Exception ex)
         {
@@ -154,6 +156,12 @@ public sealed class SettingsService
         if (s.SmoothSegmentsPerSpan is < 4 or > 64)
         {
             error = "SmoothSegmentsPerSpan вне диапазона 4..64.";
+            return false;
+        }
+
+        if (s.LogRetentionDays is < 1 or > 3650)
+        {
+            error = "LogRetentionDays вне диапазона 1..3650.";
             return false;
         }
 

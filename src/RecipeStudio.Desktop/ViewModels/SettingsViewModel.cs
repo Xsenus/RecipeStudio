@@ -10,6 +10,7 @@ public sealed class SettingsViewModel : ViewModelBase
     public const string SectionMachine = "machine";
     public const string SectionCoefficients = "coefficients";
     public const string SectionGraphics = "graphics";
+    public const string SectionLogging = "logging";
 
     private readonly SettingsService _settings;
     private readonly Action _onChanged;
@@ -37,6 +38,7 @@ public sealed class SettingsViewModel : ViewModelBase
                 RaisePropertyChanged(nameof(IsMachineSection));
                 RaisePropertyChanged(nameof(IsCoefficientsSection));
                 RaisePropertyChanged(nameof(IsGraphicsSection));
+                RaisePropertyChanged(nameof(IsLoggingSection));
                 RaisePropertyChanged(nameof(CurrentSectionTitle));
             }
         }
@@ -46,6 +48,7 @@ public sealed class SettingsViewModel : ViewModelBase
     public bool IsMachineSection => SelectedSection == SectionMachine;
     public bool IsCoefficientsSection => SelectedSection == SectionCoefficients;
     public bool IsGraphicsSection => SelectedSection == SectionGraphics;
+    public bool IsLoggingSection => SelectedSection == SectionLogging;
 
     public string CurrentSectionTitle => SelectedSection switch
     {
@@ -53,6 +56,7 @@ public sealed class SettingsViewModel : ViewModelBase
         SectionMachine => "Параметры станка",
         SectionCoefficients => "Коэффициенты и импульсы",
         SectionGraphics => "Графика",
+        SectionLogging => "Логирование",
         _ => "Настройки"
     };
 
@@ -64,6 +68,7 @@ public sealed class SettingsViewModel : ViewModelBase
             _settings.Settings.RecipesFolder = value;
             RaisePropertyChanged();
             RaisePropertyChanged(nameof(DatabaseFilePath));
+            RaisePropertyChanged(nameof(LogFilePath));
         }
     }
 
@@ -120,11 +125,35 @@ public sealed class SettingsViewModel : ViewModelBase
         }
     }
 
+
+    public bool LoggingEnabled
+    {
+        get => _settings.Settings.LoggingEnabled;
+        set
+        {
+            _settings.Settings.LoggingEnabled = value;
+            RaisePropertyChanged();
+        }
+    }
+
+    public int LogRetentionDays
+    {
+        get => _settings.Settings.LogRetentionDays;
+        set
+        {
+            _settings.Settings.LogRetentionDays = Math.Clamp(value, 1, 3650);
+            RaisePropertyChanged();
+        }
+    }
+
+    public string LogFilePath => Path.Combine(_settings.AppDataRoot, "logs", "recipe-studio.log");
+
     private void Save()
     {
         _settings.Save();
         _onChanged();
         RaisePropertyChanged(nameof(SettingsFilePath));
         RaisePropertyChanged(nameof(DatabaseFilePath));
+        RaisePropertyChanged(nameof(LogFilePath));
     }
 }

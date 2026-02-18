@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using Avalonia.Threading;
 using RecipeStudio.Desktop.Services;
 using RecipeStudio.Desktop.ViewModels;
 using RecipeStudio.Desktop.Views;
@@ -39,12 +38,6 @@ public sealed partial class App : Application
         {
             logger.Error("UnobservedTaskException", e.Exception);
             e.SetObserved();
-        };
-
-        Dispatcher.UIThread.UnhandledException += (_, e) =>
-        {
-            logger.Error("UnhandledException (UIThread)", e.Exception);
-            e.Handled = true;
         };
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)

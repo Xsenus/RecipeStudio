@@ -8,13 +8,24 @@ public sealed class AppLogger
 {
     private static readonly object Sync = new();
 
+    private readonly string _logsDir;
+    private bool _enabled = true;
+    private int _retentionDays = 14;
+
     public string LogFilePath { get; }
 
     public AppLogger(string appRoot)
     {
-        var logsDir = Path.Combine(appRoot, "logs");
-        Directory.CreateDirectory(logsDir);
-        LogFilePath = Path.Combine(logsDir, "recipe-studio.log");
+        _logsDir = Path.Combine(appRoot, "logs");
+        Directory.CreateDirectory(_logsDir);
+        LogFilePath = Path.Combine(_logsDir, "recipe-studio.log");
+    }
+
+    public void Configure(bool enabled, int retentionDays)
+    {
+        _enabled = enabled;
+        _retentionDays = Math.Clamp(retentionDays, 1, 3650);
+        CleanupOldLogs();
     }
 
     public void Info(string message) => Write("INFO", message, null);
@@ -23,6 +34,9 @@ public sealed class AppLogger
 
     private void Write(string level, string message, Exception? exception)
     {
+        if (!_enabled)
+            return;
+
         try
         {
             var sb = new StringBuilder();
@@ -47,6 +61,28 @@ public sealed class AppLogger
         catch
         {
             // never crash because of logger
+        }
+    }
+
+    private void CleanupOldLogs()
+    {
+        try
+        {
+            if (!Directory.Exists(_logsDir))
+                return;
+
+            var threshold = DateTime.UtcNow.AddDays(-_retentionDays);
+            foreach (var file in Directory.EnumerateFiles(_logsDir, "*.log", SearchOption.TopDirectoryOnly))
+            {
+                if (File.GetLastWriteTimeUtc(file) < threshold)
+                {
+                    File.Delete(file);
+                }
+            }
+        }
+        catch
+        {
+            // ignore cleanup errors
         }
     }
 }

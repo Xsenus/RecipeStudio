@@ -36,6 +36,11 @@ public sealed class AppSettings
     public int SmoothSegmentsPerSpan { get; set; } = 16;
 
     public WindowPlacementSettings WindowPlacement { get; set; } = new();
+
+    // Logging
+    public bool LoggingEnabled { get; set; } = true;
+    public int LogRetentionDays { get; set; } = 14;
+
 }
 
 public sealed class WindowPlacementSettings
