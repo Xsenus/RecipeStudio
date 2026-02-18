@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using RecipeStudio.Desktop.Services;
 
 namespace RecipeStudio.Desktop.ViewModels;
@@ -19,14 +20,15 @@ public sealed class MainViewModel : ViewModelBase
 
         Dashboard = new DashboardViewModel(_repo, OpenInEditor);
         Editor = new EditorViewModel(_settings, _repo, _excel, NavigateToDashboard);
+        Editor.PropertyChanged += OnEditorPropertyChanged;
         Simulation = new SimulationViewModel();
         Settings = new SettingsViewModel(_settings, OnSettingsChanged);
 
         _currentPage = Dashboard;
 
         NavigateDashboardCommand = new RelayCommand(() => CurrentPage = Dashboard);
-        NavigateEditorCommand = new RelayCommand(() => CurrentPage = Editor);
-        NavigateSimulationCommand = new RelayCommand(() => CurrentPage = Simulation);
+        NavigateEditorCommand = new RelayCommand(() => CurrentPage = Editor, () => CanAccessRecipePages);
+        NavigateSimulationCommand = new RelayCommand(() => CurrentPage = Simulation, () => CanAccessRecipePages);
         NavigateSettingsCommand = new RelayCommand(() => CurrentPage = Settings);
     }
 
@@ -44,6 +46,7 @@ public sealed class MainViewModel : ViewModelBase
     public bool IsEditorActive => CurrentPage == Editor;
     public bool IsSimulationActive => CurrentPage == Simulation;
     public bool IsSettingsActive => CurrentPage == Settings;
+    public bool CanAccessRecipePages => Editor.HasDocument;
 
     public ViewModelBase CurrentPage
     {
@@ -66,6 +69,7 @@ public sealed class MainViewModel : ViewModelBase
         {
             var doc = _repo.Load(recipeId);
             Editor.LoadDocument(doc);
+            RaiseRecipePageStateChanged();
             CurrentPage = Editor;
         }
         catch
@@ -87,5 +91,20 @@ public sealed class MainViewModel : ViewModelBase
         {
             Editor.Recalculate();
         }
+    }
+
+    private void OnEditorPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(EditorViewModel.HasDocument))
+        {
+            RaiseRecipePageStateChanged();
+        }
+    }
+
+    private void RaiseRecipePageStateChanged()
+    {
+        RaisePropertyChanged(nameof(CanAccessRecipePages));
+        NavigateEditorCommand.RaiseCanExecuteChanged();
+        NavigateSimulationCommand.RaiseCanExecuteChanged();
     }
 }

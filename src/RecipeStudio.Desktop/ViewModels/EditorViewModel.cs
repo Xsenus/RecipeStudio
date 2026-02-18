@@ -71,6 +71,7 @@ public sealed class EditorViewModel : ViewModelBase
         {
             if (SetProperty(ref _document, value))
             {
+                RaisePropertyChanged(nameof(HasDocument));
                 RaisePropertyChanged(nameof(RecipeCode));
                 RaisePropertyChanged(nameof(FilePath));
                 RaisePropertyChanged(nameof(ContainerPresent));

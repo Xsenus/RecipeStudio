@@ -37,7 +37,6 @@
             <StackPanel Spacing="6">
               <TextBlock Text="СИСТЕМА" Classes="muted stat-title" />
               <TextBlock Text="ОНЛАЙН" FontSize="30" FontWeight="Bold" Foreground="#34D399" />
-              <TextBlock Text="Версия: v0.1.0-alpha" Classes="muted tiny" />
             </StackPanel>
             <TextBlock Grid.Column="1" Text="▣" Classes="stat-icon" Foreground="#166534" />
           </Grid>
