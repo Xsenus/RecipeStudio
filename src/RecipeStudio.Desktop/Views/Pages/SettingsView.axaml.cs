@@ -45,9 +45,9 @@ public sealed partial class SettingsView : UserControl
         OpenFolder(vm.RecipesFolder);
     }
 
-    private void RecipesFolder_Tapped(object? sender, Avalonia.Input.TappedEventArgs e)
+    private void RecipesFolder_PointerPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)
     {
-        if (e.TapCount < 2)
+        if (e.ClickCount < 2)
             return;
 
         if (DataContext is not SettingsViewModel vm)

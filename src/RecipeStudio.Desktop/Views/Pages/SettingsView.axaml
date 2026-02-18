@@ -56,7 +56,7 @@
                 <TextBox Grid.Row="1"
                          Grid.Column="0"
                          Text="{Binding RecipesFolder}"
-                         Tapped="RecipesFolder_Tapped"
+                         PointerPressed="RecipesFolder_PointerPressed"
                          ToolTip.Tip="Путь к папке с рецептами и SQLite базой. Двойной клик открывает каталог" />
 
                 <Button Grid.Row="1"
