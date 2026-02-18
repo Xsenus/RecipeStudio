@@ -25,7 +25,7 @@ public sealed partial class App : Application
 
             var mainVm = new MainViewModel(settings, repo, excel);
 
-            desktop.MainWindow = new MainWindow
+            desktop.MainWindow = new MainWindow(settings)
             {
                 DataContext = mainVm
             };

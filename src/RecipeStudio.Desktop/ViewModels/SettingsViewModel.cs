@@ -5,8 +5,15 @@ namespace RecipeStudio.Desktop.ViewModels;
 
 public sealed class SettingsViewModel : ViewModelBase
 {
+    public const string SectionStorage = "storage";
+    public const string SectionMachine = "machine";
+    public const string SectionCoefficients = "coefficients";
+    public const string SectionGraphics = "graphics";
+
     private readonly SettingsService _settings;
     private readonly Action _onChanged;
+
+    private string _selectedSection = SectionStorage;
 
     public SettingsViewModel(SettingsService settings, Action onChanged)
     {
@@ -18,6 +25,26 @@ public sealed class SettingsViewModel : ViewModelBase
 
     public RelayCommand SaveCommand { get; }
 
+    public string SelectedSection
+    {
+        get => _selectedSection;
+        set
+        {
+            if (SetProperty(ref _selectedSection, value))
+            {
+                RaisePropertyChanged(nameof(IsStorageSection));
+                RaisePropertyChanged(nameof(IsMachineSection));
+                RaisePropertyChanged(nameof(IsCoefficientsSection));
+                RaisePropertyChanged(nameof(IsGraphicsSection));
+            }
+        }
+    }
+
+    public bool IsStorageSection => SelectedSection == SectionStorage;
+    public bool IsMachineSection => SelectedSection == SectionMachine;
+    public bool IsCoefficientsSection => SelectedSection == SectionCoefficients;
+    public bool IsGraphicsSection => SelectedSection == SectionGraphics;
+
     public string RecipesFolder
     {
         get => _settings.Settings.RecipesFolder;
@@ -28,8 +55,13 @@ public sealed class SettingsViewModel : ViewModelBase
         }
     }
 
-    // Constants
+    // Machine / constants
     public double HZone { get => _settings.Settings.HZone; set { _settings.Settings.HZone = value; RaisePropertyChanged(); } }
+    public double HContMax { get => _settings.Settings.HContMax; set { _settings.Settings.HContMax = value; RaisePropertyChanged(); } }
+    public double HBokMax { get => _settings.Settings.HBokMax; set { _settings.Settings.HBokMax = value; RaisePropertyChanged(); } }
+    public double Xm { get => _settings.Settings.Xm; set { _settings.Settings.Xm = value; RaisePropertyChanged(); } }
+    public double Ym { get => _settings.Settings.Ym; set { _settings.Settings.Ym = value; RaisePropertyChanged(); } }
+    public double Zm { get => _settings.Settings.Zm; set { _settings.Settings.Zm = value; RaisePropertyChanged(); } }
     public double Lz { get => _settings.Settings.Lz; set { _settings.Settings.Lz = value; RaisePropertyChanged(); } }
 
     public double PulseX { get => _settings.Settings.PulseX; set { _settings.Settings.PulseX = value; RaisePropertyChanged(); } }
@@ -53,6 +85,7 @@ public sealed class SettingsViewModel : ViewModelBase
     }
 
     public double PlotStrokeThickness { get => _settings.Settings.PlotStrokeThickness; set { _settings.Settings.PlotStrokeThickness = value; RaisePropertyChanged(); } }
+    public double PlotPointRadius { get => _settings.Settings.PlotPointRadius; set { _settings.Settings.PlotPointRadius = value; RaisePropertyChanged(); } }
 
     public bool PlotShowPolyline { get => _settings.Settings.PlotShowPolyline; set { _settings.Settings.PlotShowPolyline = value; RaisePropertyChanged(); } }
     public bool PlotShowSmooth { get => _settings.Settings.PlotShowSmooth; set { _settings.Settings.PlotShowSmooth = value; RaisePropertyChanged(); } }

@@ -1,7 +1,6 @@
-using System;
-using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using RecipeStudio.Desktop.ViewModels;
 
@@ -14,7 +13,7 @@ public sealed partial class SettingsView : UserControl
         InitializeComponent();
     }
 
-    private async void BrowseFolder_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private async void BrowseFolder_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not SettingsViewModel vm)
             return;
@@ -32,6 +31,20 @@ public sealed partial class SettingsView : UserControl
         if (result.Count > 0)
         {
             vm.RecipesFolder = result[0].Path.LocalPath;
+        }
+    }
+
+    private void SettingsTree_SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (DataContext is not SettingsViewModel vm)
+            return;
+
+        if (e.AddedItems.Count == 0)
+            return;
+
+        if (e.AddedItems[0] is TreeViewItem item && item.Tag is string section)
+        {
+            vm.SelectedSection = section;
         }
     }
 }

@@ -34,4 +34,15 @@ public sealed class AppSettings
     public bool PlotEnableDrag { get; set; } = true;
 
     public int SmoothSegmentsPerSpan { get; set; } = 16;
+
+    public WindowPlacementSettings WindowPlacement { get; set; } = new();
+}
+
+public sealed class WindowPlacementSettings
+{
+    public int? X { get; set; }
+    public int? Y { get; set; }
+    public double? Width { get; set; }
+    public double? Height { get; set; }
+    public bool IsMaximized { get; set; }
 }

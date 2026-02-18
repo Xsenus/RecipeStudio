@@ -18,9 +18,7 @@ public sealed class SettingsService
 
     public SettingsService()
     {
-        AppDataRoot = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "recipe-studio");
+        AppDataRoot = ResolveSettingsRoot();
 
         Directory.CreateDirectory(AppDataRoot);
 
@@ -52,7 +50,6 @@ public sealed class SettingsService
         }
         catch
         {
-            // In a prototype we keep it resilient.
             return new AppSettings();
         }
     }
@@ -67,6 +64,26 @@ public sealed class SettingsService
         catch
         {
             // swallow in prototype
+        }
+    }
+
+    private static string ResolveSettingsRoot()
+    {
+        var executableFolder = AppContext.BaseDirectory;
+
+        try
+        {
+            Directory.CreateDirectory(executableFolder);
+            var probePath = Path.Combine(executableFolder, ".settings-write-probe");
+            File.WriteAllText(probePath, "ok");
+            File.Delete(probePath);
+            return executableFolder;
+        }
+        catch
+        {
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "recipe-studio");
         }
     }
 }
