@@ -253,11 +253,8 @@ public sealed class RecipePlotControl : Control
             DrawPolyline(context, smooth, penTool);
         }
 
-        // Target points
-        if (settings.PlotShowTargetPoints)
-        {
-            DrawPoints(context, points, settings, settings.HZone);
-        }
+        // Target points are always drawn to keep point markers visible in the editor.
+        DrawPoints(context, points, settings, settings.HZone);
 
         // Tool marker
         var toolPos = GetToolPosition(tool, Progress);

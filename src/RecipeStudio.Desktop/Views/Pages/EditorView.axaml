@@ -10,7 +10,7 @@
 
     <!-- Header -->
     <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,12">
-      <Button Command="{Binding BackCommand}" Classes="ghost" Width="40" Height="34" FontSize="20" Padding="0">←</Button>
+      <Button Command="{Binding BackCommand}" Classes="ghost back-arrow" Width="42" Height="34" Padding="0"><TextBlock Text="←" HorizontalAlignment="Center" VerticalAlignment="Center" /></Button>
 
       <TextBlock Grid.Column="1" Text="Редактор рецепта" Classes="h1" VerticalAlignment="Center" Margin="12,0,0,0" />
 

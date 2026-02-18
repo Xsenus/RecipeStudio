@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using Avalonia;
@@ -10,6 +11,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 using RecipeStudio.Desktop.Models;
 
 namespace RecipeStudio.Desktop.Controls;
@@ -35,6 +37,10 @@ public sealed class RecipeAnalysisChartControl : Control
 
     private readonly Thickness _padding = new(52, 20, 74, 48);
     private int _hoverIndex = -1;
+    private readonly DispatcherTimer _revealTimer = new() { Interval = TimeSpan.FromMilliseconds(16) };
+    private readonly Stopwatch _revealWatch = new();
+    private const double RevealDurationMs = 320;
+    private double _revealProgress = 1.0;
 
     public IList<RecipePoint>? Points
     {
@@ -46,6 +52,32 @@ public sealed class RecipeAnalysisChartControl : Control
     {
         get => GetValue(ChartTypeProperty);
         set => SetValue(ChartTypeProperty, value);
+    }
+
+
+    public RecipeAnalysisChartControl()
+    {
+        _revealTimer.Tick += (_, _) =>
+        {
+            if (!_revealWatch.IsRunning)
+                return;
+
+            _revealProgress = Math.Clamp(_revealWatch.Elapsed.TotalMilliseconds / RevealDurationMs, 0, 1);
+            InvalidateVisual();
+            if (_revealProgress >= 1)
+            {
+                _revealWatch.Stop();
+                _revealTimer.Stop();
+            }
+        };
+    }
+
+    public void StartRevealAnimation()
+    {
+        _revealProgress = 0;
+        _revealWatch.Restart();
+        _revealTimer.Start();
+        InvalidateVisual();
     }
 
     static RecipeAnalysisChartControl()
@@ -154,7 +186,7 @@ public sealed class RecipeAnalysisChartControl : Control
         foreach (var s in series)
         {
             var yRange = s.RightAxis ? yRight : yLeft;
-            DrawSeries(context, chartRect, xValues, s, minX, maxX, yRange.min, yRange.max);
+            DrawSeries(context, chartRect, xValues, s, minX, maxX, yRange.min, yRange.max, _revealProgress);
         }
 
         DrawLeftAxisLabel(context, chartRect, leftSeries.FirstOrDefault().AxisTitle ?? "");
@@ -230,9 +262,12 @@ public sealed class RecipeAnalysisChartControl : Control
         DrawText(ctx, title, new Point(chartRect.Right + 42, chartRect.Top + chartRect.Height / 2), 14, new SolidColorBrush(Color.FromRgb(166, 174, 190)), vertical: VerticalAlignment.Center);
     }
 
-    private static void DrawSeries(DrawingContext ctx, Rect chartRect, int[] xValues, SeriesInfo series, int minX, int maxX, double minY, double maxY)
+    private static void DrawSeries(DrawingContext ctx, Rect chartRect, int[] xValues, SeriesInfo series, int minX, int maxX, double minY, double maxY, double revealProgress)
     {
         if (series.Values.Count == 0) return;
+
+        revealProgress = Math.Clamp(revealProgress, 0, 1);
+        var maxVisibleIndex = Math.Clamp((int)Math.Ceiling((series.Values.Count - 1) * revealProgress), 0, series.Values.Count - 1);
 
         var pen = new Pen(series.Color, 2, dashStyle: series.Dashed ? new DashStyle(new[] { 3.0, 3.0 }, 0) : null);
 
@@ -242,7 +277,7 @@ public sealed class RecipeAnalysisChartControl : Control
             using var sg = g.Open();
             var start = ToScreen(chartRect, xValues[0], series.Values[0], minX, maxX, minY, maxY);
             sg.BeginFigure(start, false);
-            for (var i = 1; i < series.Values.Count; i++)
+            for (var i = 1; i <= maxVisibleIndex; i++)
             {
                 sg.LineTo(ToScreen(chartRect, xValues[i], series.Values[i], minX, maxX, minY, maxY));
             }
@@ -255,7 +290,7 @@ public sealed class RecipeAnalysisChartControl : Control
             ctx.DrawGeometry(null, pen, geometry);
         }
 
-        for (var i = 0; i < series.Values.Count; i++)
+        for (var i = 0; i <= maxVisibleIndex; i++)
         {
             var p = ToScreen(chartRect, xValues[i], series.Values[i], minX, maxX, minY, maxY);
             ctx.DrawEllipse(series.Color, new Pen(Brushes.White, 1.2), p, 4, 4);
