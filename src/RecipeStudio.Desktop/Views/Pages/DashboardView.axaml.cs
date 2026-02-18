@@ -1,5 +1,7 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 using RecipeStudio.Desktop.ViewModels;
 using RecipeStudio.Desktop.Views.Dialogs;
 
@@ -10,6 +12,24 @@ public sealed partial class DashboardView : UserControl
     public DashboardView()
     {
         InitializeComponent();
+    }
+
+    private void RecipeCard_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is not Border { Tag: RecipeCardViewModel recipe })
+        {
+            return;
+        }
+
+        if (e.Source is Control source && source.FindAncestorOfType<Button>() is not null)
+        {
+            return;
+        }
+
+        if (recipe.OpenCommand.CanExecute(null))
+        {
+            recipe.OpenCommand.Execute(null);
+        }
     }
 
     private async void DeleteRecipe_Click(object? sender, RoutedEventArgs e)
@@ -28,7 +48,8 @@ public sealed partial class DashboardView : UserControl
         var dialog = new ConfirmDialog(
             "Удаление рецепта",
             $"Удалить рецепт '{recipe.Name}'?",
-            "Удалить");
+            "Удалить",
+            "Отмена");
 
         var confirmed = await dialog.ShowDialog<bool>(owner);
         if (confirmed)
