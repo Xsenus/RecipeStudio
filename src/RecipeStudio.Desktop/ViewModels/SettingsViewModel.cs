@@ -166,10 +166,19 @@ public sealed class SettingsViewModel : ViewModelBase
         {
             _settings.Settings.LogMode = value;
             RaisePropertyChanged();
+            RaisePropertyChanged(nameof(LogModeDescription));
         }
     }
 
     public string LogFilePath => Path.Combine(_settings.Settings.LogsFolder, $"{DateTime.Now:dd.MM.yyyy}.log");
+
+    public string LogModeDescription => LogMode switch
+    {
+        LogSeverity.Info => "Info: пишутся все сообщения (инфо, предупреждения и ошибки).",
+        LogSeverity.Warning => "Warning: пишутся только предупреждения и ошибки.",
+        LogSeverity.Error => "Error: пишутся только ошибки.",
+        _ => "Info: пишутся все сообщения (инфо, предупреждения и ошибки)."
+    };
 
     private void Save()
     {

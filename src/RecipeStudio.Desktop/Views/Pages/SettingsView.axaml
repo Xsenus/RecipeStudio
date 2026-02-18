@@ -190,15 +190,17 @@
 
               <CheckBox IsChecked="{Binding LoggingEnabled}" ToolTip.Tip="Включить или выключить запись в файл логов">Включить запись логов в файл</CheckBox>
 
-              <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto">
+              <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto">
                 <TextBlock Text="Режим логирования" VerticalAlignment="Center" ToolTip.Tip="Info — все сообщения, Warning — предупреждения и ошибки, Error — только ошибки" />
-                <ComboBox Grid.Column="1" Margin="10,0,0,0" ItemsSource="{Binding LogModes}" SelectedItem="{Binding LogMode}" />
+                <ComboBox Grid.Column="1" Margin="10,0,0,0" ItemsSource="{Binding LogModes}" SelectedItem="{Binding LogMode}" ToolTip.Tip="Выбор фильтра логов: Info/Warning/Error" />
 
-                <TextBlock Grid.Row="1" Text="Хранить логи (дней)" VerticalAlignment="Center" Margin="0,8,0,0" ToolTip.Tip="Текущий день + предыдущие дни по значению" />
-                <TextBox Grid.Row="1" Grid.Column="1" Classes="value-box" Text="{Binding LogRetentionDays}" Margin="10,8,0,0" ToolTip.Tip="От 1 до 3650 дней" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Margin="10,6,0,0" Text="{Binding LogModeDescription}" Classes="muted tiny" TextWrapping="Wrap" />
 
-                <TextBlock Grid.Row="2" Text="Файл лога за сегодня" VerticalAlignment="Center" Margin="0,8,0,0" ToolTip.Tip="Логи хранятся по дням: dd.MM.yyyy.log" />
-                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding LogFilePath}" Margin="10,8,0,0" IsReadOnly="True" />
+                <TextBlock Grid.Row="2" Text="Хранить логи (дней)" VerticalAlignment="Center" Margin="0,8,0,0" ToolTip.Tip="Текущий день + предыдущие дни по значению" />
+                <TextBox Grid.Row="2" Grid.Column="1" Classes="value-box" Text="{Binding LogRetentionDays}" Margin="10,8,0,0" ToolTip.Tip="От 1 до 3650 дней" />
+
+                <TextBlock Grid.Row="3" Text="Файл лога за сегодня" VerticalAlignment="Center" Margin="0,8,0,0" ToolTip.Tip="Логи хранятся по дням: dd.MM.yyyy.log" />
+                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding LogFilePath}" Margin="10,8,0,0" IsReadOnly="True" />
               </Grid>
 
               <Grid ColumnDefinitions="*,Auto,Auto">
