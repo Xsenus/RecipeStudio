@@ -46,7 +46,7 @@
                     CanUserSortColumns="True"
                     IsReadOnly="False"
                     HeadersVisibility="All"
-                    MinHeight="620"
+                    MinHeight="520" FontSize="13" RowHeight="34"
 >
 
             <DataGrid.Columns>
@@ -81,30 +81,22 @@
               <DataGridTextColumn Header="D cont" Binding="{Binding DClampCont}" Width="90" />
               <DataGridTextColumn Header="Desc" Binding="{Binding Description}" Width="90" />
 
-              <!-- Outputs -->
+              <!-- Outputs (trimmed to match compact prototype) -->
+              <DataGridTextColumn Header="Xm" Binding="{Binding DX}" IsReadOnly="True" Width="80" />
+              <DataGridTextColumn Header="Ym" Binding="{Binding DY}" IsReadOnly="True" Width="80" />
+              <DataGridTextColumn Header="Zm" Binding="{Binding DZ}" IsReadOnly="True" Width="80" />
+              <DataGridTextColumn Header="Am" Binding="{Binding DA}" IsReadOnly="True" Width="80" />
+              <DataGridTextColumn Header="Bm" Binding="{Binding AB}" IsReadOnly="True" Width="80" />
+
               <DataGridTextColumn Header="Xr" Binding="{Binding Xr0}" IsReadOnly="True" Width="80" />
               <DataGridTextColumn Header="Yr" Binding="{Binding Yx0}" IsReadOnly="True" Width="80" />
               <DataGridTextColumn Header="Zr" Binding="{Binding Zr0}" IsReadOnly="True" Width="80" />
 
-              <DataGridTextColumn Header="dX" Binding="{Binding DX}" IsReadOnly="True" Width="80" />
-              <DataGridTextColumn Header="dY" Binding="{Binding DY}" IsReadOnly="True" Width="80" />
-              <DataGridTextColumn Header="dZ" Binding="{Binding DZ}" IsReadOnly="True" Width="80" />
-
-              <DataGridTextColumn Header="dA" Binding="{Binding DA}" IsReadOnly="True" Width="80" />
-              <DataGridTextColumn Header="aB" Binding="{Binding AB}" IsReadOnly="True" Width="80" />
-
               <DataGridTextColumn Header="Xp" Binding="{Binding XPuls}" IsReadOnly="True" Width="90" />
               <DataGridTextColumn Header="Yp" Binding="{Binding YPuls}" IsReadOnly="True" Width="90" />
               <DataGridTextColumn Header="Zp" Binding="{Binding ZPuls}" IsReadOnly="True" Width="90" />
-
               <DataGridTextColumn Header="Ap" Binding="{Binding APuls}" IsReadOnly="True" Width="90" />
               <DataGridTextColumn Header="Bp" Binding="{Binding BPuls}" IsReadOnly="True" Width="90" />
-
-              <DataGridTextColumn Header="Top_p" Binding="{Binding TopPuls}" IsReadOnly="True" Width="95" />
-              <DataGridTextColumn Header="Top_Hz" Binding="{Binding TopHz}" IsReadOnly="True" Width="90" />
-              <DataGridTextColumn Header="Low_p" Binding="{Binding LowPuls}" IsReadOnly="True" Width="95" />
-              <DataGridTextColumn Header="Low_Hz" Binding="{Binding LowHz}" IsReadOnly="True" Width="90" />
-              <DataGridTextColumn Header="Clamp_p" Binding="{Binding ClampPuls}" IsReadOnly="True" Width="100" />
 
             </DataGrid.Columns>
           </DataGrid>
@@ -122,7 +114,7 @@
         </StackPanel>
 
         <Canvas x:Name="PanelsCanvas" Grid.Row="1" ClipToBounds="True">
-          <Border x:Name="ParametersPanel" Classes="card" Width="390" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+          <Border x:Name="ParametersPanel" Classes="card" Width="390" PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
             <StackPanel Spacing="10">
               <Grid ColumnDefinitions="*,Auto" PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
                 <TextBlock Text="Параметры" FontSize="16" FontWeight="SemiBold" />
@@ -145,12 +137,11 @@
             </StackPanel>
           </Border>
 
-          <Border x:Name="VisualizationPanel" Classes="card" Width="390" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+          <Border x:Name="VisualizationPanel" Classes="card" Width="390" PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
             <StackPanel Spacing="10">
-              <Grid ColumnDefinitions="*,Auto,Auto" PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+              <Grid ColumnDefinitions="*,Auto" PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
                 <TextBlock Text="Визуализация" FontSize="16" FontWeight="SemiBold" />
-                <TextBlock Grid.Column="1" Text="drag&amp;drop" Classes="muted" VerticalAlignment="Center" />
-                <Button Grid.Column="2" Classes="ghost panel-close-btn" Click="HideVisualizationPanel_Click">✕</Button>
+                <Button Grid.Column="1" Classes="ghost panel-close-btn" Click="HideVisualizationPanel_Click">✕</Button>
               </Grid>
 
               <controls:RecipePlotControl Height="320"
@@ -174,7 +165,7 @@
             </StackPanel>
           </Border>
 
-          <Border x:Name="SelectedPointPanel" Classes="card" Width="390" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+          <Border x:Name="SelectedPointPanel" Classes="card" Width="390" PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
             <StackPanel Spacing="6">
               <Grid ColumnDefinitions="*,Auto" PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
                 <TextBlock Text="Выбранная точка" FontSize="16" FontWeight="SemiBold" />

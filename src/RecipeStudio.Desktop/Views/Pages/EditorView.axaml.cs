@@ -20,6 +20,11 @@ public sealed partial class EditorView : UserControl
         {
             HookVm();
             InitializePanelsLayout();
+            PanelsCanvas.SizeChanged += (_, __) =>
+            {
+                if (!_panelsInitialized)
+                    InitializePanelsLayout();
+            };
         };
     }
 
@@ -127,20 +132,31 @@ public sealed partial class EditorView : UserControl
         if (_panelsInitialized)
             return;
 
-        _panelsInitialized = true;
+        var canvasWidth = PanelsCanvas.Bounds.Width > 0 ? PanelsCanvas.Bounds.Width : Bounds.Width;
+        var rightMargin = 10d;
+        var x = Math.Max(0, canvasWidth - ParametersPanel.Width - rightMargin);
 
-        Canvas.SetLeft(ParametersPanel, 0);
-        Canvas.SetTop(ParametersPanel, 0);
+        Canvas.SetLeft(ParametersPanel, x);
+        Canvas.SetTop(ParametersPanel, 8);
 
-        Canvas.SetLeft(VisualizationPanel, 0);
-        Canvas.SetTop(VisualizationPanel, 230);
+        Canvas.SetLeft(VisualizationPanel, x);
+        Canvas.SetTop(VisualizationPanel, 220);
 
-        Canvas.SetLeft(SelectedPointPanel, 0);
+        Canvas.SetLeft(SelectedPointPanel, x);
         Canvas.SetTop(SelectedPointPanel, 620);
+
+        _panelsInitialized = true;
     }
 
     private void Panel_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            return;
+
+        if (e.Source is Control source &&
+            (source is TextBox || source is CheckBox || source is Slider || source is Button))
+            return;
+
         var control = sender as Control;
         while (control is not null && control is not Border)
         {

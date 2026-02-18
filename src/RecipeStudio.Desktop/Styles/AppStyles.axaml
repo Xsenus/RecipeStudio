@@ -334,6 +334,59 @@
   </Style>
 
 
+  <Style Selector="DataGrid.editor-grid">
+    <Setter Property="Background" Value="#12151D" />
+    <Setter Property="BorderBrush" Value="#2A3142" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="RowBackground" Value="#171B22" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="RowHeight" Value="34" />
+    <Setter Property="HorizontalGridLinesBrush" Value="#2A3140" />
+    <Setter Property="VerticalGridLinesBrush" Value="#2A3140" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridColumnHeader">
+    <Setter Property="Background" Value="#1D212A" />
+    <Setter Property="Foreground" Value="#8D97AA" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="BorderBrush" Value="#2A3142" />
+    <Setter Property="BorderThickness" Value="0,0,1,1" />
+    <Setter Property="Padding" Value="8,4" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridRow">
+    <Setter Property="Background" Value="#171B22" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridRow:nth-child(even)">
+    <Setter Property="Background" Value="#151920" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridRow:selected">
+    <Setter Property="Background" Value="#264E78" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridCell">
+    <Setter Property="Foreground" Value="#8FA6C9" />
+    <Setter Property="BorderBrush" Value="#252D3B" />
+    <Setter Property="BorderThickness" Value="0,0,1,1" />
+    <Setter Property="Padding" Value="8,2" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridCell:readonly">
+    <Setter Property="Background" Value="#1D2432" />
+    <Setter Property="Foreground" Value="#5E6D89" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridCell:current">
+    <Setter Property="Background" Value="#2E4A6A" />
+    <Setter Property="Foreground" Value="#E8F0FF" />
+    <Setter Property="BorderBrush" Value="#5EA2ED" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+
   <Style Selector="Border.modal-surface">
     <Setter Property="Background" Value="#0F1420" />
     <Setter Property="BorderBrush" Value="#2A3142" />
