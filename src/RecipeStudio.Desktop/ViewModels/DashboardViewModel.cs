@@ -15,13 +15,15 @@ public sealed class DashboardViewModel : ViewModelBase
     public RelayCommand RefreshCommand { get; }
     public RelayCommand NewRecipeCommand { get; }
 
+    public event Action? RequestCreateRecipe;
+
     public DashboardViewModel(RecipeRepository repo, Action<long> openRecipe)
     {
         _repo = repo;
         _openRecipe = openRecipe;
 
         RefreshCommand = new RelayCommand(Refresh);
-        NewRecipeCommand = new RelayCommand(CreateNewRecipe);
+        NewRecipeCommand = new RelayCommand(() => RequestCreateRecipe?.Invoke());
 
         Refresh();
     }
@@ -48,9 +50,13 @@ public sealed class DashboardViewModel : ViewModelBase
         Refresh();
     }
 
-    private void CreateNewRecipe()
+    public void CreateNewRecipe(string recipeCode)
     {
-        var code = $"recipe_{DateTime.Now:yyyyMMdd_HHmmss}";
+        var code = recipeCode.Trim();
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            return;
+        }
 
         var doc = RecipeDocumentFactory.CreateStarter(code);
         doc.RecipeCode = code;

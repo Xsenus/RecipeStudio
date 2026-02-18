@@ -9,9 +9,47 @@ namespace RecipeStudio.Desktop.Views.Pages;
 
 public sealed partial class DashboardView : UserControl
 {
+    private DashboardViewModel? _subscribedVm;
+
     public DashboardView()
     {
         InitializeComponent();
+        DataContextChanged += OnDataContextChanged;
+    }
+
+    private void OnDataContextChanged(object? sender, System.EventArgs e)
+    {
+        if (_subscribedVm is not null)
+        {
+            _subscribedVm.RequestCreateRecipe -= OnRequestCreateRecipe;
+        }
+
+        _subscribedVm = DataContext as DashboardViewModel;
+        if (_subscribedVm is not null)
+        {
+            _subscribedVm.RequestCreateRecipe += OnRequestCreateRecipe;
+        }
+    }
+
+    private async void OnRequestCreateRecipe()
+    {
+        if (DataContext is not DashboardViewModel dashboard)
+        {
+            return;
+        }
+
+        var owner = TopLevel.GetTopLevel(this) as Window;
+        if (owner is null)
+        {
+            return;
+        }
+
+        var dialog = new NewRecipeDialog();
+        var created = await dialog.ShowDialog<bool>(owner);
+        if (created)
+        {
+            dashboard.CreateNewRecipe(dialog.RecipeName);
+        }
     }
 
     private void RecipeCard_PointerPressed(object? sender, PointerPressedEventArgs e)

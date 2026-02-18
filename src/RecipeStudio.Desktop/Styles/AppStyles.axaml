@@ -284,4 +284,35 @@
     <Setter Property="Padding" Value="6,2" />
   </Style>
 
+
+  <Style Selector="Border.modal-surface">
+    <Setter Property="Background" Value="#0F1420" />
+    <Setter Property="BorderBrush" Value="#2A3142" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="12" />
+  </Style>
+
+  <Style Selector="Border.modal-header">
+    <Setter Property="Background" Value="#111827" />
+    <Setter Property="Padding" Value="18,14" />
+    <Setter Property="BorderBrush" Value="#1F2738" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+  </Style>
+
+  <Style Selector="TextBlock.modal-title">
+    <Setter Property="FontSize" Value="18" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="#EAF0FF" />
+  </Style>
+
+  <Style Selector="TextBox.modal-input">
+    <Setter Property="Background" Value="#1D2A3D" />
+    <Setter Property="Foreground" Value="#EAF0FF" />
+    <Setter Property="BorderBrush" Value="#3B82F6" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="Padding" Value="14,10" />
+    <Setter Property="MinHeight" Value="44" />
+  </Style>
 </Styles>
