@@ -45,8 +45,11 @@ public sealed partial class SettingsView : UserControl
         OpenFolder(vm.RecipesFolder);
     }
 
-    private void RecipesFolder_DoubleTapped(object? sender, RoutedEventArgs e)
+    private void RecipesFolder_Tapped(object? sender, Avalonia.Input.TappedEventArgs e)
     {
+        if (e.TapCount < 2)
+            return;
+
         if (DataContext is not SettingsViewModel vm)
             return;
 
