@@ -29,9 +29,39 @@
     <Setter Property="FontSize" Value="15" />
   </Style>
 
+  <Style Selector="Border.titlebar">
+    <Setter Property="Background" Value="#0D121C" />
+    <Setter Property="BorderBrush" Value="#2A3142" />
+    <Setter Property="BorderThickness" Value="1,1,1,0" />
+  </Style>
+
+  <Style Selector="Button.window-btn">
+    <Setter Property="Width" Value="34" />
+    <Setter Property="Height" Value="24" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+
+  <Style Selector="Button.window-btn:pointerover">
+    <Setter Property="Background" Value="#1E2A40" />
+  </Style>
+
+  <Style Selector="Button.window-btn.close:pointerover">
+    <Setter Property="Background" Value="#8B1D1D" />
+  </Style>
+
   <Style Selector="TextBlock.h1">
     <Setter Property="FontSize" Value="24" />
     <Setter Property="FontWeight" Value="Bold" />
+  </Style>
+
+  <Style Selector="TextBlock.heading-icon">
+    <Setter Property="FontSize" Value="34" />
+    <Setter Property="Foreground" Value="#3B82F6" />
+    <Setter Property="Margin" Value="0,-6,0,0" />
   </Style>
 
   <Style Selector="TextBlock.dashboard-title">
@@ -74,7 +104,7 @@
   <Style Selector="Border.topbar">
     <Setter Property="Background" Value="{StaticResource B_Panel}" />
     <Setter Property="BorderBrush" Value="{StaticResource B_StrokeSoft}" />
-    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="BorderThickness" Value="1,0,1,1" />
   </Style>
 
   <Style Selector="Border.status-pill">
@@ -155,7 +185,7 @@
     <Setter Property="Foreground" Value="#E7EBF4" />
   </Style>
 
-  <Style Selector="Button.nav.active">
+  <Style Selector="Button.nav.nav-active">
     <Setter Property="Background" Value="{StaticResource B_Accent}" />
     <Setter Property="Foreground" Value="White" />
   </Style>
@@ -169,7 +199,6 @@
   </Style>
 
   <Style Selector="Button.create-recipe">
-    <Setter Property="Height" Value="190" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="#354056" />
     <Setter Property="BorderThickness" Value="1" />
@@ -178,6 +207,26 @@
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="FontWeight" Value="Light" />
+  </Style>
+
+  <Style Selector="Button.icon.action">
+    <Setter Property="Width" Value="36" />
+    <Setter Property="Height" Value="30" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="FontSize" Value="16" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+  <Style Selector="Button.icon.action.edit">
+    <Setter Property="Background" Value="#19304E" />
+    <Setter Property="BorderBrush" Value="#2E5C93" />
+    <Setter Property="Foreground" Value="#D9E6FA" />
+  </Style>
+
+  <Style Selector="Button.icon.action.delete">
+    <Setter Property="Background" Value="#2A1717" />
+    <Setter Property="BorderBrush" Value="#EF4444" />
+    <Setter Property="Foreground" Value="#FFDCDC" />
   </Style>
 
   <Style Selector="DataGrid">

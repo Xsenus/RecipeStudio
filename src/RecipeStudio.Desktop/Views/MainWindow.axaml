@@ -5,7 +5,11 @@
         x:Class="RecipeStudio.Desktop.Views.MainWindow"
         Width="1280" Height="800"
         MinWidth="1100" MinHeight="700"
-        Title="client">
+        SystemDecorations="None"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Title="client"
+        Closing="OnWindowClosing">
 
   <Window.DataTemplates>
     <DataTemplate DataType="vm:DashboardViewModel">
@@ -14,13 +18,31 @@
     <DataTemplate DataType="vm:EditorViewModel">
       <pages:EditorView />
     </DataTemplate>
+    <DataTemplate DataType="vm:SimulationViewModel">
+      <pages:SimulationView />
+    </DataTemplate>
     <DataTemplate DataType="vm:SettingsViewModel">
       <pages:SettingsView />
     </DataTemplate>
   </Window.DataTemplates>
 
-  <Grid RowDefinitions="Auto,*">
-    <Border Classes="topbar" Padding="14,8">
+  <Grid RowDefinitions="Auto,Auto,*">
+    <Border Grid.Row="0" Classes="titlebar" PointerPressed="TitleBar_PointerPressed">
+      <Grid ColumnDefinitions="Auto,*,Auto" Margin="10,4,10,4">
+        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Border Width="14" Height="14" Background="#2E5C93" CornerRadius="2" />
+          <TextBlock Text="client" FontSize="12" />
+        </StackPanel>
+
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+          <Button Classes="window-btn" Click="Minimize_Click">─</Button>
+          <Button Classes="window-btn" Click="Maximize_Click">□</Button>
+          <Button Classes="window-btn close" Click="Close_Click">✕</Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="1" Classes="topbar" Padding="14,8">
       <Grid ColumnDefinitions="Auto,Auto,*,Auto">
 
         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" Margin="0,0,22,0" VerticalAlignment="Center">
@@ -36,21 +58,18 @@
         </StackPanel>
 
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <Button Command="{Binding NavigateDashboardCommand}" Classes="nav active">Дашборд</Button>
-          <Button Command="{Binding NavigateEditorCommand}" Classes="nav">Редактор</Button>
-          <Button Classes="nav">Симуляция</Button>
-          <Button Command="{Binding NavigateSettingsCommand}" Classes="nav">Настройки</Button>
+          <Button Command="{Binding NavigateDashboardCommand}" Classes="nav" Classes.nav-active="{Binding IsDashboardActive}">ДАШБОРД</Button>
+          <Button Command="{Binding NavigateEditorCommand}" Classes="nav" Classes.nav-active="{Binding IsEditorActive}">РЕДАКТОР</Button>
+          <Button Command="{Binding NavigateSimulationCommand}" Classes="nav" Classes.nav-active="{Binding IsSimulationActive}">СИМУЛЯЦИЯ</Button>
+          <Button Command="{Binding NavigateSettingsCommand}" Classes="nav" Classes.nav-active="{Binding IsSettingsActive}">НАСТРОЙКИ</Button>
         </StackPanel>
 
         <Border Grid.Column="3" Classes="status-pill" VerticalAlignment="Center">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <Ellipse Width="7" Height="7" Fill="#22C55E" VerticalAlignment="Center" />
-            <TextBlock Text="Система готова" FontWeight="SemiBold" />
-          </StackPanel>
+          <Ellipse Width="8" Height="8" Fill="#22C55E" VerticalAlignment="Center" />
         </Border>
       </Grid>
     </Border>
 
-    <ContentControl Grid.Row="1" Content="{Binding CurrentPage}" />
+    <ContentControl Grid.Row="2" Content="{Binding CurrentPage}" />
   </Grid>
 </Window>

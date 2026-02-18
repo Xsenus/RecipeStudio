@@ -1,0 +1,11 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="RecipeStudio.Desktop.Views.Pages.SimulationView">
+
+  <Border Classes="card" Margin="18">
+    <StackPanel Spacing="8">
+      <TextBlock Text="СИМУЛЯЦИЯ" Classes="h1" />
+      <TextBlock Text="Раздел находится в разработке." Classes="muted" />
+    </StackPanel>
+  </Border>
+</UserControl>

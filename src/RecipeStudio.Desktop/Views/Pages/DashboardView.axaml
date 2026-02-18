@@ -1,17 +1,21 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:RecipeStudio.Desktop.ViewModels"
              x:Class="RecipeStudio.Desktop.Views.Pages.DashboardView">
 
   <ScrollViewer>
     <StackPanel Margin="22" Spacing="16">
       <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,6,0,0">
         <StackPanel>
-          <TextBlock Text="ПАНЕЛЬ УПРАВЛЕНИЯ" Classes="h1 dashboard-title" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="∿" Classes="heading-icon" />
+            <TextBlock Text="ПАНЕЛЬ УПРАВЛЕНИЯ" Classes="h1 dashboard-title" />
+          </StackPanel>
           <TextBlock Text="Система готова к работе. Выберите рецепт для начала." Classes="muted" Margin="0,6,0,0" />
         </StackPanel>
 
         <Button Grid.Column="1" Command="{Binding RefreshCommand}" Classes="icon-btn" Margin="0,0,10,0">⟳</Button>
-        <Button Grid.Column="2" Command="{Binding NewRecipeCommand}" Classes="accent big">+ НОВЫЙ РЕЦЕПТ</Button>
+        <Button Grid.Column="2" Command="{Binding NewRecipeCommand}" Classes="accent big">+ СОЗДАТЬ</Button>
       </Grid>
 
       <Border Height="1" Background="#222633" />
@@ -55,52 +59,52 @@
         <TextBlock Text="ДОСТУПНЫЕ РЕЦЕПТЫ" Classes="section-label" />
         <Border Height="1" Background="#222633" />
 
-        <Grid ColumnDefinitions="*,280" Margin="0,2,0,0">
-          <ItemsControl x:Name="RecipeCards" ItemsSource="{Binding Recipes}">
-            <ItemsControl.Styles>
-              <Style Selector="#RecipeCards > ContentPresenter">
-                <Setter Property="Margin" Value="0,0,14,14" />
-              </Style>
-            </ItemsControl.Styles>
+        <ItemsControl x:Name="RecipeCards" ItemsSource="{Binding DashboardTiles}">
+          <ItemsControl.Styles>
+            <Style Selector="#RecipeCards > ContentPresenter">
+              <Setter Property="Margin" Value="0,0,14,14" />
+            </Style>
+          </ItemsControl.Styles>
 
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <WrapPanel />
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
 
-            <ItemsControl.ItemTemplate>
-              <DataTemplate>
-                <Border Classes="recipe-card" Width="420" Height="190">
-                  <Grid RowDefinitions="104,*" ClipToBounds="True">
-                    <Border Background="#1F2330" BorderBrush="#2A2E3F" BorderThickness="0,0,0,1">
-                      <TextBlock Text="🗎" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="34" Foreground="#64748B" />
-                    </Border>
+          <ItemsControl.DataTemplates>
+            <DataTemplate DataType="vm:RecipeCardViewModel">
+              <Border Classes="recipe-card" Width="420" Height="190">
+                <Grid RowDefinitions="104,*" ClipToBounds="True">
+                  <Border Background="#1F2330" BorderBrush="#2A2E3F" BorderThickness="0,0,0,1">
+                    <TextBlock Text="🗎" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="34" Foreground="#64748B" />
+                  </Border>
 
-                    <Grid Grid.Row="1" Margin="14,10,14,12" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-                      <StackPanel Grid.Row="0" Grid.Column="0" Spacing="7">
-                        <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="240" />
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                          <Border Background="#232938" BorderBrush="#353D53" BorderThickness="1" CornerRadius="4" Padding="6,2">
-                            <TextBlock Text="CSV" Classes="tiny" />
-                          </Border>
-                          <TextBlock Text="{Binding PointCount, StringFormat='~{0} точек'}" Classes="muted tiny" VerticalAlignment="Center" />
-                        </StackPanel>
+                  <Grid Grid.Row="1" Margin="14,10,14,12" RowDefinitions="Auto,*" ColumnDefinitions="*,Auto">
+                    <StackPanel Grid.Row="0" Grid.Column="0" Spacing="7">
+                      <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="245" />
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Border Background="#232938" BorderBrush="#353D53" BorderThickness="1" CornerRadius="4" Padding="6,2">
+                          <TextBlock Text="CSV" Classes="tiny" />
+                        </Border>
+                        <TextBlock Text="{Binding PointCount, StringFormat='~{0} точек'}" Classes="muted tiny" VerticalAlignment="Center" />
                       </StackPanel>
+                    </StackPanel>
 
-                      <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom" HorizontalAlignment="Right">
-                        <Button Command="{Binding DeleteCommand}" Classes="danger">Удалить</Button>
-                        <Button Command="{Binding OpenCommand}" Classes="accent">Открыть</Button>
-                      </StackPanel>
-                    </Grid>
+                    <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Bottom" HorizontalAlignment="Right">
+                      <Button Command="{Binding OpenCommand}" Classes="icon action edit" ToolTip.Tip="Редактировать">✎</Button>
+                      <Button Classes="icon action delete" Tag="{Binding}" Click="DeleteRecipe_Click" ToolTip.Tip="Удалить">🗑</Button>
+                    </StackPanel>
                   </Grid>
-                </Border>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
+                </Grid>
+              </Border>
+            </DataTemplate>
 
-          <Button Grid.Column="1" Command="{Binding NewRecipeCommand}" Classes="create-recipe" Margin="14,0,0,0">+</Button>
-        </Grid>
+            <DataTemplate DataType="vm:CreateRecipeTileViewModel">
+              <Button Width="420" Height="190" Command="{Binding CreateCommand}" Classes="create-recipe">+</Button>
+            </DataTemplate>
+          </ItemsControl.DataTemplates>
+        </ItemsControl>
       </StackPanel>
     </StackPanel>
   </ScrollViewer>
