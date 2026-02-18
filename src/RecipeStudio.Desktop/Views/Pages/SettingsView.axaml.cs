@@ -4,6 +4,7 @@ using System.IO;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using RecipeStudio.Desktop.ViewModels;
 
@@ -14,6 +15,9 @@ public sealed partial class SettingsView : UserControl
     public SettingsView()
     {
         InitializeComponent();
+
+        var folderBox = this.FindControl<TextBox>("RecipesFolderTextBox");
+        folderBox?.AddHandler(InputElement.PointerPressedEvent, RecipesFolder_PointerPressed, RoutingStrategies.Tunnel, true);
     }
 
     private async void BrowseFolder_Click(object? sender, RoutedEventArgs e)
@@ -45,7 +49,7 @@ public sealed partial class SettingsView : UserControl
         OpenFolder(vm.RecipesFolder);
     }
 
-    private void RecipesFolder_PointerPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)
+    private void RecipesFolder_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (e.ClickCount < 2)
             return;
