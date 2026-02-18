@@ -5,7 +5,7 @@
         x:Class="RecipeStudio.Desktop.Views.MainWindow"
         Width="1280" Height="800"
         MinWidth="1100" MinHeight="700"
-        Title="Recipe Studio">
+        Title="client">
 
   <Window.DataTemplates>
     <DataTemplate DataType="vm:DashboardViewModel">
@@ -19,34 +19,31 @@
     </DataTemplate>
   </Window.DataTemplates>
 
-  <Grid>
-    <Grid.ColumnDefinitions>
-      <ColumnDefinition Width="240" />
-      <ColumnDefinition Width="*" />
-    </Grid.ColumnDefinitions>
-
-    <!-- Sidebar -->
-    <Border Grid.Column="0" Classes="sidebar">
-      <DockPanel LastChildFill="True">
-        <StackPanel DockPanel.Dock="Top" Margin="18,16,18,10">
-          <TextBlock Text="Recipe Studio" FontSize="20" FontWeight="SemiBold" />
-          <TextBlock Text="v0.1.0" Classes="muted" Margin="0,6,0,0" />
+  <Grid RowDefinitions="Auto,*">
+    <Border Classes="topbar" Padding="16,10">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+        <StackPanel Grid.Column="0" Spacing="2" Margin="0,0,24,0">
+          <TextBlock Text="ICE2" Classes="brand" />
+          <TextBlock Text="Studio" Classes="brand" />
+          <TextBlock Text="v0.1.0-alpha" Classes="muted tiny" Margin="0,2,0,0" />
         </StackPanel>
 
-        <StackPanel Margin="10,6,10,10" Spacing="8">
-          <Button Command="{Binding NavigateDashboardCommand}" Classes="ghost">Дашборд</Button>
-          <Button Command="{Binding NavigateEditorCommand}" Classes="ghost">Редактор</Button>
-          <Button Command="{Binding NavigateSettingsCommand}" Classes="ghost">Настройки</Button>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Button Command="{Binding NavigateDashboardCommand}" Classes="nav active">Дашборд</Button>
+          <Button Command="{Binding NavigateEditorCommand}" Classes="nav">Редактор</Button>
+          <Button Classes="nav">Симуляция</Button>
+          <Button Command="{Binding NavigateSettingsCommand}" Classes="nav">Настройки</Button>
         </StackPanel>
 
-        <StackPanel DockPanel.Dock="Bottom" Margin="18,12,18,16" Spacing="6">
-          <TextBlock Text="CNC-KAMA-TYRES" Classes="muted" />
-          <TextBlock Text="Конфигуратор рецептов" Classes="muted" />
-        </StackPanel>
-      </DockPanel>
+        <Border Grid.Column="3" Classes="status-pill" VerticalAlignment="Center">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Ellipse Width="8" Height="8" Fill="#22C55E" VerticalAlignment="Center" />
+            <TextBlock Text="Система готова" FontWeight="SemiBold" />
+          </StackPanel>
+        </Border>
+      </Grid>
     </Border>
 
-    <!-- Main content -->
-    <ContentControl Grid.Column="1" Content="{Binding CurrentPage}" />
+    <ContentControl Grid.Row="1" Content="{Binding CurrentPage}" />
   </Grid>
 </Window>

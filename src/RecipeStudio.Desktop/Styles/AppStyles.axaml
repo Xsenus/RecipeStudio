@@ -1,19 +1,14 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-  <!--
-    Avalonia: <Styles> can only contain styles/includes at the top level.
-    Put colors/brushes into Styles.Resources, otherwise XAML parsing fails.
-  -->
   <Styles.Resources>
-    <!-- Color system (picked to be close to the provided mockups) -->
-    <Color x:Key="C_Background">#121826</Color>
-    <Color x:Key="C_Panel">#182235</Color>
-    <Color x:Key="C_Card">#1E2B42</Color>
-    <Color x:Key="C_Stroke">#2B3B59</Color>
-    <Color x:Key="C_StrokeSoft">#22314B</Color>
-    <Color x:Key="C_TextSoft">#A8B3CF</Color>
-    <Color x:Key="C_Accent">#3B82F6</Color>
+    <Color x:Key="C_Background">#090B11</Color>
+    <Color x:Key="C_Panel">#121620</Color>
+    <Color x:Key="C_Card">#141924</Color>
+    <Color x:Key="C_Stroke">#2A3142</Color>
+    <Color x:Key="C_StrokeSoft">#222938</Color>
+    <Color x:Key="C_TextSoft">#7E879C</Color>
+    <Color x:Key="C_Accent">#2E5C93</Color>
     <Color x:Key="C_Accent2">#22C55E</Color>
     <Color x:Key="C_Danger">#EF4444</Color>
 
@@ -28,21 +23,40 @@
     <SolidColorBrush x:Key="B_Danger" Color="{StaticResource C_Danger}" />
   </Styles.Resources>
 
-  <!-- Global defaults -->
   <Style Selector="Window">
     <Setter Property="Background" Value="{StaticResource B_Background}" />
+    <Setter Property="Foreground" Value="#E6EAF2" />
   </Style>
 
   <Style Selector="TextBlock.h1">
-    <Setter Property="FontSize" Value="22" />
-    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="50" />
+    <Setter Property="FontWeight" Value="Bold" />
+  </Style>
+
+  <Style Selector="TextBlock.dashboard-title">
+    <Setter Property="LetterSpacing" Value="1.4" />
   </Style>
 
   <Style Selector="TextBlock.muted">
     <Setter Property="Foreground" Value="{StaticResource B_TextSoft}" />
   </Style>
 
-  <!-- Card -->
+  <Style Selector="TextBlock.tiny">
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+
+  <Style Selector="TextBlock.section-label">
+    <Setter Property="FontSize" Value="28" />
+    <Setter Property="LetterSpacing" Value="1.2" />
+    <Setter Property="Foreground" Value="#A2AABC" />
+  </Style>
+
+  <Style Selector="TextBlock.brand">
+    <Setter Property="FontSize" Value="31" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#8BA2D8" />
+  </Style>
+
   <Style Selector="Border.card">
     <Setter Property="Background" Value="{StaticResource B_Card}" />
     <Setter Property="BorderBrush" Value="{StaticResource B_Stroke}" />
@@ -51,24 +65,56 @@
     <Setter Property="Padding" Value="14" />
   </Style>
 
-  <!-- Sidebar -->
-  <Style Selector="Border.sidebar">
+  <Style Selector="Border.topbar">
     <Setter Property="Background" Value="{StaticResource B_Panel}" />
     <Setter Property="BorderBrush" Value="{StaticResource B_StrokeSoft}" />
-    <Setter Property="BorderThickness" Value="0,0,1,0" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
   </Style>
 
-  <!-- Buttons -->
+  <Style Selector="Border.status-pill">
+    <Setter Property="Background" Value="#181D2A" />
+    <Setter Property="BorderBrush" Value="#2A3245" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="14,10" />
+  </Style>
+
+  <Style Selector="Border.stat-card">
+    <Setter Property="Background" Value="#171B27" />
+    <Setter Property="BorderBrush" Value="#2A3143" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="20" />
+    <Setter Property="MinHeight" Value="156" />
+  </Style>
+
+  <Style Selector="TextBlock.stat-icon">
+    <Setter Property="FontSize" Value="68" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+    <Setter Property="Opacity" Value="0.5" />
+  </Style>
+
+  <Style Selector="Border.recipe-card">
+    <Setter Property="Background" Value="#181C27" />
+    <Setter Property="BorderBrush" Value="#2B3345" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
   <Style Selector="Button">
-    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="CornerRadius" Value="6" />
     <Setter Property="Padding" Value="12,8" />
     <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="FontWeight" Value="SemiBold" />
   </Style>
 
   <Style Selector="Button.accent">
     <Setter Property="Background" Value="{StaticResource B_Accent}" />
     <Setter Property="BorderBrush" Value="{StaticResource B_Accent}" />
     <Setter Property="Foreground" Value="White" />
+  </Style>
+
+  <Style Selector="Button.big">
+    <Setter Property="Padding" Value="24,14" />
+    <Setter Property="FontSize" Value="22" />
   </Style>
 
   <Style Selector="Button.good">
@@ -89,7 +135,43 @@
     <Setter Property="Foreground" Value="White" />
   </Style>
 
-  <!-- DataGrid (we keep it light like in mockups) -->
+  <Style Selector="Button.nav">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="#B4BBCD" />
+    <Setter Property="Padding" Value="18,10" />
+    <Setter Property="FontSize" Value="22" />
+  </Style>
+
+  <Style Selector="Button.nav:pointerover">
+    <Setter Property="Background" Value="#1A2335" />
+    <Setter Property="Foreground" Value="#E7EBF4" />
+  </Style>
+
+  <Style Selector="Button.nav.active">
+    <Setter Property="Background" Value="{StaticResource B_Accent}" />
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+
+  <Style Selector="Button.icon-btn">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="FontSize" Value="34" />
+    <Setter Property="Foreground" Value="#8E98AD" />
+    <Setter Property="Padding" Value="14,4" />
+  </Style>
+
+  <Style Selector="Button.create-recipe">
+    <Setter Property="Height" Value="190" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="#354056" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="FontSize" Value="34" />
+    <Setter Property="Foreground" Value="#75809A" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
   <Style Selector="DataGrid">
     <Setter Property="Background" Value="#0B1220" />
     <Setter Property="BorderBrush" Value="{StaticResource B_StrokeSoft}" />
@@ -101,14 +183,13 @@
     <Setter Property="CanUserSortColumns" Value="True" />
   </Style>
 
-  <!-- AlternatingRowBackground is not supported on Avalonia DataGrid in some versions; emulate via row styles -->
   <Style Selector="DataGridRow">
     <Setter Property="Background" Value="#EEF2F7" />
   </Style>
+
   <Style Selector="DataGridRow:nth-child(even)">
     <Setter Property="Background" Value="#E9EEF6" />
   </Style>
-
 
   <Style Selector="DataGridColumnHeader">
     <Setter Property="Background" Value="#E2E8F0" />
