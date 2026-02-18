@@ -478,8 +478,7 @@ public sealed class RecipePlotControl : Control
     {
         base.OnPointerPressed(e);
 
-        var settings = Settings;
-        if (settings is null) return;
+        var settings = Settings ?? new AppSettings();
         if (Points is null || Points.Count == 0) return;
 
         var pos = e.GetPosition(this);
@@ -490,7 +489,7 @@ public sealed class RecipePlotControl : Control
         {
             SelectedPoint = hit;
 
-            if (settings.PlotEnableDrag && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
             {
                 _isDragging = true;
                 _dragPoint = hit;
@@ -503,8 +502,7 @@ public sealed class RecipePlotControl : Control
     {
         base.OnPointerMoved(e);
 
-        var settings = Settings;
-        if (settings is null) return;
+        var settings = Settings ?? new AppSettings();
 
         if (!_isDragging || _dragPoint is null) return;
 
@@ -542,7 +540,7 @@ public sealed class RecipePlotControl : Control
 
         var best = (p: (RecipePoint?)null, dist: double.MaxValue);
 
-        var r = Math.Max(4, settings.PlotPointRadius + 4);
+        var r = Math.Max(10, settings.PlotPointRadius + 6);
         var r2 = r * r;
 
         foreach (var p in Points)
