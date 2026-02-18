@@ -40,6 +40,19 @@ dotnet restore
 dotnet run
 ```
 
+## Публикация (один исполняемый файл)
+
+Теперь проект настроен так, что `dotnet publish` по умолчанию собирает **self-contained single-file** сборку (без необходимости отдельно устанавливать .NET Runtime на целевой машине).
+
+```bash
+cd src/RecipeStudio.Desktop
+dotnet publish -c Release
+```
+
+Готовый файл будет в каталоге:
+
+`bin/Release/net8.0/win-x64/publish/`
+
 ## Структура проекта
 
 - `src/RecipeStudio.Desktop/Views` — окна и страницы UI.
@@ -51,4 +64,3 @@ dotnet run
 
 - Основное хранение: SQLite (`recipes.sqlite`).
 - Импорт/экспорт: Excel (`.xlsx`) и совместимость с CSV/TSV.
-
