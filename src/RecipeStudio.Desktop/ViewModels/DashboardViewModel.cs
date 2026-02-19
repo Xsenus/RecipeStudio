@@ -75,6 +75,8 @@ public sealed class RecipeCardViewModel : ViewModelBase
     public string Name { get; }
     public DateTime LastModified { get; }
     public int PointCount { get; }
+    public int NormalPointCount { get; }
+    public int SafePointCount { get; }
 
     public RelayCommand OpenCommand { get; }
 
@@ -84,6 +86,8 @@ public sealed class RecipeCardViewModel : ViewModelBase
         Name = info.RecipeCode;
         LastModified = info.ModifiedUtc.ToLocalTime();
         PointCount = info.PointCount;
+        NormalPointCount = info.NormalPointCount;
+        SafePointCount = info.SafePointCount;
         _openRecipe = openRecipe;
 
         OpenCommand = new RelayCommand(() => _openRecipe(Id));

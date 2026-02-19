@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="RecipeStudio.Desktop.Views.Dialogs.NewRecipeDialog"
-        Width="500"
+        Width="350"
         Height="250"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
