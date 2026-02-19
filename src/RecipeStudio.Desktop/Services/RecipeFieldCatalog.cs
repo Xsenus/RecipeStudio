@@ -68,7 +68,7 @@ public static class RecipeFieldCatalog
         .Concat(CalcColumns)
         .ToArray();
 
-    public static readonly string[] ExcelColumns =
+    public static readonly string[] ExcelColumns = new[]
     {
         "recipe_code",
         "n_point",
