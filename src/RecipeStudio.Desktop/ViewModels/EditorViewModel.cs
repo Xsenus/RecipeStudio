@@ -25,6 +25,7 @@ public sealed class EditorViewModel : ViewModelBase
     private double _progress;
 
     private bool _suppressRecalc;
+    private string _importDiagnosticsSummary = "";
 
     public EditorViewModel(SettingsService settings, RecipeRepository repo, RecipeExcelService excel, Action navigateBack)
     {
@@ -200,6 +201,12 @@ public sealed class EditorViewModel : ViewModelBase
         set => SetProperty(ref _progress, value);
     }
 
+    public string ImportDiagnosticsSummary
+    {
+        get => _importDiagnosticsSummary;
+        private set => SetProperty(ref _importDiagnosticsSummary, value);
+    }
+
     public void CloseDocument()
     {
         Stop();
@@ -207,6 +214,7 @@ public sealed class EditorViewModel : ViewModelBase
         Points.Clear();
         SelectedPoint = null;
         Document = null;
+        ImportDiagnosticsSummary = "";
     }
 
     public void LoadDocument(RecipeDocument doc)
@@ -225,6 +233,7 @@ public sealed class EditorViewModel : ViewModelBase
         Recalculate();
         SelectedPoint = Points.FirstOrDefault();
         Stop();
+        ImportDiagnosticsSummary = "";
     }
 
     public void Recalculate()
@@ -281,7 +290,8 @@ public sealed class EditorViewModel : ViewModelBase
     {
         if (Document is null) return;
 
-        var imported = _excel.Import(path);
+        var importedResult = _excel.ImportWithReport(path);
+        var imported = importedResult.Document;
 
         // Replace points in the current document (same RecipeId, update code and recipe-level settings).
         imported.RecipeId = Document.RecipeId;
@@ -301,6 +311,7 @@ public sealed class EditorViewModel : ViewModelBase
 
         HookPoints();
 
+        ImportDiagnosticsSummary = BuildImportDiagnosticsSummary(importedResult.Report);
         Recalculate();
     }
 
@@ -407,6 +418,32 @@ public sealed class EditorViewModel : ViewModelBase
                 Recalculate();
                 break;
         }
+    }
+
+
+    private static string BuildImportDiagnosticsSummary(RecipeImportReport report)
+    {
+        if (!report.HasIssues && report.AliasHits.Count == 0)
+            return "Импорт Excel: все колонки распознаны без алиасов.";
+
+        var parts = new System.Collections.Generic.List<string>();
+
+        if (report.AliasHits.Count > 0)
+        {
+            var aliasDetails = string.Join(", ", report.AliasHits.Select(a => $"{a.Alias}→{a.Canonical}"));
+            parts.Add($"алиасы: {report.AliasHits.Count} ({aliasDetails})");
+        }
+
+        if (report.UnknownHeaders.Count > 0)
+            parts.Add($"неизвестные колонки: {string.Join(", ", report.UnknownHeaders)}");
+
+        if (report.MissingRequiredColumns.Count > 0)
+            parts.Add($"отсутствуют обязательные: {string.Join(", ", report.MissingRequiredColumns)}");
+
+        if (report.DuplicateHeaders.Count > 0)
+            parts.Add($"дубликаты хедеров: {string.Join(", ", report.DuplicateHeaders)}");
+
+        return "Импорт Excel: " + string.Join("; ", parts);
     }
 
     private void TogglePlay()

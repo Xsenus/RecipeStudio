@@ -32,19 +32,22 @@
       <Border Classes="card" Margin="0">
         <Grid RowDefinitions="Auto,*">
 
-          <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,10">
-            <Button Command="{Binding AddPointCommand}" Classes="good">+ Точка</Button>
-            <Button Command="{Binding DuplicatePointCommand}" Classes="ghost">Дублировать</Button>
-            <Button Command="{Binding RemovePointCommand}" Classes="danger">Удалить</Button>
-            <Button Command="{Binding MoveUpCommand}" Classes="ghost">↑</Button>
-            <Button Command="{Binding MoveDownCommand}" Classes="ghost">↓</Button>
-            <Button Command="{Binding RecalculateCommand}" Classes="ghost">Пересчитать</Button>
-            <Button Command="{Binding ShowChartsCommand}" Classes="ghost">Графики</Button>
+          <StackPanel Spacing="6" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Command="{Binding AddPointCommand}" Classes="good">+ Точка</Button>
+              <Button Command="{Binding DuplicatePointCommand}" Classes="ghost">Дублировать</Button>
+              <Button Command="{Binding RemovePointCommand}" Classes="danger">Удалить</Button>
+              <Button Command="{Binding MoveUpCommand}" Classes="ghost">↑</Button>
+              <Button Command="{Binding MoveDownCommand}" Classes="ghost">↓</Button>
+              <Button Command="{Binding RecalculateCommand}" Classes="ghost">Пересчитать</Button>
+              <Button Command="{Binding ShowChartsCommand}" Classes="ghost">Графики</Button>
 
-            <Button Command="{Binding ImportExcelCommand}" Classes="ghost">Импорт Excel</Button>
-            <Button Command="{Binding ExportExcelCommand}" Classes="ghost">Экспорт Excel</Button>
+              <Button Command="{Binding ImportExcelCommand}" Classes="ghost">Импорт Excel</Button>
+              <Button Command="{Binding ExportExcelCommand}" Classes="ghost">Экспорт Excel</Button>
 
-            <TextBlock Text="{Binding Document.RecipeId, StringFormat='ID: {0}'}" Classes="muted" Margin="12,0,0,0" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding Document.RecipeId, StringFormat='ID: {0}'}" Classes="muted" Margin="12,0,0,0" VerticalAlignment="Center" />
+            </StackPanel>
+            <TextBlock Text="{Binding ImportDiagnosticsSummary}" Classes="muted" TextWrapping="Wrap" MaxLines="2" ToolTip.Tip="{Binding ImportDiagnosticsSummary}" />
           </StackPanel>
 
           <DataGrid Grid.Row="1"

@@ -459,7 +459,7 @@ public sealed class RecipeAnalysisChartControl : Control
             default:
                 return new List<SeriesInfo>
                 {
-                    new("Flow Rate", points.Select(p => p.IceRate).ToList(), new SolidColorBrush(Color.FromRgb(255, 100, 100)), "V (mm/s)", RightAxis: true),
+                    new("Flow Rate", points.Select(p => p.IceRate).ToList(), new SolidColorBrush(Color.FromRgb(255, 100, 100)), "G (kg/h)", RightAxis: true),
                     new("V (Sim)", points.Select(p => p.NozzleSpeedMmMin / 60.0).ToList(), new SolidColorBrush(Color.FromRgb(86, 164, 255)), "V (mm/s)"),
                     new("V (Table)", points.Select(p => p.SpeedTable).ToList(), new SolidColorBrush(Color.FromRgb(154, 163, 176)), "V (mm/s)")
                 };

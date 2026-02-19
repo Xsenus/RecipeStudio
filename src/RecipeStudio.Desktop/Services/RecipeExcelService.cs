@@ -19,57 +19,7 @@ public sealed class RecipeExcelService
     private static readonly CultureInfo Ru = CultureInfo.GetCultureInfo("ru-RU");
 
     // Column keys used in Excel files.
-    // Some names are compatible with the legacy TSV sample (e.g. r_crd, z_crd, alfa_crd...).
-    public static readonly string[] Columns =
-    {
-        "recipe_code",
-        "n_point",
-        "Act",
-        "Safe",
-        "r_crd",
-        "z_crd",
-        "place",
-        "hidden",
-        "a_nozzle",
-
-        // UI-calculated convenience
-        "recommended_alfa",
-        "alfa_crd",
-        "betta_crd",
-        "speed_table",
-        "time_sec",
-        "v_mm_min",
-        "recommended_ice_rate",
-
-        "ice_rate",
-        "ice_grind",
-        "air_pressure",
-        "air_temp",
-        "container",
-        "d_clamp_form",
-        "d_clamp_cont",
-        "description",
-
-        // SAVE/CALC
-        "Xr0",
-        "Yx0",
-        "Zr0",
-        "dX",
-        "dY",
-        "dZ",
-        "dA",
-        "aB",
-        "Xpuls",
-        "Ypuls",
-        "Zpuls",
-        "Apuls",
-        "Bpuls",
-        "Top_puls",
-        "Top_Hz",
-        "Low_puls",
-        "Low_Hz",
-        "Clamp_puls",
-    };
+    public static readonly string[] Columns = RecipeFieldCatalog.ExcelColumns;
 
     public void Export(RecipeDocument doc, string path)
     {
@@ -81,14 +31,12 @@ public sealed class RecipeExcelService
         using var wb = new XLWorkbook();
         var ws = wb.AddWorksheet("Points");
 
-        // Header
         for (var c = 0; c < Columns.Length; c++)
             ws.Cell(1, c + 1).Value = Columns[c];
 
         var row = 2;
         foreach (var p in doc.Points.OrderBy(x => x.NPoint))
         {
-            // Keep recipe-level fields in sync
             p.RecipeCode = doc.RecipeCode;
             p.DClampForm = doc.DClampForm;
             p.DClampCont = doc.DClampCont;
@@ -145,11 +93,13 @@ public sealed class RecipeExcelService
 
         ws.SheetView.FreezeRows(1);
         ws.Columns().AdjustToContents();
-
         wb.SaveAs(path);
     }
 
     public RecipeDocument Import(string path)
+        => ImportWithReport(path).Document;
+
+    public RecipeImportResult ImportWithReport(string path)
     {
         if (!File.Exists(path))
             throw new FileNotFoundException("Excel file not found", path);
@@ -157,22 +107,15 @@ public sealed class RecipeExcelService
         using var wb = new XLWorkbook(path);
         var ws = wb.Worksheets.First();
 
-        var headerRow = ws.Row(1);
-        var headerMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        for (var c = 1; c <= ws.LastColumnUsed().ColumnNumber(); c++)
-        {
-            var name = headerRow.Cell(c).GetString().Trim();
-            if (string.IsNullOrWhiteSpace(name))
-                continue;
-            headerMap[name] = c;
-        }
+        var rawHeaders = ReadHeaders(ws);
+        var (headerMap, duplicateHeaders) = BuildHeaderMap(rawHeaders);
 
-        // Accept some header aliases (common names / UI labels).
-        NormalizeAliases(headerMap);
+        var aliasHits = NormalizeAliases(headerMap);
+        var report = BuildReport(rawHeaders, duplicateHeaders, headerMap, aliasHits);
 
         var doc = new RecipeDocument();
-
         var lastRow = ws.LastRowUsed()?.RowNumber() ?? 1;
+
         for (var r = 2; r <= lastRow; r++)
         {
             var row = ws.Row(r);
@@ -242,11 +185,87 @@ public sealed class RecipeExcelService
             doc.Points.Add(p);
         }
 
-        // If file didn't contain recipe_code in rows, use filename.
         if (string.IsNullOrWhiteSpace(doc.RecipeCode))
             doc.RecipeCode = Path.GetFileNameWithoutExtension(path);
 
-        return doc;
+        return new RecipeImportResult(doc, report);
+    }
+
+    private static List<string> ReadHeaders(IXLWorksheet ws)
+    {
+        var headerRow = ws.Row(1);
+        var maxCol = ws.LastColumnUsed()?.ColumnNumber() ?? 1;
+        var headers = new List<string>(Math.Max(1, maxCol));
+
+        for (var c = 1; c <= maxCol; c++)
+        {
+            headers.Add(headerRow.Cell(c).GetString().Trim());
+        }
+
+        return headers;
+    }
+
+    private static (Dictionary<string, int> Map, List<string> DuplicateHeaders) BuildHeaderMap(IReadOnlyList<string> rawHeaders)
+    {
+        var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var duplicates = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        for (var i = 0; i < rawHeaders.Count; i++)
+        {
+            var header = rawHeaders[i];
+            if (string.IsNullOrWhiteSpace(header))
+                continue;
+
+            if (map.ContainsKey(header))
+                duplicates.Add(header);
+
+            // Last duplicate wins (matches typical Excel “rightmost correction” expectation).
+            map[header] = i + 1;
+        }
+
+        return (map, duplicates.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList());
+    }
+
+    private static RecipeImportReport BuildReport(
+        IReadOnlyList<string> rawHeaders,
+        IReadOnlyList<string> duplicateHeaders,
+        IReadOnlyDictionary<string, int> normalizedMap,
+        IReadOnlyList<RecipeImportAliasHit> aliasHits)
+    {
+        var canonical = new HashSet<string>(Columns, StringComparer.OrdinalIgnoreCase);
+        var aliasNames = new HashSet<string>(RecipeFieldCatalog.ExcelAliases.Keys, StringComparer.OrdinalIgnoreCase);
+
+        var unknownHeaders = rawHeaders
+            .Where(h => !string.IsNullOrWhiteSpace(h))
+            .Where(h => !canonical.Contains(h) && !aliasNames.Contains(h))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(h => h, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var missingColumns = RecipeFieldCatalog.RequiredImportColumns
+            .Where(req => !normalizedMap.ContainsKey(req))
+            .ToList();
+
+        return new RecipeImportReport(unknownHeaders, missingColumns, aliasHits, duplicateHeaders);
+    }
+
+    private static List<RecipeImportAliasHit> NormalizeAliases(Dictionary<string, int> map)
+    {
+        var hits = new List<RecipeImportAliasHit>();
+
+        foreach (var (alias, canonical) in RecipeFieldCatalog.ExcelAliases)
+        {
+            if (map.ContainsKey(canonical))
+                continue;
+
+            if (!map.TryGetValue(alias, out var idx))
+                continue;
+
+            map[canonical] = idx;
+            hits.Add(new RecipeImportAliasHit(alias, canonical, idx));
+        }
+
+        return hits;
     }
 
     private static void Write(IXLWorksheet ws, int row, string key, object? value)
@@ -263,8 +282,6 @@ public sealed class RecipeExcelService
             return;
         }
 
-        // ClosedXML 0.102+ uses XLCellValue for IXLCell.Value.
-        // Assign strongly typed values to keep numeric types numeric.
         switch (value)
         {
             case string s:
@@ -295,27 +312,6 @@ public sealed class RecipeExcelService
                 cell.Value = value.ToString() ?? string.Empty;
                 break;
         }
-    }
-
-    private static void NormalizeAliases(Dictionary<string, int> map)
-    {
-        // Allow some variations from older exports or user-renames.
-        // Example: "α rec" or "alfa_rec" -> recommended_alfa
-        CopyAlias(map, "α rec", "recommended_alfa");
-        CopyAlias(map, "alfa_rec", "recommended_alfa");
-        CopyAlias(map, "time", "time_sec");
-        CopyAlias(map, "t_sec", "time_sec");
-        CopyAlias(map, "v", "v_mm_min");
-        CopyAlias(map, "V_mm_min", "v_mm_min");
-        CopyAlias(map, "ice_rate_rec", "recommended_ice_rate");
-    }
-
-    private static void CopyAlias(Dictionary<string, int> map, string alias, string canonical)
-    {
-        if (map.ContainsKey(canonical))
-            return;
-        if (map.TryGetValue(alias, out var idx))
-            map[canonical] = idx;
     }
 
     private static string? GetString(IXLRow row, Dictionary<string, int> map, string key)
@@ -361,7 +357,6 @@ public sealed class RecipeExcelService
         if (cell.DataType == XLDataType.Number)
             return cell.GetDouble();
 
-        // ClosedXML often returns text even for numeric-looking cells depending on formatting.
         var s = cell.GetString();
         if (string.IsNullOrWhiteSpace(s))
             return 0;
@@ -373,3 +368,29 @@ public sealed class RecipeExcelService
         return 0;
     }
 }
+
+public sealed record RecipeImportAliasHit(string Alias, string Canonical, int ColumnIndex);
+
+public sealed class RecipeImportReport
+{
+    public RecipeImportReport(
+        IReadOnlyList<string> unknownHeaders,
+        IReadOnlyList<string> missingRequiredColumns,
+        IReadOnlyList<RecipeImportAliasHit> aliasHits,
+        IReadOnlyList<string>? duplicateHeaders = null)
+    {
+        UnknownHeaders = unknownHeaders;
+        MissingRequiredColumns = missingRequiredColumns;
+        AliasHits = aliasHits;
+        DuplicateHeaders = duplicateHeaders ?? Array.Empty<string>();
+    }
+
+    public IReadOnlyList<string> UnknownHeaders { get; }
+    public IReadOnlyList<string> MissingRequiredColumns { get; }
+    public IReadOnlyList<RecipeImportAliasHit> AliasHits { get; }
+    public IReadOnlyList<string> DuplicateHeaders { get; }
+
+    public bool HasIssues => UnknownHeaders.Count > 0 || MissingRequiredColumns.Count > 0 || DuplicateHeaders.Count > 0;
+}
+
+public sealed record RecipeImportResult(RecipeDocument Document, RecipeImportReport Report);
