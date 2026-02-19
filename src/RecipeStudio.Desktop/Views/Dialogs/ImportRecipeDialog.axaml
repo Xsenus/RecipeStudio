@@ -1,13 +1,13 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="RecipeStudio.Desktop.Views.Dialogs.ImportRecipeDialog"
-        Width="620"
-        Height="420"
-        CanResize="False"
+        Width="760"
+        Height="560"
+        MinWidth="620"
+        MinHeight="420"
+        CanResize="True"
         WindowStartupLocation="CenterOwner"
-        SystemDecorations="None"
-        ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaChromeHints="NoChrome"
+        SystemDecorations="Full"
         Title="Результат импорта">
 
   <Border Classes="modal-surface">
@@ -24,7 +24,7 @@
         <TextBlock x:Name="FileBlock" Classes="muted" />
         <TextBlock x:Name="PointsBlock" Classes="muted" />
         <TextBlock x:Name="DiagnosticsHeader" Text="Диагностика:" FontWeight="SemiBold" Margin="0,6,0,0" />
-        <Border BorderBrush="#2A3142" BorderThickness="1" CornerRadius="6" Background="#111827" Padding="10" Height="170">
+        <Border BorderBrush="#2A3142" BorderThickness="1" CornerRadius="6" Background="#111827" Padding="10" MinHeight="170">
           <ScrollViewer VerticalScrollBarVisibility="Auto">
             <TextBlock x:Name="DiagnosticsBlock" TextWrapping="Wrap" Classes="muted" />
           </ScrollViewer>
