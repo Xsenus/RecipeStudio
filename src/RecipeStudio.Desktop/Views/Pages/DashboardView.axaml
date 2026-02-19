@@ -85,7 +85,7 @@
                       <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="185" />
                       <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
                         <TextBlock Text="●" Foreground="#9CA3AF" Classes="tiny" VerticalAlignment="Center" />
-                        <TextBlock Text="{Binding PointCount, StringFormat='{0} точек'}" Classes="muted tiny" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding PointCount, StringFormat='{}{0} точек'}" Classes="muted tiny" VerticalAlignment="Center" />
                       </StackPanel>
                     </StackPanel>
 
