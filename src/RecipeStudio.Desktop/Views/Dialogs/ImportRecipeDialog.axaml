@@ -5,19 +5,18 @@
         Height="560"
         MinWidth="700"
         MinHeight="560"
-        CanResize="True"
+        CanResize="False"
         WindowStartupLocation="CenterOwner"
-        SystemDecorations="Full"
-        Title="Результат импорта">
+        SystemDecorations="None"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Title="Импорт рецепта">
 
   <Border Classes="modal-surface" BorderBrush="#2C3850" BorderThickness="1">
     <Grid RowDefinitions="Auto,*,Auto">
-      <Border Background="#111A2C" BorderBrush="#2A3347" BorderThickness="0,0,0,1" Padding="20,14" PointerPressed="Header_PointerPressed">
+      <Border Classes="modal-header" PointerPressed="Header_PointerPressed">
         <Grid ColumnDefinitions="*,Auto">
-          <StackPanel Orientation="Horizontal" Spacing="10">
-            <TextBlock Text="⤓" Foreground="#5BA2FF" FontSize="22" VerticalAlignment="Center" />
-            <TextBlock x:Name="TitleBlock" Text="Результат импорта" Classes="modal-title" VerticalAlignment="Center" />
-          </StackPanel>
+          <TextBlock x:Name="TitleBlock" Text="Импорт рецепта" Classes="modal-title" />
           <Button Grid.Column="1" Classes="window-btn" Click="Close_Click">✕</Button>
         </Grid>
       </Border>
