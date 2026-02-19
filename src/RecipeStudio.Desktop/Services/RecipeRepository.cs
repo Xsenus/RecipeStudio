@@ -210,9 +210,7 @@ CREATE INDEX IF NOT EXISTS idx_recipe_points_recipe_id ON recipe_points(recipe_i
 SELECT r.id,
        r.recipe_code,
        r.modified_utc,
-       (SELECT COUNT(1) FROM recipe_points p WHERE p.recipe_id = r.id) AS point_count,
-       (SELECT COUNT(1) FROM recipe_points p WHERE p.recipe_id = r.id AND p.safe = 0) AS normal_point_count,
-       (SELECT COUNT(1) FROM recipe_points p WHERE p.recipe_id = r.id AND p.safe = 1) AS safe_point_count
+       (SELECT COUNT(1) FROM recipe_points p WHERE p.recipe_id = r.id) AS point_count
 FROM recipes r
 ORDER BY r.modified_utc DESC;";
 
@@ -223,9 +221,7 @@ ORDER BY r.modified_utc DESC;";
             var code = reader.GetString(1);
             var modifiedUtc = DateTime.Parse(reader.GetString(2), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
             var count = reader.GetInt32(3);
-            var normalPointCount = reader.GetInt32(4);
-            var safePointCount = reader.GetInt32(5);
-            list.Add(new RecipeInfo(id, code, modifiedUtc, count, normalPointCount, safePointCount));
+            list.Add(new RecipeInfo(id, code, modifiedUtc, count));
         }
 
         return list;
@@ -561,4 +557,4 @@ VALUES(
     }
 }
 
-public sealed record RecipeInfo(long Id, string RecipeCode, DateTime ModifiedUtc, int PointCount, int NormalPointCount, int SafePointCount);
+public sealed record RecipeInfo(long Id, string RecipeCode, DateTime ModifiedUtc, int PointCount);

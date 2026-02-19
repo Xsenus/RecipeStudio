@@ -1,6 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using System;
+using System.Linq;
+using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
 using RecipeStudio.Desktop.ViewModels;
 using RecipeStudio.Desktop.Views.Dialogs;
@@ -22,12 +25,14 @@ public sealed partial class DashboardView : UserControl
         if (_subscribedVm is not null)
         {
             _subscribedVm.RequestCreateRecipe -= OnRequestCreateRecipe;
+            _subscribedVm.RequestImportRecipe -= OnRequestImportRecipe;
         }
 
         _subscribedVm = DataContext as DashboardViewModel;
         if (_subscribedVm is not null)
         {
             _subscribedVm.RequestCreateRecipe += OnRequestCreateRecipe;
+            _subscribedVm.RequestImportRecipe += OnRequestImportRecipe;
         }
     }
 
@@ -49,6 +54,58 @@ public sealed partial class DashboardView : UserControl
         if (created)
         {
             dashboard.CreateNewRecipe(dialog.RecipeName);
+        }
+    }
+
+
+    private async void OnRequestImportRecipe()
+    {
+        if (DataContext is not DashboardViewModel dashboard)
+        {
+            return;
+        }
+
+        var top = TopLevel.GetTopLevel(this);
+        var storageProvider = top?.StorageProvider;
+        if (storageProvider is null)
+        {
+            return;
+        }
+
+        var files = await storageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Импорт точек из Excel/CSV",
+            AllowMultiple = false,
+            FileTypeFilter = new[]
+            {
+                new FilePickerFileType("Excel/CSV")
+                {
+                    Patterns = new[] { "*.xlsx", "*.csv", "*.tsv" },
+                    AppleUniformTypeIdentifiers = new[] { "org.openxmlformats.spreadsheetml.sheet", "public.comma-separated-values-text", "public.tab-separated-values-text" },
+                    MimeTypes = new[] { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/csv", "text/tab-separated-values" }
+                }
+            }
+        });
+
+        var file = files.FirstOrDefault();
+        if (file is null || file.Path is null)
+        {
+            return;
+        }
+
+        var path = file.Path.LocalPath;
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return;
+        }
+
+        try
+        {
+            dashboard.ImportFromFile(path);
+        }
+        catch
+        {
+            // ignored in prototype
         }
     }
 

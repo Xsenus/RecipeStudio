@@ -5,7 +5,7 @@
 
   <ScrollViewer>
     <StackPanel Margin="22" Spacing="16">
-      <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,6,0,0">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,6,0,0">
         <StackPanel>
           <StackPanel Orientation="Horizontal" Spacing="10">
             <TextBlock Text="∿" Classes="heading-icon" />
@@ -15,7 +15,8 @@
         </StackPanel>
 
         <Button Grid.Column="1" Command="{Binding NewRecipeCommand}" Classes="accent big" Margin="0,0,10,0">+ СОЗДАТЬ</Button>
-        <Button Grid.Column="2" Command="{Binding RefreshCommand}" Classes="icon-btn">⟳</Button>
+        <Button Grid.Column="2" Command="{Binding ImportRecipeCommand}" Classes="icon-btn" Margin="0,0,10,0" ToolTip.Tip="Импорт точек из Excel/CSV">📊</Button>
+        <Button Grid.Column="3" Command="{Binding RefreshCommand}" Classes="icon-btn">⟳</Button>
       </Grid>
 
       <Border Height="1" Background="#222633" />
@@ -82,20 +83,13 @@
                   <Grid Grid.Row="1" Margin="14,10,14,10" ColumnDefinitions="*,Auto">
                     <StackPanel Grid.Column="0" Spacing="7" VerticalAlignment="Center">
                       <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="185" />
-                      <StackPanel Orientation="Horizontal" Spacing="10">
-                        <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-                          <TextBlock Text="●" Foreground="#9CA3AF" Classes="tiny" VerticalAlignment="Center" />
-                          <TextBlock Text="{Binding SafePointCount}" Classes="muted tiny" VerticalAlignment="Center" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-                          <TextBlock Text="●" Foreground="#4ADE80" Classes="tiny" VerticalAlignment="Center" />
-                          <TextBlock Text="{Binding NormalPointCount}" Classes="muted tiny" VerticalAlignment="Center" />
-                        </StackPanel>
-                        <TextBlock Text="{Binding PointCount, StringFormat='= {0}'}" Classes="muted tiny" VerticalAlignment="Center" />
+                      <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                        <TextBlock Text="●" Foreground="#9CA3AF" Classes="tiny" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding PointCount, StringFormat='{0} точек'}" Classes="muted tiny" VerticalAlignment="Center" />
                       </StackPanel>
                     </StackPanel>
 
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="9" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,8,4">
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="9" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,0,4">
                       <Button Command="{Binding OpenCommand}" Classes="icon action edit" ToolTip.Tip="Редактировать">✎</Button>
                       <Button Classes="icon action delete" Tag="{Binding}" Click="DeleteRecipe_Click" ToolTip.Tip="Удалить">🗑</Button>
                     </StackPanel>

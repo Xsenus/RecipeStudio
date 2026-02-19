@@ -1,5 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
+using System.IO;
+using RecipeStudio.Desktop.Models;
 using RecipeStudio.Desktop.Services;
 
 namespace RecipeStudio.Desktop.ViewModels;
@@ -12,18 +14,26 @@ public sealed class DashboardViewModel : ViewModelBase
     public ObservableCollection<RecipeCardViewModel> Recipes { get; } = new();
     public ObservableCollection<object> DashboardTiles { get; } = new();
 
+    private readonly RecipeExcelService _excel;
+    private readonly RecipeTsvSerializer _tsv;
+
     public RelayCommand RefreshCommand { get; }
     public RelayCommand NewRecipeCommand { get; }
+    public RelayCommand ImportRecipeCommand { get; }
 
     public event Action? RequestCreateRecipe;
+    public event Action? RequestImportRecipe;
 
-    public DashboardViewModel(RecipeRepository repo, Action<long> openRecipe)
+    public DashboardViewModel(RecipeRepository repo, RecipeExcelService excel, RecipeTsvSerializer tsv, Action<long> openRecipe)
     {
         _repo = repo;
+        _excel = excel;
+        _tsv = tsv;
         _openRecipe = openRecipe;
 
         RefreshCommand = new RelayCommand(Refresh);
         NewRecipeCommand = new RelayCommand(() => RequestCreateRecipe?.Invoke());
+        ImportRecipeCommand = new RelayCommand(() => RequestImportRecipe?.Invoke());
 
         Refresh();
     }
@@ -48,6 +58,32 @@ public sealed class DashboardViewModel : ViewModelBase
     {
         _repo.Delete(id);
         Refresh();
+    }
+
+    public void ImportFromFile(string path)
+    {
+        var normalizedPath = path.Trim();
+        if (string.IsNullOrWhiteSpace(normalizedPath) || !File.Exists(normalizedPath))
+        {
+            return;
+        }
+
+        var extension = Path.GetExtension(normalizedPath).ToLowerInvariant();
+        RecipeDocument doc = extension switch
+        {
+            ".xlsx" => _excel.Import(normalizedPath),
+            ".csv" or ".tsv" => _tsv.Load(normalizedPath),
+            _ => throw new InvalidOperationException($"Неподдерживаемый формат: {extension}")
+        };
+
+        if (string.IsNullOrWhiteSpace(doc.RecipeCode))
+        {
+            doc.RecipeCode = Path.GetFileNameWithoutExtension(normalizedPath);
+        }
+
+        var id = _repo.Create(doc);
+        Refresh();
+        _openRecipe(id);
     }
 
     public void CreateNewRecipe(string recipeCode)
@@ -75,8 +111,6 @@ public sealed class RecipeCardViewModel : ViewModelBase
     public string Name { get; }
     public DateTime LastModified { get; }
     public int PointCount { get; }
-    public int NormalPointCount { get; }
-    public int SafePointCount { get; }
 
     public RelayCommand OpenCommand { get; }
 
@@ -86,8 +120,6 @@ public sealed class RecipeCardViewModel : ViewModelBase
         Name = info.RecipeCode;
         LastModified = info.ModifiedUtc.ToLocalTime();
         PointCount = info.PointCount;
-        NormalPointCount = info.NormalPointCount;
-        SafePointCount = info.SafePointCount;
         _openRecipe = openRecipe;
 
         OpenCommand = new RelayCommand(() => _openRecipe(Id));
