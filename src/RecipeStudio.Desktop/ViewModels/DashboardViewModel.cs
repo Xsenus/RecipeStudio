@@ -1,5 +1,8 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
+using Avalonia.Threading;
 
 using RecipeStudio.Desktop.Services;
 
@@ -79,8 +82,21 @@ public sealed class DashboardViewModel : ViewModelBase
 
         var id = _repo.Create(preview.Document);
         Refresh();
-        _openRecipe(id);
+        HighlightImportedRecipe(id);
         return true;
+    }
+
+    private async void HighlightImportedRecipe(long id)
+    {
+        var card = Recipes.FirstOrDefault(x => x.Id == id);
+        if (card is null)
+        {
+            return;
+        }
+
+        card.IsImportHighlighted = true;
+        await Task.Delay(4000);
+        await Dispatcher.UIThread.InvokeAsync(() => card.IsImportHighlighted = false);
     }
 
     public void CreateNewRecipe(string recipeCode)
@@ -103,6 +119,7 @@ public sealed class DashboardViewModel : ViewModelBase
 public sealed class RecipeCardViewModel : ViewModelBase
 {
     private readonly Action<long> _openRecipe;
+    private bool _isImportHighlighted;
 
     public long Id { get; }
     public string Name { get; }
@@ -110,6 +127,12 @@ public sealed class RecipeCardViewModel : ViewModelBase
     public int PointCount { get; }
 
     public RelayCommand OpenCommand { get; }
+
+    public bool IsImportHighlighted
+    {
+        get => _isImportHighlighted;
+        set => SetProperty(ref _isImportHighlighted, value);
+    }
 
     public RecipeCardViewModel(RecipeInfo info, Action<long> openRecipe)
     {

@@ -1,44 +1,50 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="RecipeStudio.Desktop.Views.Dialogs.ImportRecipeDialog"
-        Width="760"
+        Width="780"
         Height="560"
-        MinWidth="620"
-        MinHeight="420"
+        MinWidth="700"
+        MinHeight="560"
         CanResize="True"
         WindowStartupLocation="CenterOwner"
         SystemDecorations="Full"
         Title="Результат импорта">
 
-  <Border Classes="modal-surface">
+  <Border Classes="modal-surface" BorderBrush="#2C3850" BorderThickness="1">
     <Grid RowDefinitions="Auto,*,Auto">
-      <Border Classes="modal-header" PointerPressed="Header_PointerPressed">
+      <Border Background="#111A2C" BorderBrush="#2A3347" BorderThickness="0,0,0,1" Padding="20,14" PointerPressed="Header_PointerPressed">
         <Grid ColumnDefinitions="*,Auto">
-          <TextBlock x:Name="TitleBlock" Text="Результат импорта" Classes="modal-title" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="⤓" Foreground="#5BA2FF" FontSize="22" VerticalAlignment="Center" />
+            <TextBlock x:Name="TitleBlock" Text="Результат импорта" Classes="modal-title" VerticalAlignment="Center" />
+          </StackPanel>
           <Button Grid.Column="1" Classes="window-btn" Click="Close_Click">✕</Button>
         </Grid>
       </Border>
 
-      <StackPanel Grid.Row="1" Margin="20" Spacing="10">
-        <TextBlock x:Name="StatusBlock" FontSize="18" FontWeight="SemiBold" />
-        <TextBlock x:Name="FileBlock" Classes="muted" />
-        <TextBlock x:Name="PointsBlock" Classes="muted" />
-        <TextBlock x:Name="DiagnosticsHeader" Text="Диагностика:" FontWeight="SemiBold" Margin="0,6,0,0" />
-        <Border BorderBrush="#2A3142" BorderThickness="1" CornerRadius="6" Background="#111827" Padding="10" MinHeight="170">
-          <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <TextBlock x:Name="DiagnosticsBlock" TextWrapping="Wrap" Classes="muted" />
-          </ScrollViewer>
+      <Grid Grid.Row="1" Margin="20" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="10">
+        <TextBlock x:Name="StatusBlock" FontSize="18" FontWeight="SemiBold" Grid.Row="0" />
+        <TextBlock x:Name="FileBlock" Classes="muted" Grid.Row="1" />
+        <TextBlock x:Name="PointsBlock" Classes="muted" Grid.Row="2" />
+
+        <Border Grid.Row="3" BorderBrush="#2A3142" BorderThickness="1" CornerRadius="8" Background="#111827" Padding="12" MinHeight="90">
+          <Grid RowDefinitions="Auto,*" RowSpacing="8">
+            <TextBlock x:Name="DiagnosticsHeader" Text="Диагностика" FontWeight="SemiBold" />
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+              <TextBlock x:Name="DiagnosticsBlock" TextWrapping="Wrap" Classes="muted" />
+            </ScrollViewer>
+          </Grid>
         </Border>
 
-        <StackPanel x:Name="NamePanel" Spacing="6" IsVisible="False">
+        <StackPanel x:Name="NamePanel" Grid.Row="4" Spacing="6" IsVisible="False">
           <TextBlock Text="Наименование рецепта" Classes="muted" />
           <TextBox x:Name="RecipeNameBox" Classes="modal-input" Watermark="Введите название" TextChanged="RecipeNameBox_TextChanged" />
         </StackPanel>
-      </StackPanel>
+      </Grid>
 
       <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="20,0,20,20">
-        <Button x:Name="CancelButton" Classes="ghost" Width="140" Click="Cancel_Click">Закрыть</Button>
-        <Button x:Name="ConfirmButton" Classes="accent" Width="180" Click="Confirm_Click">Сохранить</Button>
+        <Button x:Name="ConfirmButton" Classes="accent" Width="180" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="Confirm_Click">Сохранить</Button>
+        <Button x:Name="CancelButton" Classes="ghost" Width="140" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="Cancel_Click">Закрыть</Button>
       </StackPanel>
     </Grid>
   </Border>

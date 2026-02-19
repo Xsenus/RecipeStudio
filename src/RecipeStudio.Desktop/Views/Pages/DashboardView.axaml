@@ -74,7 +74,7 @@
 
           <ItemsControl.DataTemplates>
             <DataTemplate DataType="vm:RecipeCardViewModel">
-              <Border Classes="recipe-card" Width="294" Height="190" PointerPressed="RecipeCard_PointerPressed" Tag="{Binding}" Cursor="Hand">
+              <Border Classes="recipe-card" Classes.imported-highlight="{Binding IsImportHighlighted}" Width="294" Height="190" PointerPressed="RecipeCard_PointerPressed" Tag="{Binding}" Cursor="Hand">
                 <Grid RowDefinitions="104,*" ClipToBounds="True">
                   <Border Background="#1F2330" BorderBrush="#2A2E3F" BorderThickness="0,0,0,1">
                     <TextBlock Text="🗎" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="34" Foreground="#64748B" />
