@@ -1,0 +1,45 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="RecipeStudio.Desktop.Views.Dialogs.ImportRecipeDialog"
+        Width="620"
+        Height="420"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        SystemDecorations="None"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Title="Результат импорта">
+
+  <Border Classes="modal-surface">
+    <Grid RowDefinitions="Auto,*,Auto">
+      <Border Classes="modal-header" PointerPressed="Header_PointerPressed">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock x:Name="TitleBlock" Text="Результат импорта" Classes="modal-title" />
+          <Button Grid.Column="1" Classes="window-btn" Click="Close_Click">✕</Button>
+        </Grid>
+      </Border>
+
+      <StackPanel Grid.Row="1" Margin="20" Spacing="10">
+        <TextBlock x:Name="StatusBlock" FontSize="18" FontWeight="SemiBold" />
+        <TextBlock x:Name="FileBlock" Classes="muted" />
+        <TextBlock x:Name="PointsBlock" Classes="muted" />
+        <TextBlock x:Name="DiagnosticsHeader" Text="Диагностика:" FontWeight="SemiBold" Margin="0,6,0,0" />
+        <Border BorderBrush="#2A3142" BorderThickness="1" CornerRadius="6" Background="#111827" Padding="10" Height="170">
+          <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <TextBlock x:Name="DiagnosticsBlock" TextWrapping="Wrap" Classes="muted" />
+          </ScrollViewer>
+        </Border>
+
+        <StackPanel x:Name="NamePanel" Spacing="6" IsVisible="False">
+          <TextBlock Text="Наименование рецепта" Classes="muted" />
+          <TextBox x:Name="RecipeNameBox" Classes="modal-input" Watermark="Введите название" TextChanged="RecipeNameBox_TextChanged" />
+        </StackPanel>
+      </StackPanel>
+
+      <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="20,0,20,20">
+        <Button x:Name="CancelButton" Classes="ghost" Width="140" Click="Cancel_Click">Закрыть</Button>
+        <Button x:Name="ConfirmButton" Classes="accent" Width="180" Click="Confirm_Click">Сохранить</Button>
+      </StackPanel>
+    </Grid>
+  </Border>
+</Window>

@@ -13,6 +13,7 @@ public sealed class EditorViewModel : ViewModelBase
     private readonly SettingsService _settings;
     private readonly RecipeRepository _repo;
     private readonly RecipeExcelService _excel;
+    private readonly RecipeImportService _importService;
     private readonly Action _navigateBack;
 
     private RecipeDocument? _document;
@@ -27,11 +28,12 @@ public sealed class EditorViewModel : ViewModelBase
     private bool _suppressRecalc;
     private string _importDiagnosticsSummary = "";
 
-    public EditorViewModel(SettingsService settings, RecipeRepository repo, RecipeExcelService excel, Action navigateBack)
+    public EditorViewModel(SettingsService settings, RecipeRepository repo, RecipeExcelService excel, RecipeImportService importService, Action navigateBack)
     {
         _settings = settings;
         _repo = repo;
         _excel = excel;
+        _importService = importService;
         _navigateBack = navigateBack;
 
         Points = new ObservableCollection<RecipePoint>();
@@ -286,21 +288,31 @@ public sealed class EditorViewModel : ViewModelBase
         _excel.Export(Document, path);
     }
 
-    public void ImportFromExcel(string path)
+    public RecipeImportPreview PreviewImport(string path)
     {
-        if (Document is null) return;
+        return _importService.Preview(path);
+    }
 
-        var importedResult = _excel.ImportWithReport(path);
-        var imported = importedResult.Document;
+    public bool ApplyImportedPreview(RecipeImportPreview preview)
+    {
+        if (Document is null) return false;
 
-        // Replace points in the current document (same RecipeId, update code and recipe-level settings).
+        ImportDiagnosticsSummary = preview.Diagnostics;
+
+        if (!preview.IsSuccess || preview.HasBlockingIssues || preview.Document is null)
+        {
+            return false;
+        }
+
+        var imported = preview.Document;
+
+        // Replace points in the current document (same RecipeId, do not rename recipe in editor import flow).
         imported.RecipeId = Document.RecipeId;
         imported.CreatedUtc = Document.CreatedUtc;
         imported.ModifiedUtc = Document.ModifiedUtc;
 
         UnhookPoints();
 
-        Document.RecipeCode = imported.RecipeCode;
         Document.ContainerPresent = imported.ContainerPresent;
         Document.DClampForm = imported.DClampForm;
         Document.DClampCont = imported.DClampCont;
@@ -311,8 +323,8 @@ public sealed class EditorViewModel : ViewModelBase
 
         HookPoints();
 
-        ImportDiagnosticsSummary = BuildImportDiagnosticsSummary(importedResult.Report);
         Recalculate();
+        return true;
     }
 
     private void AddPoint()
@@ -420,31 +432,6 @@ public sealed class EditorViewModel : ViewModelBase
         }
     }
 
-
-    private static string BuildImportDiagnosticsSummary(RecipeImportReport report)
-    {
-        if (!report.HasIssues && report.AliasHits.Count == 0)
-            return "Импорт Excel: все колонки распознаны без алиасов.";
-
-        var parts = new System.Collections.Generic.List<string>();
-
-        if (report.AliasHits.Count > 0)
-        {
-            var aliasDetails = string.Join(", ", report.AliasHits.Select(a => $"{a.Alias}→{a.Canonical}"));
-            parts.Add($"алиасы: {report.AliasHits.Count} ({aliasDetails})");
-        }
-
-        if (report.UnknownHeaders.Count > 0)
-            parts.Add($"неизвестные колонки: {string.Join(", ", report.UnknownHeaders)}");
-
-        if (report.MissingRequiredColumns.Count > 0)
-            parts.Add($"отсутствуют обязательные: {string.Join(", ", report.MissingRequiredColumns)}");
-
-        if (report.DuplicateHeaders.Count > 0)
-            parts.Add($"дубликаты хедеров: {string.Join(", ", report.DuplicateHeaders)}");
-
-        return "Импорт Excel: " + string.Join("; ", parts);
-    }
 
     private void TogglePlay()
     {

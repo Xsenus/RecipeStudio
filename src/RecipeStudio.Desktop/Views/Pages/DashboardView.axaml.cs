@@ -99,13 +99,19 @@ public sealed partial class DashboardView : UserControl
             return;
         }
 
-        try
+        var preview = dashboard.PreviewImport(path);
+
+        var owner = TopLevel.GetTopLevel(this) as Window;
+        if (owner is null)
         {
-            dashboard.ImportFromFile(path);
+            return;
         }
-        catch
+
+        var dialog = new ImportRecipeDialog(preview, allowRename: true, title: "Импорт рецепта");
+        var confirmed = await dialog.ShowDialog<bool>(owner);
+        if (confirmed)
         {
-            // ignored in prototype
+            dashboard.SaveImportedRecipe(preview, dialog.RecipeName);
         }
     }
 

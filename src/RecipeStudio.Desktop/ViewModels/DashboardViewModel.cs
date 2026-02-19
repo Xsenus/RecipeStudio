@@ -1,7 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
-using System.IO;
-using RecipeStudio.Desktop.Models;
+
 using RecipeStudio.Desktop.Services;
 
 namespace RecipeStudio.Desktop.ViewModels;
@@ -14,8 +13,7 @@ public sealed class DashboardViewModel : ViewModelBase
     public ObservableCollection<RecipeCardViewModel> Recipes { get; } = new();
     public ObservableCollection<object> DashboardTiles { get; } = new();
 
-    private readonly RecipeExcelService _excel;
-    private readonly RecipeTsvSerializer _tsv;
+    private readonly RecipeImportService _importService;
 
     public RelayCommand RefreshCommand { get; }
     public RelayCommand NewRecipeCommand { get; }
@@ -24,11 +22,10 @@ public sealed class DashboardViewModel : ViewModelBase
     public event Action? RequestCreateRecipe;
     public event Action? RequestImportRecipe;
 
-    public DashboardViewModel(RecipeRepository repo, RecipeExcelService excel, RecipeTsvSerializer tsv, Action<long> openRecipe)
+    public DashboardViewModel(RecipeRepository repo, RecipeImportService importService, Action<long> openRecipe)
     {
         _repo = repo;
-        _excel = excel;
-        _tsv = tsv;
+        _importService = importService;
         _openRecipe = openRecipe;
 
         RefreshCommand = new RelayCommand(Refresh);
@@ -60,30 +57,30 @@ public sealed class DashboardViewModel : ViewModelBase
         Refresh();
     }
 
-    public void ImportFromFile(string path)
+    public RecipeImportPreview PreviewImport(string path)
     {
-        var normalizedPath = path.Trim();
-        if (string.IsNullOrWhiteSpace(normalizedPath) || !File.Exists(normalizedPath))
+        return _importService.Preview(path);
+    }
+
+    public bool SaveImportedRecipe(RecipeImportPreview preview, string recipeName)
+    {
+        if (!preview.IsSuccess || preview.HasBlockingIssues || preview.Document is null)
         {
-            return;
+            return false;
         }
 
-        var extension = Path.GetExtension(normalizedPath).ToLowerInvariant();
-        RecipeDocument doc = extension switch
+        var finalName = recipeName.Trim();
+        if (string.IsNullOrWhiteSpace(finalName))
         {
-            ".xlsx" => _excel.Import(normalizedPath),
-            ".csv" or ".tsv" => _tsv.Load(normalizedPath),
-            _ => throw new InvalidOperationException($"Неподдерживаемый формат: {extension}")
-        };
-
-        if (string.IsNullOrWhiteSpace(doc.RecipeCode))
-        {
-            doc.RecipeCode = Path.GetFileNameWithoutExtension(normalizedPath);
+            return false;
         }
 
-        var id = _repo.Create(doc);
+        preview.Document.RecipeCode = finalName;
+
+        var id = _repo.Create(preview.Document);
         Refresh();
         _openRecipe(id);
+        return true;
     }
 
     public void CreateNewRecipe(string recipeCode)

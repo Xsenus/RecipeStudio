@@ -14,9 +14,9 @@
           <TextBlock Text="Система готова к работе. Выберите рецепт для начала." Classes="muted" Margin="0,6,0,0" />
         </StackPanel>
 
-        <Button Grid.Column="1" Command="{Binding NewRecipeCommand}" Classes="accent big" Margin="0,0,10,0">+ СОЗДАТЬ</Button>
-        <Button Grid.Column="2" Command="{Binding ImportRecipeCommand}" Classes="icon-btn" Margin="0,0,10,0" ToolTip.Tip="Импорт точек из Excel/CSV">📊</Button>
-        <Button Grid.Column="3" Command="{Binding RefreshCommand}" Classes="icon-btn">⟳</Button>
+        <Button Grid.Column="1" Command="{Binding NewRecipeCommand}" Classes="accent big" Margin="0,0,10,0" ToolTip.Tip="Создать новый рецепт">+ СОЗДАТЬ</Button>
+        <Button Grid.Column="2" Command="{Binding ImportRecipeCommand}" Classes="icon-btn" Margin="0,0,10,0" ToolTip.Tip="Импорт рецепта из Excel/CSV">⤓</Button>
+        <Button Grid.Column="3" Command="{Binding RefreshCommand}" Classes="icon-btn" ToolTip.Tip="Обновить список рецептов">⟳</Button>
       </Grid>
 
       <Border Height="1" Background="#222633" />
@@ -91,7 +91,7 @@
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="9" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="0,0,0,4">
                       <Button Command="{Binding OpenCommand}" Classes="icon action edit" ToolTip.Tip="Редактировать">✎</Button>
-                      <Button Classes="icon action delete" Tag="{Binding}" Click="DeleteRecipe_Click" ToolTip.Tip="Удалить">🗑</Button>
+                      <Button Classes="icon action delete" Tag="{Binding}" Click="DeleteRecipe_Click" ToolTip.Tip="Удалить рецепт">🗑</Button>
                     </StackPanel>
                   </Grid>
                 </Grid>
