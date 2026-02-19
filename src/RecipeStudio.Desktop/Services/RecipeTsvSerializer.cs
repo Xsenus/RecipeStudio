@@ -12,49 +12,7 @@ public sealed class RecipeTsvSerializer
     private static readonly CultureInfo Ru = CultureInfo.GetCultureInfo("ru-RU");
 
     // Canonical column order (matches the provided H340_KAMA_1.csv file)
-    public static readonly string[] Columns =
-    {
-        "recipe_code",
-        "n_point",
-        "Act",
-        "Safe",
-        "r_crd",
-        "z_crd",
-        "place",
-        "hidden",
-        "a_nozzle",
-        "alfa_crd",
-        "betta_crd",
-        "speed_table",
-        "ice_rate",
-        "ice_grind",
-        "air_pressure",
-        "air_temp",
-        "container",
-        "d_clamp_form",
-        "d_clamp_cont",
-        "description",
-
-        // SAVE/CALC
-        "Xr0",
-        "Yx0",
-        "Zr0",
-        "dX",
-        "dY",
-        "dZ",
-        "dA",
-        "aB",
-        "Xpuls",
-        "Ypuls",
-        "Zpuls",
-        "Apuls",
-        "Bpuls",
-        "Top_puls",
-        "Top_Hz",
-        "Low_puls",
-        "Low_Hz",
-        "Clamp_puls",
-    };
+    public static readonly string[] Columns = RecipeFieldCatalog.TsvColumns;
 
     public RecipeDocument Load(string path)
     {
