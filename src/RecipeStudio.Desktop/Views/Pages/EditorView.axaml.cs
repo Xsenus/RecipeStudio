@@ -219,6 +219,25 @@ public sealed partial class EditorView : UserControl
             Math.Max(PanelMargin, canvasHeight - panel.Height - PanelMargin));
     }
 
+    private void ApplyDefaultPanelsLayout()
+    {
+        var parametersPos = ParametersPanelDefaultPosition(ParametersPanel);
+        Canvas.SetLeft(ParametersPanel, parametersPos.X);
+        Canvas.SetTop(ParametersPanel, parametersPos.Y);
+
+        var visualizationPos = VisualizationPanelDefaultPosition(VisualizationPanel);
+        Canvas.SetLeft(VisualizationPanel, visualizationPos.X);
+        Canvas.SetTop(VisualizationPanel, visualizationPos.Y);
+
+        var selectedPointPos = SelectedPointPanelDefaultPosition(SelectedPointPanel);
+        Canvas.SetLeft(SelectedPointPanel, selectedPointPos.X);
+        Canvas.SetTop(SelectedPointPanel, selectedPointPos.Y);
+
+        ClampPanelToCanvas(ParametersPanel);
+        ClampPanelToCanvas(VisualizationPanel);
+        ClampPanelToCanvas(SelectedPointPanel);
+    }
+
     private void Panel_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
@@ -394,8 +413,8 @@ public sealed partial class EditorView : UserControl
         VisualizationResizeHandle.IsVisible = true;
         SelectedPointResizeHandle.IsVisible = true;
 
-        _panelsInitialized = false;
-        InitializePanelsLayout();
+        ApplyDefaultPanelsLayout();
+        UpdateResizeHandlePositions();
         PersistPanelsLayout();
     }
 
