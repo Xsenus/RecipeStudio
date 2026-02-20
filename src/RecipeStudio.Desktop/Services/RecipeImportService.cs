@@ -49,9 +49,8 @@ public sealed class RecipeImportService
                 return RecipeImportPreview.Error(fileName, extension, "Файл прочитан, но точки не найдены.");
             }
 
-            var suggestedName = string.IsNullOrWhiteSpace(doc.RecipeCode)
-                ? System.IO.Path.GetFileNameWithoutExtension(path)
-                : doc.RecipeCode;
+            // For import naming UX we always suggest the source file name.
+            var suggestedName = System.IO.Path.GetFileNameWithoutExtension(path);
 
             return new RecipeImportPreview(
                 true,
