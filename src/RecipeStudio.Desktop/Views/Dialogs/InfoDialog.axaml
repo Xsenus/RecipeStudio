@@ -1,0 +1,28 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="RecipeStudio.Desktop.Views.Dialogs.InfoDialog"
+        Width="440"
+        Height="200"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        SystemDecorations="None"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Title="Сообщение">
+
+  <Border BorderBrush="#2A3142" BorderThickness="1" Background="#0F1420">
+    <Grid RowDefinitions="Auto,*">
+      <Border Background="#111827" Padding="12,8" PointerPressed="Header_PointerPressed">
+        <TextBlock x:Name="TitleBlock" FontSize="18" FontWeight="Bold" />
+      </Border>
+
+      <Grid Grid.Row="1" Margin="16" RowDefinitions="*,Auto">
+        <TextBlock x:Name="MessageBlock" TextWrapping="Wrap" Foreground="#A8B3CF" />
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+          <Button x:Name="OkButton" Classes="accent" Width="120" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="Ok_Click">OK</Button>
+        </StackPanel>
+      </Grid>
+    </Grid>
+  </Border>
+</Window>

@@ -90,10 +90,15 @@ public sealed class MainViewModel : ViewModelBase
     }
 
 
-    private void CreateSampleRecipeFromSettings()
+    private bool CreateSampleRecipeFromSettings()
     {
-        _repo.CreateSampleRecipe();
-        Dashboard.Refresh();
+        var created = _repo.CreateSampleRecipe();
+        if (created)
+        {
+            Dashboard.Refresh();
+        }
+
+        return created;
     }
 
     private void OnSettingsChanged()

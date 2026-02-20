@@ -15,22 +15,24 @@ public sealed class SettingsViewModel : ViewModelBase
 
     private readonly SettingsService _settings;
     private readonly Action _onChanged;
-    private readonly Action _createSampleRecipe;
+    private readonly Func<bool> _createSampleRecipe;
 
     private string _selectedSection = SectionStorage;
 
-    public SettingsViewModel(SettingsService settings, Action onChanged, Action createSampleRecipe)
+    public SettingsViewModel(SettingsService settings, Action onChanged, Func<bool> createSampleRecipe)
     {
         _settings = settings;
         _onChanged = onChanged;
         _createSampleRecipe = createSampleRecipe;
 
         SaveCommand = new RelayCommand(Save);
-        CreateSampleRecipeCommand = new RelayCommand(CreateSampleRecipe);
+        CreateSampleRecipeCommand = new RelayCommand(() => RequestCreateSampleRecipe?.Invoke());
     }
 
     public RelayCommand SaveCommand { get; }
     public RelayCommand CreateSampleRecipeCommand { get; }
+
+    public event Action? RequestCreateSampleRecipe;
 
     public string SelectedSection
     {
@@ -194,9 +196,9 @@ public sealed class SettingsViewModel : ViewModelBase
         _ => "Info: пишутся все сообщения (инфо, предупреждения и ошибки)."
     };
 
-    private void CreateSampleRecipe()
+    public bool CreateSampleRecipe()
     {
-        _createSampleRecipe();
+        return _createSampleRecipe();
     }
 
     private void Save()
