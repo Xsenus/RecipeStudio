@@ -6,9 +6,21 @@ namespace RecipeStudio.Desktop.Views.Dialogs;
 
 public sealed partial class InfoDialog : Window
 {
-    public InfoDialog(string title, string message, string okText = "OK")
+    public InfoDialog()
     {
         InitializeComponent();
+
+        if (Design.IsDesignMode)
+        {
+            TitleBlock.Text = "Информация";
+            MessageBlock.Text = "Пример сообщения для превью.";
+            OkButton.Content = "OK";
+        }
+    }
+
+    public InfoDialog(string title, string message, string okText = "OK")
+        : this()
+    {
         TitleBlock.Text = title;
         MessageBlock.Text = message;
         OkButton.Content = okText;

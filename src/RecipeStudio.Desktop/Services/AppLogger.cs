@@ -16,9 +16,9 @@ public sealed class AppLogger
 
     public string CurrentLogFilePath => Path.Combine(_logsDir, $"{DateTime.Now:dd.MM.yyyy}.log");
 
-    public AppLogger(string appRoot)
+    public AppLogger()
     {
-        _logsDir = Path.Combine(appRoot, "logs");
+        _logsDir = ResolveDefaultLogsDir();
         Directory.CreateDirectory(_logsDir);
     }
 
@@ -143,5 +143,11 @@ public sealed class AppLogger
         {
             // ignore cleanup errors
         }
+    }
+
+    private static string ResolveDefaultLogsDir()
+    {
+        var baseDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        return Path.Combine(baseDir, "RecipeStudio", "logs");
     }
 }

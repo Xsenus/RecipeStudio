@@ -9,14 +9,28 @@ namespace RecipeStudio.Desktop.Views;
 
 public sealed partial class MainWindow : Window
 {
-    private readonly SettingsService _settings;
+    private SettingsService? _settings;
     private bool _closeConfirmed;
 
-    public MainWindow(SettingsService settings)
+    public MainWindow()
     {
-        _settings = settings;
-
         InitializeComponent();
+
+        if (Design.IsDesignMode)
+        {
+            return;
+        }
+    }
+
+    public MainWindow(SettingsService settings)
+        : this()
+    {
+        if (Design.IsDesignMode)
+        {
+            return;
+        }
+
+        _settings = settings;
 
         ApplyWindowPlacementIfExists();
 
@@ -92,6 +106,11 @@ public sealed partial class MainWindow : Window
 
     private void ApplyWindowPlacementIfExists()
     {
+        if (_settings is null)
+        {
+            return;
+        }
+
         var placement = _settings.Settings.WindowPlacement;
 
         if (placement.Width is not > 0 || placement.Height is not > 0 || placement.X is null || placement.Y is null)
@@ -118,6 +137,11 @@ public sealed partial class MainWindow : Window
 
     private void SaveWindowPlacementIfNeeded()
     {
+        if (_settings is null)
+        {
+            return;
+        }
+
         var placement = _settings.Settings.WindowPlacement;
 
         if (WindowState == WindowState.Minimized)
@@ -147,6 +171,11 @@ public sealed partial class MainWindow : Window
 
     private void SaveWindowPlacementBeforeClose()
     {
+        if (_settings is null)
+        {
+            return;
+        }
+
         var placement = _settings.Settings.WindowPlacement;
 
         if (WindowState == WindowState.Minimized)
