@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 
+using RecipeStudio.Desktop.Models;
 using RecipeStudio.Desktop.Services;
 
 namespace RecipeStudio.Desktop.ViewModels;
@@ -107,8 +108,13 @@ public sealed class DashboardViewModel : ViewModelBase
             return;
         }
 
-        var doc = RecipeDocumentFactory.CreateStarter(code);
-        doc.RecipeCode = code;
+        var doc = new RecipeDocument
+        {
+            RecipeCode = code,
+            ContainerPresent = true,
+            DClampForm = 800,
+            DClampCont = 1600
+        };
         var id = _repo.Create(doc);
 
         Refresh();

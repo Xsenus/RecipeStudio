@@ -26,7 +26,7 @@ public sealed class MainViewModel : ViewModelBase
         Editor = new EditorViewModel(_settings, _repo, _excel, _importService, NavigateToDashboard);
         Editor.PropertyChanged += OnEditorPropertyChanged;
         Simulation = new SimulationViewModel();
-        Settings = new SettingsViewModel(_settings, OnSettingsChanged);
+        Settings = new SettingsViewModel(_settings, OnSettingsChanged, CreateSampleRecipeFromSettings);
 
         _currentPage = Dashboard;
 
@@ -87,6 +87,13 @@ public sealed class MainViewModel : ViewModelBase
         Editor.CloseDocument();
         Dashboard.Refresh();
         CurrentPage = Dashboard;
+    }
+
+
+    private void CreateSampleRecipeFromSettings()
+    {
+        _repo.CreateSampleRecipe();
+        Dashboard.Refresh();
     }
 
     private void OnSettingsChanged()

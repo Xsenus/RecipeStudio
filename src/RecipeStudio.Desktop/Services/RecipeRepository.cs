@@ -30,7 +30,10 @@ public sealed class RecipeRepository
     {
         _settings = settings;
         Directory.CreateDirectory(_settings.Settings.RecipesFolder);
-        EnsureSeedData();
+        if (_settings.Settings.AutoCreateSampleRecipeOnEmpty)
+        {
+            EnsureSeedData();
+        }
     }
 
     private SqliteConnection OpenConnection()
@@ -170,20 +173,8 @@ CREATE INDEX IF NOT EXISTS idx_recipe_points_recipe_id ON recipe_points(recipe_i
         // 2) Fallback: import the bundled sample from app resources.
         try
         {
-            var uri = new Uri("avares://RecipeStudio.Desktop/Assets/Samples/H340_KAMA_1.csv");
-            using var src = AssetLoader.Open(uri);
-            using var sr = new StreamReader(src);
-            var tmp = Path.Combine(_settings.AppDataRoot, "_seed_sample.tsv");
-            File.WriteAllText(tmp, sr.ReadToEnd());
-
-            var doc = _tsv.Load(tmp);
-            if (doc.Points.Count == 0)
-                throw new InvalidOperationException("Seed sample has no points");
-
-            doc.RecipeCode = string.IsNullOrWhiteSpace(doc.RecipeCode) ? "H340_KAMA_1" : doc.RecipeCode;
+            var doc = LoadBundledSample();
             Create(doc);
-
-            try { File.Delete(tmp); } catch { /* ignore */ }
         }
         catch
         {
@@ -191,6 +182,63 @@ CREATE INDEX IF NOT EXISTS idx_recipe_points_recipe_id ON recipe_points(recipe_i
             var starter = RecipeDocumentFactory.CreateStarter("H340_KAMA_1");
             Create(starter);
         }
+    }
+
+
+    public bool CreateSampleRecipe()
+    {
+        try
+        {
+            var doc = LoadBundledSample();
+            if (doc.Points.Count == 0)
+            {
+                return false;
+            }
+
+            var baseCode = string.IsNullOrWhiteSpace(doc.RecipeCode) ? "H340_KAMA_1" : doc.RecipeCode;
+            doc.RecipeCode = BuildUniqueRecipeCode(baseCode);
+            Create(doc);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private RecipeDocument LoadBundledSample()
+    {
+        var uri = new Uri("avares://RecipeStudio.Desktop/Assets/Samples/H340_KAMA_1.csv");
+        using var src = AssetLoader.Open(uri);
+        using var sr = new StreamReader(src);
+        var tmp = Path.Combine(_settings.AppDataRoot, "_seed_sample.tsv");
+        File.WriteAllText(tmp, sr.ReadToEnd());
+
+        var doc = _tsv.Load(tmp);
+        try { File.Delete(tmp); } catch { }
+
+        if (doc.Points.Count == 0)
+            throw new InvalidOperationException("Seed sample has no points");
+
+        doc.RecipeCode = string.IsNullOrWhiteSpace(doc.RecipeCode) ? "H340_KAMA_1" : doc.RecipeCode;
+        return doc;
+    }
+
+    private string BuildUniqueRecipeCode(string baseCode)
+    {
+        var existing = new HashSet<string>(GetRecipes().Select(r => r.RecipeCode), StringComparer.OrdinalIgnoreCase);
+        if (!existing.Contains(baseCode))
+        {
+            return baseCode;
+        }
+
+        var idx = 2;
+        while (existing.Contains($"{baseCode}_{idx}"))
+        {
+            idx++;
+        }
+
+        return $"{baseCode}_{idx}";
     }
 
     private int GetRecipeCount()
