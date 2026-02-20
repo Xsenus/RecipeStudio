@@ -37,6 +37,7 @@ public sealed class AppSettings
     public int SmoothSegmentsPerSpan { get; set; } = 16;
 
     public WindowPlacementSettings WindowPlacement { get; set; } = new();
+    public EditorPanelsSettings EditorPanels { get; set; } = new();
 
     // Logging
     public bool LoggingEnabled { get; set; } = true;
@@ -59,4 +60,20 @@ public sealed class WindowPlacementSettings
     public double? Width { get; set; }
     public double? Height { get; set; }
     public bool IsMaximized { get; set; }
+}
+
+public sealed class EditorPanelsSettings
+{
+    public PanelPlacementSettings Parameters { get; set; } = new();
+    public PanelPlacementSettings Visualization { get; set; } = new();
+    public PanelPlacementSettings SelectedPoint { get; set; } = new();
+}
+
+public sealed class PanelPlacementSettings
+{
+    public double Left { get; set; }
+    public double Top { get; set; }
+    public double Width { get; set; }
+    public double Height { get; set; }
+    public bool IsVisible { get; set; } = true;
 }

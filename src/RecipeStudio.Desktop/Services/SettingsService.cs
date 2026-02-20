@@ -110,6 +110,10 @@ public sealed class SettingsService
 
         Settings.LogMode = NormalizeLogMode(Settings.LogMode);
         Settings.LogRetentionDays = Math.Clamp(Settings.LogRetentionDays, 1, 3650);
+        Settings.EditorPanels ??= new EditorPanelsSettings();
+        Settings.EditorPanels.Parameters ??= new PanelPlacementSettings();
+        Settings.EditorPanels.Visualization ??= new PanelPlacementSettings();
+        Settings.EditorPanels.SelectedPoint ??= new PanelPlacementSettings();
 
         try
         {
@@ -183,8 +187,31 @@ public sealed class SettingsService
             return false;
         }
 
+        var panels = s.EditorPanels;
+        if (panels is not null)
+        {
+            if (!ValidatePanel(panels.Parameters) || !ValidatePanel(panels.Visualization) || !ValidatePanel(panels.SelectedPoint))
+            {
+                error = "EditorPanels содержит недопустимые значения.";
+                return false;
+            }
+        }
+
         error = string.Empty;
         return true;
+    }
+
+    private static bool ValidatePanel(PanelPlacementSettings? panel)
+    {
+        if (panel is null)
+            return false;
+
+        return IsFinite(panel.Left) &&
+               IsFinite(panel.Top) &&
+               IsFinite(panel.Width) &&
+               IsFinite(panel.Height) &&
+               panel.Width >= 0 &&
+               panel.Height >= 0;
     }
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);

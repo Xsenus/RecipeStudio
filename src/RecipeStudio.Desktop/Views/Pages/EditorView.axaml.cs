@@ -1,9 +1,11 @@
 using System;
+using System.ComponentModel;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
+using RecipeStudio.Desktop.Services;
 using RecipeStudio.Desktop.ViewModels;
 using RecipeStudio.Desktop.Views.Dialogs;
 
@@ -11,23 +13,15 @@ namespace RecipeStudio.Desktop.Views.Pages;
 
 public sealed partial class EditorView : UserControl
 {
+    private const double PanelMargin = 20;
+
     public EditorView()
     {
         InitializeComponent();
 
         DataContextChanged += (_, __) => HookVm();
-        AttachedToVisualTree += (_, __) =>
-        {
-            HookVm();
-            InitializePanelsLayout();
-            PanelsCanvas.SizeChanged += (_, __) =>
-            {
-                if (!_panelsInitialized)
-                    InitializePanelsLayout();
-                else
-                    UpdateResizeHandlePositions();
-            };
-        };
+        AttachedToVisualTree += OnAttachedToVisualTree;
+        DetachedFromVisualTree += OnDetachedFromVisualTree;
     }
 
     private EditorViewModel? _vm;
@@ -49,6 +43,7 @@ public sealed partial class EditorView : UserControl
             _vm.RequestImportExcel -= OnRequestImportExcel;
             _vm.RequestExportExcel -= OnRequestExportExcel;
             _vm.RequestShowCharts -= OnRequestShowCharts;
+            _vm.PropertyChanged -= OnVmPropertyChanged;
         }
 
         _vm = DataContext as EditorViewModel;
@@ -57,6 +52,51 @@ public sealed partial class EditorView : UserControl
             _vm.RequestImportExcel += OnRequestImportExcel;
             _vm.RequestExportExcel += OnRequestExportExcel;
             _vm.RequestShowCharts += OnRequestShowCharts;
+            _vm.PropertyChanged += OnVmPropertyChanged;
+        }
+    }
+
+    private void OnAttachedToVisualTree(object? sender, Avalonia.VisualTreeAttachmentEventArgs e)
+    {
+        HookVm();
+        PanelsCanvas.SizeChanged -= OnPanelsCanvasSizeChanged;
+        PanelsCanvas.SizeChanged += OnPanelsCanvasSizeChanged;
+
+        if (HasUsableCanvasSize())
+            InitializePanelsLayout();
+    }
+
+    private void OnDetachedFromVisualTree(object? sender, Avalonia.VisualTreeAttachmentEventArgs e)
+    {
+        PanelsCanvas.SizeChanged -= OnPanelsCanvasSizeChanged;
+        PersistPanelsLayout(force: false);
+        _panelsInitialized = false;
+    }
+
+    private void OnPanelsCanvasSizeChanged(object? sender, SizeChangedEventArgs e)
+    {
+        if (!_panelsInitialized)
+        {
+            if (HasUsableCanvasSize())
+                InitializePanelsLayout();
+
+            return;
+        }
+
+        ClampPanelToCanvas(ParametersPanel);
+        ClampPanelToCanvas(VisualizationPanel);
+        ClampPanelToCanvas(SelectedPointPanel);
+        UpdateResizeHandlePositions();
+    }
+
+    private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_vm is null)
+            return;
+
+        if (e.PropertyName == nameof(EditorViewModel.HasDocument) && !_vm.HasDocument)
+        {
+            PersistPanelsLayout(force: false);
         }
     }
 
@@ -148,19 +188,75 @@ public sealed partial class EditorView : UserControl
         if (_panelsInitialized)
             return;
 
-        var canvasWidth = PanelsCanvas.Bounds.Width > 0 ? PanelsCanvas.Bounds.Width : Bounds.Width;
-
-        Canvas.SetLeft(ParametersPanel, 40);
-        Canvas.SetTop(ParametersPanel, 320);
-
-        Canvas.SetLeft(SelectedPointPanel, Math.Max(20, canvasWidth - SelectedPointPanel.Width - 20));
-        Canvas.SetTop(SelectedPointPanel, 20);
-
-        Canvas.SetLeft(VisualizationPanel, Math.Max(20, canvasWidth - VisualizationPanel.Width - 20));
-        Canvas.SetTop(VisualizationPanel, 330);
+        var saved = _vm?.AppSettings.EditorPanels;
+        ApplyPanelLayout(ParametersPanel, saved?.Parameters, ParametersPanelDefaultPosition);
+        ApplyPanelLayout(VisualizationPanel, saved?.Visualization, VisualizationPanelDefaultPosition);
+        ApplyPanelLayout(SelectedPointPanel, saved?.SelectedPoint, SelectedPointPanelDefaultPosition);
 
         _panelsInitialized = true;
         UpdateResizeHandlePositions();
+    }
+
+    private void ApplyPanelLayout(Border panel, PanelPlacementSettings? layout, Func<Border, Point> defaultPosition)
+    {
+        if (!HasValidLayout(layout))
+        {
+            var fallback = defaultPosition(panel);
+            Canvas.SetLeft(panel, fallback.X);
+            Canvas.SetTop(panel, fallback.Y);
+            panel.IsVisible = layout?.IsVisible ?? true;
+            ClampPanelToCanvas(panel);
+            return;
+        }
+
+        panel.Width = Math.Max(layout!.Width, panel.MinWidth);
+        panel.Height = Math.Max(layout.Height, panel.MinHeight);
+
+        Canvas.SetLeft(panel, layout.Left);
+        Canvas.SetTop(panel, layout.Top);
+        panel.IsVisible = layout.IsVisible;
+
+        ClampPanelToCanvas(panel);
+    }
+
+    private Point ParametersPanelDefaultPosition(Border panel)
+    {
+        var canvasHeight = GetCanvasHeight();
+        return new(PanelMargin, Math.Max(PanelMargin, canvasHeight - panel.Height - PanelMargin));
+    }
+
+    private Point VisualizationPanelDefaultPosition(Border panel)
+    {
+        var canvasWidth = GetCanvasWidth();
+        return new(Math.Max(PanelMargin, canvasWidth - panel.Width - PanelMargin), PanelMargin);
+    }
+
+    private Point SelectedPointPanelDefaultPosition(Border panel)
+    {
+        var canvasWidth = GetCanvasWidth();
+        var canvasHeight = GetCanvasHeight();
+        return new(
+            Math.Max(PanelMargin, canvasWidth - panel.Width - PanelMargin),
+            Math.Max(PanelMargin, canvasHeight - panel.Height - PanelMargin));
+    }
+
+    private void ApplyDefaultPanelsLayout()
+    {
+        var parametersPos = ParametersPanelDefaultPosition(ParametersPanel);
+        Canvas.SetLeft(ParametersPanel, parametersPos.X);
+        Canvas.SetTop(ParametersPanel, parametersPos.Y);
+
+        var visualizationPos = VisualizationPanelDefaultPosition(VisualizationPanel);
+        Canvas.SetLeft(VisualizationPanel, visualizationPos.X);
+        Canvas.SetTop(VisualizationPanel, visualizationPos.Y);
+
+        var selectedPointPos = SelectedPointPanelDefaultPosition(SelectedPointPanel);
+        Canvas.SetLeft(SelectedPointPanel, selectedPointPos.X);
+        Canvas.SetTop(SelectedPointPanel, selectedPointPos.Y);
+
+        ClampPanelToCanvas(ParametersPanel);
+        ClampPanelToCanvas(VisualizationPanel);
+        ClampPanelToCanvas(SelectedPointPanel);
     }
 
     private void Panel_PointerPressed(object? sender, PointerPressedEventArgs e)
@@ -210,6 +306,7 @@ public sealed partial class EditorView : UserControl
         _dragPanel.ZIndex = 0;
         e.Pointer.Capture(null);
         _dragPanel = null;
+        PersistPanelsLayout();
     }
 
     private void ResizeHandle_PointerPressed(object? sender, PointerPressedEventArgs e)
@@ -269,24 +366,28 @@ public sealed partial class EditorView : UserControl
         _resizePanel.ZIndex = 0;
         _resizePanel = null;
         e.Pointer.Capture(null);
+        PersistPanelsLayout();
     }
 
     private void HideParametersPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         ParametersPanel.IsVisible = false;
         ParametersResizeHandle.IsVisible = false;
+        PersistPanelsLayout();
     }
 
     private void HideVisualizationPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         VisualizationPanel.IsVisible = false;
         VisualizationResizeHandle.IsVisible = false;
+        PersistPanelsLayout();
     }
 
     private void HideSelectedPointPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         SelectedPointPanel.IsVisible = false;
         SelectedPointResizeHandle.IsVisible = false;
+        PersistPanelsLayout();
     }
 
     private void ShowParametersPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -295,6 +396,7 @@ public sealed partial class EditorView : UserControl
         ParametersResizeHandle.IsVisible = ParametersPanel.IsVisible;
         if (ParametersPanel.IsVisible)
             UpdateResizeHandleFor(ParametersPanel);
+        PersistPanelsLayout();
     }
 
     private void ShowVisualizationPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -303,6 +405,7 @@ public sealed partial class EditorView : UserControl
         VisualizationResizeHandle.IsVisible = VisualizationPanel.IsVisible;
         if (VisualizationPanel.IsVisible)
             UpdateResizeHandleFor(VisualizationPanel);
+        PersistPanelsLayout();
     }
 
     private void ShowSelectedPointPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -311,10 +414,18 @@ public sealed partial class EditorView : UserControl
         SelectedPointResizeHandle.IsVisible = SelectedPointPanel.IsVisible;
         if (SelectedPointPanel.IsVisible)
             UpdateResizeHandleFor(SelectedPointPanel);
+        PersistPanelsLayout();
     }
 
     private void ResetPanels_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
+        ParametersPanel.Width = 390;
+        ParametersPanel.Height = 210;
+        VisualizationPanel.Width = 520;
+        VisualizationPanel.Height = 360;
+        SelectedPointPanel.Width = 430;
+        SelectedPointPanel.Height = 280;
+
         ParametersPanel.IsVisible = true;
         VisualizationPanel.IsVisible = true;
         SelectedPointPanel.IsVisible = true;
@@ -323,8 +434,82 @@ public sealed partial class EditorView : UserControl
         VisualizationResizeHandle.IsVisible = true;
         SelectedPointResizeHandle.IsVisible = true;
 
-        _panelsInitialized = false;
-        InitializePanelsLayout();
+        ApplyDefaultPanelsLayout();
+        UpdateResizeHandlePositions();
+        PersistPanelsLayout();
+    }
+
+    private bool HasUsableCanvasSize()
+    {
+        var canvasWidth = GetCanvasWidth();
+        var canvasHeight = GetCanvasHeight();
+        return canvasWidth > 0 && canvasHeight > 0;
+    }
+
+    private void PersistPanelsLayout(bool force = true)
+    {
+        if (_vm is null)
+            return;
+
+        if (!force && !HasUsableCanvasSize())
+            return;
+
+        _vm.AppSettings.EditorPanels.Parameters = ToLayout(ParametersPanel, _vm.AppSettings.EditorPanels.Parameters);
+        _vm.AppSettings.EditorPanels.Visualization = ToLayout(VisualizationPanel, _vm.AppSettings.EditorPanels.Visualization);
+        _vm.AppSettings.EditorPanels.SelectedPoint = ToLayout(SelectedPointPanel, _vm.AppSettings.EditorPanels.SelectedPoint);
+        _vm.SaveAppSettings();
+    }
+
+    private static PanelPlacementSettings ToLayout(Border panel, PanelPlacementSettings previous)
+    {
+        var width = panel.Bounds.Width > 0 ? panel.Bounds.Width : panel.Width;
+        var height = panel.Bounds.Height > 0 ? panel.Bounds.Height : panel.Height;
+
+        var left = Canvas.GetLeft(panel);
+        var top = Canvas.GetTop(panel);
+
+        return new PanelPlacementSettings
+        {
+            Left = IsFinite(left) ? left : previous.Left,
+            Top = IsFinite(top) ? top : previous.Top,
+            Width = IsFinite(width) && width > 0 ? width : (previous.Width > 0 ? previous.Width : panel.MinWidth),
+            Height = IsFinite(height) && height > 0 ? height : (previous.Height > 0 ? previous.Height : panel.MinHeight),
+            IsVisible = panel.IsVisible
+        };
+    }
+
+    private static bool HasValidLayout(PanelPlacementSettings? layout)
+    {
+        if (layout is null)
+            return false;
+
+        return IsFinite(layout.Left) &&
+               IsFinite(layout.Top) &&
+               IsFinite(layout.Width) &&
+               IsFinite(layout.Height) &&
+               layout.Width > 0 &&
+               layout.Height > 0;
+    }
+
+    private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
+
+    private double GetCanvasWidth() => PanelsCanvas.Bounds.Width > 0 ? PanelsCanvas.Bounds.Width : Bounds.Width;
+
+    private double GetCanvasHeight() => PanelsCanvas.Bounds.Height > 0 ? PanelsCanvas.Bounds.Height : Bounds.Height;
+
+    private void ClampPanelToCanvas(Border panel)
+    {
+        if (!HasUsableCanvasSize())
+            return;
+
+        var maxLeft = Math.Max(0, GetCanvasWidth() - panel.Width);
+        var maxTop = Math.Max(0, GetCanvasHeight() - panel.Height);
+
+        var left = Canvas.GetLeft(panel);
+        var top = Canvas.GetTop(panel);
+
+        Canvas.SetLeft(panel, Math.Clamp(IsFinite(left) ? left : 0, 0, maxLeft));
+        Canvas.SetTop(panel, Math.Clamp(IsFinite(top) ? top : 0, 0, maxTop));
     }
 
     private void UpdateResizeHandlePositions()

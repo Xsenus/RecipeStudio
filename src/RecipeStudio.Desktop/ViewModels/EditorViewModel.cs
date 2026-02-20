@@ -67,6 +67,8 @@ public sealed class EditorViewModel : ViewModelBase
 
     public AppSettings AppSettings => _settings.Settings;
 
+    public void SaveAppSettings() => _settings.Save();
+
 
     public RecipeDocument? Document
     {
