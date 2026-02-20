@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
@@ -59,6 +60,7 @@ public sealed partial class EditorView : UserControl
             _vm.RequestImportExcel -= OnRequestImportExcel;
             _vm.RequestExportExcel -= OnRequestExportExcel;
             _vm.RequestShowCharts -= OnRequestShowCharts;
+            _vm.PropertyChanged -= OnVmPropertyChanged;
         }
 
         _vm = DataContext as EditorViewModel;
@@ -67,6 +69,18 @@ public sealed partial class EditorView : UserControl
             _vm.RequestImportExcel += OnRequestImportExcel;
             _vm.RequestExportExcel += OnRequestExportExcel;
             _vm.RequestShowCharts += OnRequestShowCharts;
+            _vm.PropertyChanged += OnVmPropertyChanged;
+        }
+    }
+
+    private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_vm is null)
+            return;
+
+        if (e.PropertyName == nameof(EditorViewModel.HasDocument) && !_vm.HasDocument)
+        {
+            PersistPanelsLayout();
         }
     }
 
