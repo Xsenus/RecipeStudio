@@ -12,10 +12,25 @@ public sealed partial class ImportRecipeDialog : Window
 
     public string RecipeName => RecipeNameBox.Text?.Trim() ?? "";
 
-    public ImportRecipeDialog(RecipeImportPreview preview, bool allowRename, string title)
+    public ImportRecipeDialog()
     {
         InitializeComponent();
 
+        if (Design.IsDesignMode)
+        {
+            TitleBlock.Text = "Импорт рецепта";
+            StatusBlock.Text = "Проверка файла завершена";
+            FileBlock.Text = "Файл: sample.xlsx";
+            PointsBlock.Text = "Точек найдено: 120";
+            DiagnosticsBlock.Text = "Ошибок не найдено";
+            NamePanel.IsVisible = true;
+            RecipeNameBox.Text = "Демо рецепт";
+        }
+    }
+
+    public ImportRecipeDialog(RecipeImportPreview preview, bool allowRename, string title)
+        : this()
+    {
         _allowRename = allowRename;
         _isSuccessful = preview.IsSuccess && !preview.HasBlockingIssues;
 

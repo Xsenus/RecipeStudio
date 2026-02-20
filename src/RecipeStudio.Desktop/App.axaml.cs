@@ -1,6 +1,6 @@
-using System;
 using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using RecipeStudio.Desktop.Services;
@@ -18,8 +18,13 @@ public sealed partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        var loggerRoot = ResolveAppRoot();
-        var logger = new AppLogger(loggerRoot);
+        if (Design.IsDesignMode)
+        {
+            base.OnFrameworkInitializationCompleted();
+            return;
+        }
+
+        var logger = new AppLogger();
         logger.Info("Запуск приложения.");
 
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
@@ -55,26 +60,5 @@ public sealed partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
-    }
-
-    private static string ResolveAppRoot()
-    {
-        try
-        {
-            if (!string.IsNullOrWhiteSpace(Environment.ProcessPath))
-            {
-                var processDir = System.IO.Path.GetDirectoryName(Environment.ProcessPath);
-                if (!string.IsNullOrWhiteSpace(processDir))
-                {
-                    return processDir;
-                }
-            }
-        }
-        catch
-        {
-            // ignored
-        }
-
-        return AppContext.BaseDirectory;
     }
 }

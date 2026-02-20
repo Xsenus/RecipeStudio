@@ -9,12 +9,16 @@ namespace RecipeStudio.Desktop.Views.Dialogs;
 
 public sealed partial class RecipeAnalysisDialog : Window
 {
-    public RecipeAnalysisDialog(IList<RecipePoint> points)
+    public RecipeAnalysisDialog()
     {
         InitializeComponent();
-
-        Chart.Points = points;
         SetChartType(AnalysisChartType.Speeds);
+    }
+
+    public RecipeAnalysisDialog(IList<RecipePoint> points)
+        : this()
+    {
+        Chart.Points = points;
     }
 
     private void Header_PointerPressed(object? sender, PointerPressedEventArgs e)

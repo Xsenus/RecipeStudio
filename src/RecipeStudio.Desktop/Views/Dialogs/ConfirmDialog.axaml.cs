@@ -6,9 +6,22 @@ namespace RecipeStudio.Desktop.Views.Dialogs;
 
 public sealed partial class ConfirmDialog : Window
 {
-    public ConfirmDialog(string title, string message, string confirmText = "OK", string cancelText = "Отмена")
+    public ConfirmDialog()
     {
         InitializeComponent();
+
+        if (Design.IsDesignMode)
+        {
+            TitleBlock.Text = "Подтверждение";
+            MessageBlock.Text = "Вы уверены, что хотите продолжить?";
+            ConfirmButton.Content = "OK";
+            CancelButton.Content = "Отмена";
+        }
+    }
+
+    public ConfirmDialog(string title, string message, string confirmText = "OK", string cancelText = "Отмена")
+        : this()
+    {
         TitleBlock.Text = title;
         MessageBlock.Text = message;
         ConfirmButton.Content = confirmText;
