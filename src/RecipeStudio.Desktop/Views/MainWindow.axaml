@@ -50,7 +50,7 @@
             <Button Command="{Binding NavigateDashboardCommand}" Classes="nav" Classes.nav-active="{Binding IsDashboardActive}">ДАШБОРД</Button>
             <Button Command="{Binding NavigateEditorCommand}" Classes="nav" Classes.nav-active="{Binding IsEditorActive}" IsVisible="{Binding CanAccessRecipePages}">РЕДАКТОР</Button>
             <Button Command="{Binding NavigateSimulationCommand}" Classes="nav" Classes.nav-active="{Binding IsSimulationActive}" IsVisible="{Binding CanAccessRecipePages}">СИМУЛЯЦИЯ</Button>
-            <Button Command="{Binding NavigateSettingsCommand}" Classes="nav" Classes.nav-active="{Binding IsSettingsActive}" IsVisible="{Binding CanAccessRecipePages}">НАСТРОЙКИ</Button>
+            <Button Command="{Binding NavigateSettingsCommand}" Classes="nav" Classes.nav-active="{Binding IsSettingsActive}">НАСТРОЙКИ</Button>
           </StackPanel>
         </ScrollViewer>
 

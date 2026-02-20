@@ -37,6 +37,8 @@ public sealed partial class EditorView : UserControl
                 }
             };
         };
+
+        DetachedFromVisualTree += (_, __) => PersistPanelsLayout();
     }
 
     private EditorViewModel? _vm;
@@ -198,7 +200,10 @@ public sealed partial class EditorView : UserControl
     }
 
     private Point ParametersPanelDefaultPosition(Border panel)
-        => new(PanelMargin, PanelMargin);
+    {
+        var canvasHeight = GetCanvasHeight();
+        return new(PanelMargin, Math.Max(PanelMargin, canvasHeight - panel.Height - PanelMargin));
+    }
 
     private Point VisualizationPanelDefaultPosition(Border panel)
     {
@@ -208,8 +213,11 @@ public sealed partial class EditorView : UserControl
 
     private Point SelectedPointPanelDefaultPosition(Border panel)
     {
+        var canvasWidth = GetCanvasWidth();
         var canvasHeight = GetCanvasHeight();
-        return new(PanelMargin, Math.Max(PanelMargin, canvasHeight - panel.Height - PanelMargin));
+        return new(
+            Math.Max(PanelMargin, canvasWidth - panel.Width - PanelMargin),
+            Math.Max(PanelMargin, canvasHeight - panel.Height - PanelMargin));
     }
 
     private void Panel_PointerPressed(object? sender, PointerPressedEventArgs e)

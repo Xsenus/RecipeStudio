@@ -33,7 +33,7 @@ public sealed class MainViewModel : ViewModelBase
         NavigateDashboardCommand = new RelayCommand(NavigateToDashboard);
         NavigateEditorCommand = new RelayCommand(() => CurrentPage = Editor, () => CanAccessRecipePages);
         NavigateSimulationCommand = new RelayCommand(() => CurrentPage = Simulation, () => CanAccessRecipePages);
-        NavigateSettingsCommand = new RelayCommand(() => CurrentPage = Settings);
+        NavigateSettingsCommand = new RelayCommand(NavigateToSettings);
     }
 
     public DashboardViewModel Dashboard { get; }
@@ -89,6 +89,13 @@ public sealed class MainViewModel : ViewModelBase
         CurrentPage = Dashboard;
     }
 
+
+
+    private void NavigateToSettings()
+    {
+        Editor.CloseDocument();
+        CurrentPage = Settings;
+    }
 
     private bool CreateSampleRecipeFromSettings()
     {
