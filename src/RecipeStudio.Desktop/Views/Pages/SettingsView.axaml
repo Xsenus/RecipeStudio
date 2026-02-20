@@ -80,6 +80,10 @@
                   🗁
                 </Button>
               </Grid>
+
+              <CheckBox IsChecked="{Binding AutoCreateSampleRecipeOnEmpty}" Margin="0,8,0,0" ToolTip.Tip="Если база рецептов пуста при старте, автоматически создать образец H340_KAMA_1">Автоматически создавать образец рецепта при пустой базе</CheckBox>
+
+              <Button Command="{Binding CreateSampleRecipeCommand}" Classes="ghost" HorizontalAlignment="Left" Margin="0,6,0,0" ToolTip.Tip="Создать образец рецепта H340_KAMA_1 вручную">Создать образец рецепта</Button>
             </StackPanel>
           </Border>
 

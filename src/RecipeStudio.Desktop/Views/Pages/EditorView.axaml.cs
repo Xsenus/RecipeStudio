@@ -80,15 +80,15 @@ public sealed partial class EditorView : UserControl
 
         var files = await sp.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Импорт рецепта из Excel",
+            Title = "Импорт точек из Excel/CSV",
             AllowMultiple = false,
             FileTypeFilter = new[]
             {
-                new FilePickerFileType("Excel")
+                new FilePickerFileType("Excel/CSV")
                 {
-                    Patterns = new[] { "*.xlsx" },
-                    AppleUniformTypeIdentifiers = new[] { "org.openxmlformats.spreadsheetml.sheet" },
-                    MimeTypes = new[] { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }
+                    Patterns = new[] { "*.xlsx", "*.csv", "*.tsv" },
+                    AppleUniformTypeIdentifiers = new[] { "org.openxmlformats.spreadsheetml.sheet", "public.comma-separated-values-text", "public.tab-separated-values-text" },
+                    MimeTypes = new[] { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/csv", "text/tab-separated-values" }
                 }
             }
         });
@@ -99,7 +99,17 @@ public sealed partial class EditorView : UserControl
         var path = file.Path.LocalPath;
         if (string.IsNullOrWhiteSpace(path)) return;
 
-        _vm.ImportFromExcel(path);
+        var preview = _vm.PreviewImport(path);
+
+        var owner = TopLevel.GetTopLevel(this) as Window;
+        if (owner is null) return;
+
+        var dialog = new ImportRecipeDialog(preview, allowRename: false, title: "Импорт точек в текущий рецепт");
+        var confirmed = await dialog.ShowDialog<bool>(owner);
+        if (confirmed)
+        {
+            _vm.ApplyImportedPreview(preview);
+        }
     }
 
     private async void OnRequestExportExcel()

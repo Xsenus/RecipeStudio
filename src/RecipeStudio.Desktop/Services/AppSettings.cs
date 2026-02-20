@@ -3,6 +3,7 @@ namespace RecipeStudio.Desktop.Services;
 public sealed class AppSettings
 {
     public string RecipesFolder { get; set; } = "";
+    public bool AutoCreateSampleRecipeOnEmpty { get; set; } = false;
 
     // Constants from CONST sheet (default values from the provided workbook)
     public double HZone { get; set; } = 1200;

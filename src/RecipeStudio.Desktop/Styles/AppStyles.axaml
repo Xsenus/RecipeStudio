@@ -154,6 +154,11 @@
     <Setter Property="Background" Value="#151C2A" />
   </Style>
 
+  <Style Selector="Border.recipe-card.imported-highlight">
+    <Setter Property="BorderBrush" Value="#3B82F6" />
+    <Setter Property="Background" Value="#1B2538" />
+  </Style>
+
 
   <Style Selector="TextBox.value-box">
     <Setter Property="TextAlignment" Value="Center" />

@@ -1,5 +1,10 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
+using Avalonia.Threading;
+
+using RecipeStudio.Desktop.Models;
 using RecipeStudio.Desktop.Services;
 
 namespace RecipeStudio.Desktop.ViewModels;
@@ -12,18 +17,24 @@ public sealed class DashboardViewModel : ViewModelBase
     public ObservableCollection<RecipeCardViewModel> Recipes { get; } = new();
     public ObservableCollection<object> DashboardTiles { get; } = new();
 
+    private readonly RecipeImportService _importService;
+
     public RelayCommand RefreshCommand { get; }
     public RelayCommand NewRecipeCommand { get; }
+    public RelayCommand ImportRecipeCommand { get; }
 
     public event Action? RequestCreateRecipe;
+    public event Action? RequestImportRecipe;
 
-    public DashboardViewModel(RecipeRepository repo, Action<long> openRecipe)
+    public DashboardViewModel(RecipeRepository repo, RecipeImportService importService, Action<long> openRecipe)
     {
         _repo = repo;
+        _importService = importService;
         _openRecipe = openRecipe;
 
         RefreshCommand = new RelayCommand(Refresh);
         NewRecipeCommand = new RelayCommand(() => RequestCreateRecipe?.Invoke());
+        ImportRecipeCommand = new RelayCommand(() => RequestImportRecipe?.Invoke());
 
         Refresh();
     }
@@ -50,6 +61,45 @@ public sealed class DashboardViewModel : ViewModelBase
         Refresh();
     }
 
+    public RecipeImportPreview PreviewImport(string path)
+    {
+        return _importService.Preview(path);
+    }
+
+    public bool SaveImportedRecipe(RecipeImportPreview preview, string recipeName)
+    {
+        if (!preview.IsSuccess || preview.HasBlockingIssues || preview.Document is null)
+        {
+            return false;
+        }
+
+        var finalName = recipeName.Trim();
+        if (string.IsNullOrWhiteSpace(finalName))
+        {
+            return false;
+        }
+
+        preview.Document.RecipeCode = finalName;
+
+        var id = _repo.Create(preview.Document);
+        Refresh();
+        HighlightImportedRecipe(id);
+        return true;
+    }
+
+    private async void HighlightImportedRecipe(long id)
+    {
+        var card = Recipes.FirstOrDefault(x => x.Id == id);
+        if (card is null)
+        {
+            return;
+        }
+
+        card.IsImportHighlighted = true;
+        await Task.Delay(4000);
+        await Dispatcher.UIThread.InvokeAsync(() => card.IsImportHighlighted = false);
+    }
+
     public void CreateNewRecipe(string recipeCode)
     {
         var code = recipeCode.Trim();
@@ -58,8 +108,13 @@ public sealed class DashboardViewModel : ViewModelBase
             return;
         }
 
-        var doc = RecipeDocumentFactory.CreateStarter(code);
-        doc.RecipeCode = code;
+        var doc = new RecipeDocument
+        {
+            RecipeCode = code,
+            ContainerPresent = true,
+            DClampForm = 800,
+            DClampCont = 1600
+        };
         var id = _repo.Create(doc);
 
         Refresh();
@@ -70,6 +125,7 @@ public sealed class DashboardViewModel : ViewModelBase
 public sealed class RecipeCardViewModel : ViewModelBase
 {
     private readonly Action<long> _openRecipe;
+    private bool _isImportHighlighted;
 
     public long Id { get; }
     public string Name { get; }
@@ -77,6 +133,12 @@ public sealed class RecipeCardViewModel : ViewModelBase
     public int PointCount { get; }
 
     public RelayCommand OpenCommand { get; }
+
+    public bool IsImportHighlighted
+    {
+        get => _isImportHighlighted;
+        set => SetProperty(ref _isImportHighlighted, value);
+    }
 
     public RecipeCardViewModel(RecipeInfo info, Action<long> openRecipe)
     {

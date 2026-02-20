@@ -15,18 +15,24 @@ public sealed class SettingsViewModel : ViewModelBase
 
     private readonly SettingsService _settings;
     private readonly Action _onChanged;
+    private readonly Func<bool> _createSampleRecipe;
 
     private string _selectedSection = SectionStorage;
 
-    public SettingsViewModel(SettingsService settings, Action onChanged)
+    public SettingsViewModel(SettingsService settings, Action onChanged, Func<bool> createSampleRecipe)
     {
         _settings = settings;
         _onChanged = onChanged;
+        _createSampleRecipe = createSampleRecipe;
 
         SaveCommand = new RelayCommand(Save);
+        CreateSampleRecipeCommand = new RelayCommand(() => RequestCreateSampleRecipe?.Invoke());
     }
 
     public RelayCommand SaveCommand { get; }
+    public RelayCommand CreateSampleRecipeCommand { get; }
+
+    public event Action? RequestCreateSampleRecipe;
 
     public string SelectedSection
     {
@@ -75,6 +81,16 @@ public sealed class SettingsViewModel : ViewModelBase
     public string SettingsFilePath => _settings.SettingsPath;
     public string DatabaseFilePath => Path.Combine(_settings.Settings.RecipesFolder, "recipes.sqlite");
 
+
+    public bool AutoCreateSampleRecipeOnEmpty
+    {
+        get => _settings.Settings.AutoCreateSampleRecipeOnEmpty;
+        set
+        {
+            _settings.Settings.AutoCreateSampleRecipeOnEmpty = value;
+            RaisePropertyChanged();
+        }
+    }
     // Machine / constants
     public double HZone { get => _settings.Settings.HZone; set { _settings.Settings.HZone = value; RaisePropertyChanged(); } }
     public double HContMax { get => _settings.Settings.HContMax; set { _settings.Settings.HContMax = value; RaisePropertyChanged(); } }
@@ -179,6 +195,11 @@ public sealed class SettingsViewModel : ViewModelBase
         LogSeverity.Error => "Error: пишутся только ошибки.",
         _ => "Info: пишутся все сообщения (инфо, предупреждения и ошибки)."
     };
+
+    public bool CreateSampleRecipe()
+    {
+        return _createSampleRecipe();
+    }
 
     private void Save()
     {

@@ -8,11 +8,14 @@ using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform.Storage;
 using RecipeStudio.Desktop.ViewModels;
+using RecipeStudio.Desktop.Views.Dialogs;
 
 namespace RecipeStudio.Desktop.Views.Pages;
 
 public sealed partial class SettingsView : UserControl
 {
+    private SettingsViewModel? _vm;
+
     public SettingsView()
     {
         AvaloniaXamlLoader.Load(this);
@@ -22,6 +25,51 @@ public sealed partial class SettingsView : UserControl
 
         var logsFolderBox = this.FindControl<TextBox>("LogsFolderTextBox");
         logsFolderBox?.AddHandler(InputElement.PointerPressedEvent, LogsFolder_PointerPressed, RoutingStrategies.Tunnel, true);
+
+        DataContextChanged += OnDataContextChanged;
+    }
+
+
+    private void OnDataContextChanged(object? sender, EventArgs e)
+    {
+        if (_vm is not null)
+        {
+            _vm.RequestCreateSampleRecipe -= OnRequestCreateSampleRecipe;
+        }
+
+        _vm = DataContext as SettingsViewModel;
+        if (_vm is not null)
+        {
+            _vm.RequestCreateSampleRecipe += OnRequestCreateSampleRecipe;
+        }
+    }
+
+    private async void OnRequestCreateSampleRecipe()
+    {
+        if (_vm is null)
+            return;
+
+        var owner = TopLevel.GetTopLevel(this) as Window;
+        if (owner is null)
+            return;
+
+        var confirm = new ConfirmDialog(
+            "Создание образца",
+            "Создать образец рецепта H340_KAMA_1?",
+            "Создать",
+            "Отмена");
+
+        var confirmed = await confirm.ShowDialog<bool>(owner);
+        if (!confirmed)
+            return;
+
+        var created = _vm.CreateSampleRecipe();
+        var info = new InfoDialog(
+            created ? "Готово" : "Ошибка",
+            created ? "Образец рецепта успешно создан." : "Не удалось создать образец рецепта.",
+            "Закрыть");
+
+        await info.ShowDialog(owner);
     }
 
     private async void BrowseFolder_Click(object? sender, RoutedEventArgs e)

@@ -1,0 +1,50 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="RecipeStudio.Desktop.Views.Dialogs.ImportRecipeDialog"
+        Width="780"
+        Height="560"
+        MinWidth="700"
+        MinHeight="560"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        SystemDecorations="None"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Title="Импорт рецепта">
+
+  <Border Classes="modal-surface" BorderBrush="#2C3850" BorderThickness="1">
+    <Grid RowDefinitions="Auto,*,Auto">
+      <Border Classes="modal-header" PointerPressed="Header_PointerPressed">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock x:Name="TitleBlock" Text="Импорт рецепта" Classes="modal-title" />
+          <Button Grid.Column="1" Classes="window-btn" Click="Close_Click">✕</Button>
+        </Grid>
+      </Border>
+
+      <Grid Grid.Row="1" Margin="20" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="10">
+        <TextBlock x:Name="StatusBlock" FontSize="18" FontWeight="SemiBold" Grid.Row="0" />
+        <TextBlock x:Name="FileBlock" Classes="muted" Grid.Row="1" />
+        <TextBlock x:Name="PointsBlock" Classes="muted" Grid.Row="2" />
+
+        <Border Grid.Row="3" BorderBrush="#2A3142" BorderThickness="1" CornerRadius="8" Background="#111827" Padding="12" MinHeight="90">
+          <Grid RowDefinitions="Auto,*" RowSpacing="8">
+            <TextBlock x:Name="DiagnosticsHeader" Text="Диагностика" FontWeight="SemiBold" />
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+              <TextBlock x:Name="DiagnosticsBlock" TextWrapping="Wrap" Classes="muted" />
+            </ScrollViewer>
+          </Grid>
+        </Border>
+
+        <StackPanel x:Name="NamePanel" Grid.Row="4" Spacing="6" IsVisible="False">
+          <TextBlock Text="Наименование рецепта" Classes="muted" />
+          <TextBox x:Name="RecipeNameBox" Classes="modal-input" Watermark="Введите название" TextChanged="RecipeNameBox_TextChanged" />
+        </StackPanel>
+      </Grid>
+
+      <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="20,0,20,20">
+        <Button x:Name="ConfirmButton" Classes="accent" Width="180" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="Confirm_Click">Сохранить</Button>
+        <Button x:Name="CancelButton" Classes="ghost" Width="140" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="Cancel_Click">Закрыть</Button>
+      </StackPanel>
+    </Grid>
+  </Border>
+</Window>

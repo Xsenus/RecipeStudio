@@ -9,6 +9,8 @@ public sealed class MainViewModel : ViewModelBase
     private readonly SettingsService _settings;
     private readonly RecipeRepository _repo;
     private readonly RecipeExcelService _excel;
+    private readonly RecipeTsvSerializer _tsv;
+    private readonly RecipeImportService _importService;
 
     private ViewModelBase _currentPage;
 
@@ -17,12 +19,14 @@ public sealed class MainViewModel : ViewModelBase
         _settings = settings;
         _repo = repo;
         _excel = excel;
+        _tsv = new RecipeTsvSerializer();
+        _importService = new RecipeImportService(_excel, _tsv);
 
-        Dashboard = new DashboardViewModel(_repo, OpenInEditor);
-        Editor = new EditorViewModel(_settings, _repo, _excel, NavigateToDashboard);
+        Dashboard = new DashboardViewModel(_repo, _importService, OpenInEditor);
+        Editor = new EditorViewModel(_settings, _repo, _excel, _importService, NavigateToDashboard);
         Editor.PropertyChanged += OnEditorPropertyChanged;
         Simulation = new SimulationViewModel();
-        Settings = new SettingsViewModel(_settings, OnSettingsChanged);
+        Settings = new SettingsViewModel(_settings, OnSettingsChanged, CreateSampleRecipeFromSettings);
 
         _currentPage = Dashboard;
 
@@ -83,6 +87,18 @@ public sealed class MainViewModel : ViewModelBase
         Editor.CloseDocument();
         Dashboard.Refresh();
         CurrentPage = Dashboard;
+    }
+
+
+    private bool CreateSampleRecipeFromSettings()
+    {
+        var created = _repo.CreateSampleRecipe();
+        if (created)
+        {
+            Dashboard.Refresh();
+        }
+
+        return created;
     }
 
     private void OnSettingsChanged()
