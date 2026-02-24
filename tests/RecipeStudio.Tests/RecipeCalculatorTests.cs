@@ -7,7 +7,7 @@ namespace RecipeStudio.Tests;
 public sealed class RecipeCalculatorTests
 {
     [Fact]
-    public void Recalculate_AppliesManipulatorBaseOffsets_ToRobotCoordinates()
+    public void Recalculate_DoesNotApplyManipulatorBaseOffsets_ToRobotCoordinates()
     {
         var point = new RecipePoint
         {
@@ -45,8 +45,8 @@ public sealed class RecipeCalculatorTests
         Assert.Equal(a.DY, b.DY);
         Assert.Equal(a.DZ, b.DZ);
 
-        Assert.Equal(settingsB.Xm - settingsA.Xm, b.Xr0 - a.Xr0);
-        Assert.Equal(settingsB.Ym - settingsA.Ym, b.Yx0 - a.Yx0);
-        Assert.Equal(settingsB.Zm - settingsA.Zm, b.Zr0 - a.Zr0);
+        Assert.Equal(a.Xr0, b.Xr0);
+        Assert.Equal(a.Yx0, b.Yx0);
+        Assert.Equal(a.Zr0, b.Zr0);
     }
 }
