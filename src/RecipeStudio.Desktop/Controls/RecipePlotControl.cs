@@ -22,6 +22,9 @@ public sealed class RecipePlotControl : Control
     public static readonly StyledProperty<RecipePoint?> SelectedPointProperty =
         AvaloniaProperty.Register<RecipePlotControl, RecipePoint?>(nameof(SelectedPoint), defaultBindingMode: Avalonia.Data.BindingMode.TwoWay);
 
+    public static readonly StyledProperty<IList<RecipePoint>?> AnimationPointsProperty =
+        AvaloniaProperty.Register<RecipePlotControl, IList<RecipePoint>?>(nameof(AnimationPoints));
+
     public static readonly StyledProperty<double> ProgressProperty =
         AvaloniaProperty.Register<RecipePlotControl, double>(nameof(Progress));
 
@@ -33,6 +36,9 @@ public sealed class RecipePlotControl : Control
 
     public static readonly StyledProperty<bool> ShowPairLinksProperty =
         AvaloniaProperty.Register<RecipePlotControl, bool>(nameof(ShowPairLinks), false);
+
+    public static readonly StyledProperty<bool> ShowGridProperty =
+        AvaloniaProperty.Register<RecipePlotControl, bool>(nameof(ShowGrid), true);
 
     private INotifyCollectionChanged? _collectionChanged;
     private readonly Dictionary<RecipePoint, PropertyChangedEventHandler> _pointHandlers = new();
@@ -56,6 +62,12 @@ public sealed class RecipePlotControl : Control
     {
         get => GetValue(SelectedPointProperty);
         set => SetValue(SelectedPointProperty, value);
+    }
+
+    public IList<RecipePoint>? AnimationPoints
+    {
+        get => GetValue(AnimationPointsProperty);
+        set => SetValue(AnimationPointsProperty, value);
     }
 
     /// <summary>
@@ -85,6 +97,12 @@ public sealed class RecipePlotControl : Control
         set => SetValue(ShowPairLinksProperty, value);
     }
 
+    public bool ShowGrid
+    {
+        get => GetValue(ShowGridProperty);
+        set => SetValue(ShowGridProperty, value);
+    }
+
     static RecipePlotControl()
     {
         // Avoid relying on GetObservable/AffectsRender helpers (can vary between Avalonia versions).
@@ -93,10 +111,12 @@ public sealed class RecipePlotControl : Control
             c.OnPointsChanged((IList<RecipePoint>?)e.NewValue));
 
         SelectedPointProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
+        AnimationPointsProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         ProgressProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         SettingsProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         ShowLegendProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         ShowPairLinksProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
+        ShowGridProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
     }
 
     public RecipePlotControl()
@@ -211,7 +231,7 @@ public sealed class RecipePlotControl : Control
             return;
         }
 
-        // Collect world points
+        // Collect world points (full profile for drawing)
         var target = new List<Point>();
         var tool = new List<Point>();
         foreach (var p in points)
@@ -221,6 +241,20 @@ public sealed class RecipePlotControl : Control
 
             var toolPoint = GetToolPointForPlot(p, settings);
             tool.Add(toolPoint);
+        }
+
+        // Separate set for animation (usually working cleaning points only).
+        var animSrc = AnimationPoints is { Count: > 0 } ? AnimationPoints : points;
+        var animTarget = new List<Point>();
+        var animTool = new List<Point>();
+        foreach (var p in animSrc)
+        {
+            var (xp, zp) = p.GetTargetPoint(settings.HZone);
+            animTarget.Add(new Point(xp, zp));
+
+            var xr = p.Xr0 + p.DX;
+            var zr = p.Zr0 + p.DZ;
+            animTool.Add(new Point(xr, zr));
         }
 
         // Determine bounds including clamp rectangles
@@ -277,7 +311,8 @@ public sealed class RecipePlotControl : Control
         }
 
         // Grid
-        DrawGrid(context);
+        if (ShowGrid)
+            DrawGrid(context);
 
         // Clamp rectangles (visual reference)
         DrawClamp(context, halfClamp, settings.HContMax, hFreeZ, settings.HZone);
@@ -319,9 +354,9 @@ public sealed class RecipePlotControl : Control
         DrawPoints(context, points, settings, settings.HZone);
         DrawRobotPoints(context, points, settings);
 
-        // Tool marker
-        var toolPos = GetToolPosition(tool, Progress);
-        DrawToolMarker(context, toolPos);
+        // Tool marker rendered as a smooth nozzle link Target->Robot.
+        var toolState = GetToolState(animTool, animTarget, Progress);
+        DrawToolMarker(context, toolState.ToolPosition, toolState.TargetPosition, toolState.Direction);
 
         // Legend
         if (ShowLegend)
@@ -482,18 +517,39 @@ public sealed class RecipePlotControl : Control
         }
     }
 
-    private static Point GetToolPointForPlot(RecipePoint p, AppSettings settings)
+    private void DrawToolMarker(DrawingContext ctx, Point toolWorld, Point targetWorld, Point direction)
     {
-        var xr = p.Xr0 + p.DX - settings.Xm;
-        var zr = p.Zr0 + p.DZ - settings.Zm;
-        return new Point(xr, zr);
-    }
+        var toolSp = WorldToScreen(toolWorld);
+        var targetSp = WorldToScreen(targetWorld);
 
-    private void DrawToolMarker(DrawingContext ctx, Point world)
-    {
-        var sp = WorldToScreen(world);
-        var brush = new SolidColorBrush(ParseColorOrDefault((Settings ?? new AppSettings()).PlotColorTool, Color.FromRgb(239, 68, 68)));
-        ctx.DrawEllipse(brush, null, sp, 5, 5);
+        var toolColor = ParseColorOrDefault((Settings ?? new AppSettings()).PlotColorTool, Color.FromRgb(239, 68, 68));
+        var linkPen = new Pen(new SolidColorBrush(Color.FromArgb(230, toolColor.R, toolColor.G, toolColor.B)), 7);
+        ctx.DrawLine(linkPen, targetSp, toolSp);
+
+        // Base joint on robot side
+        ctx.DrawEllipse(new SolidColorBrush(Color.FromRgb(10, 16, 30)), new Pen(new SolidColorBrush(toolColor), 2), toolSp, 6, 6);
+
+        // Tip at cleaning target side
+        ctx.DrawEllipse(new SolidColorBrush(toolColor), new Pen(Brushes.White, 1.2), targetSp, 4.2, 4.2);
+
+        // Tiny direction arrow to emphasize smooth rotation
+        var len = Math.Sqrt(direction.X * direction.X + direction.Y * direction.Y);
+        var dir = len <= 1e-6 ? new Point(1, 0) : new Point(direction.X / len, direction.Y / len);
+        var perp = new Point(-dir.Y, dir.X);
+        var tip = new Point(targetSp.X + dir.X * 10, targetSp.Y + dir.Y * 10);
+        var left = new Point(targetSp.X - dir.X * 3 + perp.X * 3, targetSp.Y - dir.Y * 3 + perp.Y * 3);
+        var right = new Point(targetSp.X - dir.X * 3 - perp.X * 3, targetSp.Y - dir.Y * 3 - perp.Y * 3);
+
+        var g = new StreamGeometry();
+        using (var gc = g.Open())
+        {
+            gc.BeginFigure(tip, true);
+            gc.LineTo(left);
+            gc.LineTo(right);
+            gc.EndFigure(true);
+        }
+
+        ctx.DrawGeometry(new SolidColorBrush(Color.FromArgb(230, toolColor.R, toolColor.G, toolColor.B)), null, g);
     }
 
     private void DrawLegend(DrawingContext ctx)
@@ -547,10 +603,10 @@ public sealed class RecipePlotControl : Control
         return new Point(x, y);
     }
 
-    private static Point GetToolPosition(IList<Point> tool, double progress)
+    private static (Point ToolPosition, Point TargetPosition, Point Direction) GetToolState(IList<Point> tool, IList<Point> targetPts, double progress)
     {
-        if (tool.Count == 0) return default;
-        if (tool.Count == 1) return tool[0];
+        if (tool.Count == 0 || targetPts.Count == 0) return (default, default, new Point(1, 0));
+        if (tool.Count == 1 || targetPts.Count == 1) return (tool[0], targetPts[0], new Point(1, 0));
 
         progress = Math.Clamp(progress, 0, 1);
 
@@ -566,24 +622,29 @@ public sealed class RecipePlotControl : Control
             total += d;
         }
 
-        if (total <= 1e-9) return tool[0];
+        if (total <= 1e-9)
+            return (tool[0], targetPts[0], new Point(tool[^1].X - tool[0].X, tool[^1].Y - tool[0].Y));
 
-        var target = total * progress;
+        var targetLen = total * progress;
         double acc = 0;
         for (var i = 0; i < seg.Length; i++)
         {
             var next = acc + seg[i];
-            if (target <= next)
+            if (targetLen <= next)
             {
-                var t = (target - acc) / Math.Max(1e-9, seg[i]);
+                var t = (targetLen - acc) / Math.Max(1e-9, seg[i]);
                 var x = tool[i].X + (tool[i + 1].X - tool[i].X) * t;
                 var y = tool[i].Y + (tool[i + 1].Y - tool[i].Y) * t;
-                return new Point(x, y);
+                var tx = targetPts[i].X + (targetPts[i + 1].X - targetPts[i].X) * t;
+                var ty = targetPts[i].Y + (targetPts[i + 1].Y - targetPts[i].Y) * t;
+                var dir = new Point(tx - x, ty - y);
+                return (new Point(x, y), new Point(tx, ty), dir);
             }
             acc = next;
         }
 
-        return tool[^1];
+        var fallbackDir = new Point(targetPts[^1].X - tool[^1].X, targetPts[^1].Y - tool[^1].Y);
+        return (tool[^1], targetPts[^1], fallbackDir);
     }
 
     private void DrawCenteredText(DrawingContext ctx, string text, Rect bounds)
