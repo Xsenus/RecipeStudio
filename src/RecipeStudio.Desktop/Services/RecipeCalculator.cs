@@ -97,13 +97,17 @@ public static class RecipeCalculator
             var xp = p.Place == 0 ? r0 : -r0;
             var zp = p.Place == 0 ? z0 : settings.HZone - z0;
 
-            var xr0 = Round1(settings.Xm + (r0 - ln1));
-            var yx0 = Round1(settings.Ym);
-            var zr0 = Round1(settings.Zm + z0);
+            // NOTE:
+            // Xr0/Yx0/Zr0 and (Xr,Yx,Zr) are expected in the same local frame as Excel CALC/SAVE.
+            // Manipulator base constants (Xm/Ym/Zm) are station reference constants, but should not
+            // shift these plotted/exported local coordinates.
+            var xr0 = Round1(r0 - ln1);
+            var yx0 = 0;
+            var zr0 = Round1(z0);
 
-            var xr = Round1(settings.Xm + (xp - cosB * cosA * ln1));
-            var yx = Round1(settings.Ym + (-sinB * ln1));
-            var zr = Round1(settings.Zm + (zp + cosB * sinA * ln1));
+            var xr = Round1(xp - cosB * cosA * ln1);
+            var yx = Round1(-sinB * ln1);
+            var zr = Round1(zp + cosB * sinA * ln1);
 
             var dx = Round1(xr - xr0);
             var dy = Round1(yx - yx0);
