@@ -219,9 +219,8 @@ public sealed class RecipePlotControl : Control
             var (xp, zp) = p.GetTargetPoint(settings.HZone);
             target.Add(new Point(xp, zp));
 
-            var xr = p.Xr0 + p.DX;
-            var zr = p.Zr0 + p.DZ;
-            tool.Add(new Point(xr, zr));
+            var toolPoint = GetToolPointForPlot(p, settings);
+            tool.Add(toolPoint);
         }
 
         // Determine bounds including clamp rectangles
@@ -457,9 +456,8 @@ public sealed class RecipePlotControl : Control
 
         foreach (var p in points)
         {
-            var xr = p.Xr0 + p.DX;
-            var zr = p.Zr0 + p.DZ;
-            var sp = WorldToScreen(new Point(xr, zr));
+            var toolPoint = GetToolPointForPlot(p, settings);
+            var sp = WorldToScreen(toolPoint);
             ctx.DrawEllipse(brush, outline, sp, r, r);
         }
     }
@@ -479,10 +477,16 @@ public sealed class RecipePlotControl : Control
         foreach (var p in points.Where(x => !x.Safe))
         {
             var (xp, zp) = p.GetTargetPoint(hZone);
-            var xr = p.Xr0 + p.DX;
-            var zr = p.Zr0 + p.DZ;
-            ctx.DrawLine(pen, WorldToScreen(new Point(xp, zp)), WorldToScreen(new Point(xr, zr)));
+            var toolPoint = GetToolPointForPlot(p, Settings ?? new AppSettings());
+            ctx.DrawLine(pen, WorldToScreen(new Point(xp, zp)), WorldToScreen(toolPoint));
         }
+    }
+
+    private static Point GetToolPointForPlot(RecipePoint p, AppSettings settings)
+    {
+        var xr = p.Xr0 + p.DX - settings.Xm;
+        var zr = p.Zr0 + p.DZ - settings.Zm;
+        return new Point(xr, zr);
     }
 
     private void DrawToolMarker(DrawingContext ctx, Point world)
