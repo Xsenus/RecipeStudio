@@ -1,0 +1,32 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="RecipeStudio.Desktop.Views.Dialogs.ColorPickerDialog"
+        Width="420" Height="360"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Title="Выбор цвета">
+  <Border BorderBrush="#2A3142" BorderThickness="1" Background="#0F1420" Padding="14">
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto" ColumnDefinitions="Auto,*">
+      <TextBlock Grid.ColumnSpan="2" Text="Выбор цвета" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,12" />
+
+      <TextBlock Grid.Row="1" Text="HEX" VerticalAlignment="Center" />
+      <TextBox x:Name="HexBox" Grid.Row="1" Grid.Column="1" Margin="10,0,0,0" />
+
+      <TextBlock Grid.Row="2" Text="R" VerticalAlignment="Center" Margin="0,10,0,0" />
+      <Slider x:Name="RSlider" Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="255" Margin="10,10,0,0" />
+
+      <TextBlock Grid.Row="3" Text="G" VerticalAlignment="Center" Margin="0,10,0,0" />
+      <Slider x:Name="GSlider" Grid.Row="3" Grid.Column="1" Minimum="0" Maximum="255" Margin="10,10,0,0" />
+
+      <TextBlock Grid.Row="4" Text="B" VerticalAlignment="Center" Margin="0,10,0,0" />
+      <Slider x:Name="BSlider" Grid.Row="4" Grid.Column="1" Minimum="0" Maximum="255" Margin="10,10,0,0" />
+
+      <Border x:Name="PreviewBorder" Grid.Row="5" Grid.ColumnSpan="2" Margin="0,14,0,0" Height="56" CornerRadius="8" BorderBrush="#374151" BorderThickness="1" />
+
+      <StackPanel Grid.Row="6" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,16,0,0">
+        <Button Classes="ghost" Click="Cancel_Click">Отмена</Button>
+        <Button Classes="accent" Click="Ok_Click">ОК</Button>
+      </StackPanel>
+    </Grid>
+  </Border>
+</Window>

@@ -167,6 +167,51 @@ public sealed partial class SettingsView : UserControl
     }
 
 
+
+    private async void ColorPicker_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_vm is null || sender is not Button { Tag: string key })
+            return;
+
+        string current = key switch
+        {
+            nameof(SettingsViewModel.PlotColorWorkingZone) => _vm.PlotColorWorkingZone,
+            nameof(SettingsViewModel.PlotColorSafetyZone) => _vm.PlotColorSafetyZone,
+            nameof(SettingsViewModel.PlotColorRobotPath) => _vm.PlotColorRobotPath,
+            nameof(SettingsViewModel.PlotColorPairLinks) => _vm.PlotColorPairLinks,
+            nameof(SettingsViewModel.PlotColorTool) => _vm.PlotColorTool,
+            _ => "#22C55E"
+        };
+
+        var owner = TopLevel.GetTopLevel(this) as Window;
+        if (owner is null)
+            return;
+
+        var dlg = new ColorPickerDialog(current);
+        var result = await dlg.ShowDialog<bool>(owner);
+        if (!result)
+            return;
+
+        switch (key)
+        {
+            case nameof(SettingsViewModel.PlotColorWorkingZone):
+                _vm.PlotColorWorkingZone = dlg.SelectedHex;
+                break;
+            case nameof(SettingsViewModel.PlotColorSafetyZone):
+                _vm.PlotColorSafetyZone = dlg.SelectedHex;
+                break;
+            case nameof(SettingsViewModel.PlotColorRobotPath):
+                _vm.PlotColorRobotPath = dlg.SelectedHex;
+                break;
+            case nameof(SettingsViewModel.PlotColorPairLinks):
+                _vm.PlotColorPairLinks = dlg.SelectedHex;
+                break;
+            case nameof(SettingsViewModel.PlotColorTool):
+                _vm.PlotColorTool = dlg.SelectedHex;
+                break;
+        }
+    }
+
     private void ColorPreset_Click(object? sender, RoutedEventArgs e)
     {
         if (_vm is null || sender is not Button { Tag: string tag })

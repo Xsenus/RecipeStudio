@@ -191,11 +191,12 @@
                   <TextBlock Text="Цвета графика" FontSize="15" FontWeight="SemiBold" />
                   <TextBlock Text="Можно вводить HEX вручную или выбирать пресеты кнопками справа." Classes="muted tiny" />
 
-                  <Grid ColumnDefinitions="180,*,34,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" Margin="0,4,0,0">
+                  <Grid ColumnDefinitions="180,*,34,Auto,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" Margin="0,4,0,0">
                     <TextBlock Text="Рабочая зона" VerticalAlignment="Center" Margin="0,0,0,10" />
                     <TextBox Grid.Column="1" Classes="value-box" Text="{Binding PlotColorWorkingZone}" Margin="10,0,0,10" />
                     <Border Grid.Column="2" Margin="8,2,0,12" CornerRadius="4" BorderBrush="#4B5563" BorderThickness="1" Background="{Binding PlotColorWorkingZone}" />
-                    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4" Margin="10,0,0,10">
+                    <Button Grid.Column="3" Width="30" Height="24" Margin="8,0,0,10" Classes="ghost" Content="🎨" Tag="PlotColorWorkingZone" Click="ColorPicker_Click" ToolTip.Tip="Выбрать любой цвет" />
+                    <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4" Margin="10,0,0,10">
                       <Button Width="24" Height="24" Background="#22C55E" Tag="PlotColorWorkingZone:#22C55E" Click="ColorPreset_Click" ToolTip.Tip="Зеленый" />
                       <Button Width="24" Height="24" Background="#3B82F6" Tag="PlotColorWorkingZone:#3B82F6" Click="ColorPreset_Click" ToolTip.Tip="Синий" />
                       <Button Width="24" Height="24" Background="#A855F7" Tag="PlotColorWorkingZone:#A855F7" Click="ColorPreset_Click" ToolTip.Tip="Фиолетовый" />
@@ -204,7 +205,8 @@
                     <TextBlock Grid.Row="1" Text="Safe-зона" VerticalAlignment="Center" Margin="0,0,0,10" />
                     <TextBox Grid.Row="1" Grid.Column="1" Classes="value-box" Text="{Binding PlotColorSafetyZone}" Margin="10,0,0,10" />
                     <Border Grid.Row="1" Grid.Column="2" Margin="8,2,0,12" CornerRadius="4" BorderBrush="#4B5563" BorderThickness="1" Background="{Binding PlotColorSafetyZone}" />
-                    <StackPanel Grid.Row="1" Grid.Column="3" Orientation="Horizontal" Spacing="4" Margin="10,0,0,10">
+                    <Button Grid.Row="1" Grid.Column="3" Width="30" Height="24" Margin="8,0,0,10" Classes="ghost" Content="🎨" Tag="PlotColorSafetyZone" Click="ColorPicker_Click" ToolTip.Tip="Выбрать любой цвет" />
+                    <StackPanel Grid.Row="1" Grid.Column="4" Orientation="Horizontal" Spacing="4" Margin="10,0,0,10">
                       <Button Width="24" Height="24" Background="#9CA3AF" Tag="PlotColorSafetyZone:#9CA3AF" Click="ColorPreset_Click" ToolTip.Tip="Серый" />
                       <Button Width="24" Height="24" Background="#6B7280" Tag="PlotColorSafetyZone:#6B7280" Click="ColorPreset_Click" ToolTip.Tip="Тёмно-серый" />
                       <Button Width="24" Height="24" Background="#CBD5E1" Tag="PlotColorSafetyZone:#CBD5E1" Click="ColorPreset_Click" ToolTip.Tip="Светло-серый" />
@@ -213,7 +215,8 @@
                     <TextBlock Grid.Row="2" Text="Робот/траектория" VerticalAlignment="Center" Margin="0,0,0,10" />
                     <TextBox Grid.Row="2" Grid.Column="1" Classes="value-box" Text="{Binding PlotColorRobotPath}" Margin="10,0,0,10" />
                     <Border Grid.Row="2" Grid.Column="2" Margin="8,2,0,12" CornerRadius="4" BorderBrush="#4B5563" BorderThickness="1" Background="{Binding PlotColorRobotPath}" />
-                    <StackPanel Grid.Row="2" Grid.Column="3" Orientation="Horizontal" Spacing="4" Margin="10,0,0,10">
+                    <Button Grid.Row="2" Grid.Column="3" Width="30" Height="24" Margin="8,0,0,10" Classes="ghost" Content="🎨" Tag="PlotColorRobotPath" Click="ColorPicker_Click" ToolTip.Tip="Выбрать любой цвет" />
+                    <StackPanel Grid.Row="2" Grid.Column="4" Orientation="Horizontal" Spacing="4" Margin="10,0,0,10">
                       <Button Width="24" Height="24" Background="#F59E0B" Tag="PlotColorRobotPath:#F59E0B" Click="ColorPreset_Click" ToolTip.Tip="Оранжевый" />
                       <Button Width="24" Height="24" Background="#EAB308" Tag="PlotColorRobotPath:#EAB308" Click="ColorPreset_Click" ToolTip.Tip="Жёлтый" />
                       <Button Width="24" Height="24" Background="#F97316" Tag="PlotColorRobotPath:#F97316" Click="ColorPreset_Click" ToolTip.Tip="Ярко-оранжевый" />
@@ -222,7 +225,8 @@
                     <TextBlock Grid.Row="3" Text="Связи" VerticalAlignment="Center" Margin="0,0,0,10" />
                     <TextBox Grid.Row="3" Grid.Column="1" Classes="value-box" Text="{Binding PlotColorPairLinks}" Margin="10,0,0,10" />
                     <Border Grid.Row="3" Grid.Column="2" Margin="8,2,0,12" CornerRadius="4" BorderBrush="#4B5563" BorderThickness="1" Background="{Binding PlotColorPairLinks}" />
-                    <StackPanel Grid.Row="3" Grid.Column="3" Orientation="Horizontal" Spacing="4" Margin="10,0,0,10">
+                    <Button Grid.Row="3" Grid.Column="3" Width="30" Height="24" Margin="8,0,0,10" Classes="ghost" Content="🎨" Tag="PlotColorPairLinks" Click="ColorPicker_Click" ToolTip.Tip="Выбрать любой цвет" />
+                    <StackPanel Grid.Row="3" Grid.Column="4" Orientation="Horizontal" Spacing="4" Margin="10,0,0,10">
                       <Button Width="24" Height="24" Background="#FB923C" Tag="PlotColorPairLinks:#FB923C" Click="ColorPreset_Click" ToolTip.Tip="Оранжевый" />
                       <Button Width="24" Height="24" Background="#F43F5E" Tag="PlotColorPairLinks:#F43F5E" Click="ColorPreset_Click" ToolTip.Tip="Розовый" />
                       <Button Width="24" Height="24" Background="#14B8A6" Tag="PlotColorPairLinks:#14B8A6" Click="ColorPreset_Click" ToolTip.Tip="Бирюзовый" />
@@ -231,7 +235,8 @@
                     <TextBlock Grid.Row="4" Text="Инструмент" VerticalAlignment="Center" />
                     <TextBox Grid.Row="4" Grid.Column="1" Classes="value-box" Text="{Binding PlotColorTool}" Margin="10,0,0,0" />
                     <Border Grid.Row="4" Grid.Column="2" Margin="8,2,0,2" CornerRadius="4" BorderBrush="#4B5563" BorderThickness="1" Background="{Binding PlotColorTool}" />
-                    <StackPanel Grid.Row="4" Grid.Column="3" Orientation="Horizontal" Spacing="4" Margin="10,0,0,0">
+                    <Button Grid.Row="4" Grid.Column="3" Width="30" Height="24" Margin="8,0,0,0" Classes="ghost" Content="🎨" Tag="PlotColorTool" Click="ColorPicker_Click" ToolTip.Tip="Выбрать любой цвет" />
+                    <StackPanel Grid.Row="4" Grid.Column="4" Orientation="Horizontal" Spacing="4" Margin="10,0,0,0">
                       <Button Width="24" Height="24" Background="#EF4444" Tag="PlotColorTool:#EF4444" Click="ColorPreset_Click" ToolTip.Tip="Красный" />
                       <Button Width="24" Height="24" Background="#DC2626" Tag="PlotColorTool:#DC2626" Click="ColorPreset_Click" ToolTip.Tip="Тёмно-красный" />
                       <Button Width="24" Height="24" Background="#F472B6" Tag="PlotColorTool:#F472B6" Click="ColorPreset_Click" ToolTip.Tip="Розовый" />
