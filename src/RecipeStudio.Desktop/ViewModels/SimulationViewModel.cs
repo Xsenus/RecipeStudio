@@ -37,10 +37,10 @@ public sealed class SimulationViewModel : ViewModelBase
         _editor.Points.CollectionChanged += OnEditorPointsChanged;
         HookPointHandlers(_editor.Points);
 
-        PlayPauseCommand = new RelayCommand(TogglePlay, () => _editor.HasDocument && GetSimulationPoints().Count > 1);
+        PlayPauseCommand = new RelayCommand(TogglePlay, () => _editor.HasDocument && GetAnimationPoints().Count > 1);
         StopCommand = new RelayCommand(Stop, () => _editor.HasDocument);
-        StepPreviousCommand = new RelayCommand(StepPrevious, () => _editor.HasDocument && GetSimulationPoints().Count > 1);
-        StepNextCommand = new RelayCommand(StepNext, () => _editor.HasDocument && GetSimulationPoints().Count > 1);
+        StepPreviousCommand = new RelayCommand(StepPrevious, () => _editor.HasDocument && GetAnimationPoints().Count > 1);
+        StepNextCommand = new RelayCommand(StepNext, () => _editor.HasDocument && GetAnimationPoints().Count > 1);
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
         _timer.Tick += (_, __) => Tick();
@@ -48,7 +48,8 @@ public sealed class SimulationViewModel : ViewModelBase
         RecalculateTimeline();
     }
 
-    public IList<RecipePoint> PointsForSimulation => GetSimulationPoints();
+    public IList<RecipePoint> PointsForPlot => _editor.Points.ToList();
+    public IList<RecipePoint> PointsForAnimation => GetAnimationPoints();
     public AppSettings AppSettings => _editor.AppSettings;
     public string RecipePath => _editor.FilePath;
 
@@ -88,7 +89,7 @@ public sealed class SimulationViewModel : ViewModelBase
     }
 
     public int CurrentStepIndex => FindCurrentStep();
-    public int TotalSteps => Math.Max(0, GetSimulationPoints().Count - 1);
+    public int TotalSteps => Math.Max(0, GetAnimationPoints().Count - 1);
 
     public double ToolR => Math.Round(Math.Sqrt(_toolPosition.X * _toolPosition.X + _toolPosition.Y * _toolPosition.Y), 1);
     public double ToolZ => Math.Round(_toolPosition.Z, 1);
@@ -115,7 +116,7 @@ public sealed class SimulationViewModel : ViewModelBase
 
     private void TogglePlay()
     {
-        if (GetSimulationPoints().Count < 2)
+        if (GetAnimationPoints().Count < 2)
             return;
 
         if (IsPlaying)
@@ -189,7 +190,7 @@ public sealed class SimulationViewModel : ViewModelBase
 
     private void RecalculateTimeline()
     {
-        var points = GetSimulationPoints();
+        var points = GetAnimationPoints();
 
         _totalDurationSec = 0;
         _stepTimes.Clear();
@@ -199,7 +200,8 @@ public sealed class SimulationViewModel : ViewModelBase
         {
             UpdateFromElapsed();
             RaiseCommandsState();
-            RaisePropertyChanged(nameof(PointsForSimulation));
+            RaisePropertyChanged(nameof(PointsForAnimation));
+            RaisePropertyChanged(nameof(PointsForPlot));
             return;
         }
 
@@ -217,7 +219,8 @@ public sealed class SimulationViewModel : ViewModelBase
         _elapsedSec = Math.Min(_elapsedSec, _totalDurationSec);
         UpdateFromElapsed();
         RaiseCommandsState();
-        RaisePropertyChanged(nameof(PointsForSimulation));
+        RaisePropertyChanged(nameof(PointsForAnimation));
+        RaisePropertyChanged(nameof(PointsForPlot));
     }
 
     private void RaiseCommandsState()
@@ -230,7 +233,7 @@ public sealed class SimulationViewModel : ViewModelBase
 
     private void UpdateFromElapsed()
     {
-        var points = GetSimulationPoints();
+        var points = GetAnimationPoints();
 
         if (points.Count == 0)
         {
@@ -315,10 +318,19 @@ public sealed class SimulationViewModel : ViewModelBase
         RaisePropertyChanged(nameof(TotalSteps));
     }
 
-    private IList<RecipePoint> GetSimulationPoints()
+    private IList<RecipePoint> GetAnimationPoints()
     {
+        // Cleaning animation should move only along working points.
+        var working = _editor.Points.Where(p => p.Act && !p.Safe).ToList();
+        if (working.Count >= 2)
+            return working;
+
+        // Fallbacks for incomplete recipes.
         var active = _editor.Points.Where(p => p.Act).ToList();
-        return active.Count >= 2 ? active : _editor.Points.ToList();
+        if (active.Count >= 2)
+            return active;
+
+        return _editor.Points.ToList();
     }
 
     private static Point3D GetRobotPosition(RecipePoint p)

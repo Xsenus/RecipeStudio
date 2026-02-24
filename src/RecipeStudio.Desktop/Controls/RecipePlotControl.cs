@@ -22,6 +22,9 @@ public sealed class RecipePlotControl : Control
     public static readonly StyledProperty<RecipePoint?> SelectedPointProperty =
         AvaloniaProperty.Register<RecipePlotControl, RecipePoint?>(nameof(SelectedPoint), defaultBindingMode: Avalonia.Data.BindingMode.TwoWay);
 
+    public static readonly StyledProperty<IList<RecipePoint>?> AnimationPointsProperty =
+        AvaloniaProperty.Register<RecipePlotControl, IList<RecipePoint>?>(nameof(AnimationPoints));
+
     public static readonly StyledProperty<double> ProgressProperty =
         AvaloniaProperty.Register<RecipePlotControl, double>(nameof(Progress));
 
@@ -59,6 +62,12 @@ public sealed class RecipePlotControl : Control
     {
         get => GetValue(SelectedPointProperty);
         set => SetValue(SelectedPointProperty, value);
+    }
+
+    public IList<RecipePoint>? AnimationPoints
+    {
+        get => GetValue(AnimationPointsProperty);
+        set => SetValue(AnimationPointsProperty, value);
     }
 
     /// <summary>
@@ -102,6 +111,7 @@ public sealed class RecipePlotControl : Control
             c.OnPointsChanged((IList<RecipePoint>?)e.NewValue));
 
         SelectedPointProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
+        AnimationPointsProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         ProgressProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         SettingsProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         ShowLegendProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
@@ -221,7 +231,7 @@ public sealed class RecipePlotControl : Control
             return;
         }
 
-        // Collect world points
+        // Collect world points (full profile for drawing)
         var target = new List<Point>();
         var tool = new List<Point>();
         foreach (var p in points)
@@ -232,6 +242,20 @@ public sealed class RecipePlotControl : Control
             var xr = p.Xr0 + p.DX;
             var zr = p.Zr0 + p.DZ;
             tool.Add(new Point(xr, zr));
+        }
+
+        // Separate set for animation (usually working cleaning points only).
+        var animSrc = AnimationPoints is { Count: > 0 } ? AnimationPoints : points;
+        var animTarget = new List<Point>();
+        var animTool = new List<Point>();
+        foreach (var p in animSrc)
+        {
+            var (xp, zp) = p.GetTargetPoint(settings.HZone);
+            animTarget.Add(new Point(xp, zp));
+
+            var xr = p.Xr0 + p.DX;
+            var zr = p.Zr0 + p.DZ;
+            animTool.Add(new Point(xr, zr));
         }
 
         // Determine bounds including clamp rectangles
@@ -332,7 +356,7 @@ public sealed class RecipePlotControl : Control
         DrawRobotPoints(context, points, settings);
 
         // Tool marker rendered as a smooth nozzle link Target->Robot.
-        var toolState = GetToolState(tool, target, Progress);
+        var toolState = GetToolState(animTool, animTarget, Progress);
         DrawToolMarker(context, toolState.ToolPosition, toolState.TargetPosition, toolState.Direction);
 
         // Legend
