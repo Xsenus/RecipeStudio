@@ -320,9 +320,9 @@ public sealed class RecipePlotControl : Control
         DrawPoints(context, points, settings, settings.HZone);
         DrawRobotPoints(context, points, settings);
 
-        // Tool marker
-        var toolPos = GetToolPosition(tool, Progress);
-        DrawToolMarker(context, toolPos);
+        // Tool marker (position + direction)
+        var toolState = GetToolState(tool, Progress);
+        DrawToolMarker(context, toolState.Position, toolState.Direction);
 
         // Legend
         if (ShowLegend)
@@ -485,11 +485,34 @@ public sealed class RecipePlotControl : Control
         }
     }
 
-    private void DrawToolMarker(DrawingContext ctx, Point world)
+    private void DrawToolMarker(DrawingContext ctx, Point world, Point direction)
     {
         var sp = WorldToScreen(world);
-        var brush = new SolidColorBrush(ParseColorOrDefault((Settings ?? new AppSettings()).PlotColorTool, Color.FromRgb(239, 68, 68)));
-        ctx.DrawEllipse(brush, null, sp, 5, 5);
+        var toolColor = ParseColorOrDefault((Settings ?? new AppSettings()).PlotColorTool, Color.FromRgb(239, 68, 68));
+        var brush = new SolidColorBrush(toolColor);
+
+        // Core position
+        ctx.DrawEllipse(brush, new Pen(Brushes.White, 1.2), sp, 6, 6);
+
+        // Nozzle axis (shows where the nozzle is looking)
+        var len = Math.Sqrt(direction.X * direction.X + direction.Y * direction.Y);
+        var dir = len <= 1e-6 ? new Point(1, 0) : new Point(direction.X / len, direction.Y / len);
+        var perp = new Point(-dir.Y, dir.X);
+
+        var tip = new Point(sp.X + dir.X * 22, sp.Y + dir.Y * 22);
+        var baseLeft = new Point(sp.X + perp.X * 5, sp.Y + perp.Y * 5);
+        var baseRight = new Point(sp.X - perp.X * 5, sp.Y - perp.Y * 5);
+
+        var geom = new StreamGeometry();
+        using (var g = geom.Open())
+        {
+            g.BeginFigure(tip, true);
+            g.LineTo(baseLeft);
+            g.LineTo(baseRight);
+            g.EndFigure(true);
+        }
+
+        ctx.DrawGeometry(new SolidColorBrush(Color.FromArgb(200, toolColor.R, toolColor.G, toolColor.B)), new Pen(Brushes.White, 1), geom);
     }
 
     private void DrawLegend(DrawingContext ctx)
@@ -543,10 +566,10 @@ public sealed class RecipePlotControl : Control
         return new Point(x, y);
     }
 
-    private static Point GetToolPosition(IList<Point> tool, double progress)
+    private static (Point Position, Point Direction) GetToolState(IList<Point> tool, double progress)
     {
-        if (tool.Count == 0) return default;
-        if (tool.Count == 1) return tool[0];
+        if (tool.Count == 0) return (default, new Point(1, 0));
+        if (tool.Count == 1) return (tool[0], new Point(1, 0));
 
         progress = Math.Clamp(progress, 0, 1);
 
@@ -562,7 +585,8 @@ public sealed class RecipePlotControl : Control
             total += d;
         }
 
-        if (total <= 1e-9) return tool[0];
+        if (total <= 1e-9)
+            return (tool[0], new Point(tool[^1].X - tool[0].X, tool[^1].Y - tool[0].Y));
 
         var target = total * progress;
         double acc = 0;
@@ -574,12 +598,14 @@ public sealed class RecipePlotControl : Control
                 var t = (target - acc) / Math.Max(1e-9, seg[i]);
                 var x = tool[i].X + (tool[i + 1].X - tool[i].X) * t;
                 var y = tool[i].Y + (tool[i + 1].Y - tool[i].Y) * t;
-                return new Point(x, y);
+                var dir = new Point(tool[i + 1].X - tool[i].X, tool[i + 1].Y - tool[i].Y);
+                return (new Point(x, y), dir);
             }
             acc = next;
         }
 
-        return tool[^1];
+        var fallbackDir = new Point(tool[^1].X - tool[^2].X, tool[^1].Y - tool[^2].Y);
+        return (tool[^1], fallbackDir);
     }
 
     private void DrawCenteredText(DrawingContext ctx, string text, Rect bounds)

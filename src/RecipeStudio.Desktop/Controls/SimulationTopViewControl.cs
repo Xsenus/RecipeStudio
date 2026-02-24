@@ -50,14 +50,20 @@ public sealed class SimulationTopViewControl : Control
         var world = points.Select(p => new Point(p.Xr0 + p.DX, p.Yx0 + p.DY)).ToList();
         Fit(world);
 
-        var pen = new Pen(new SolidColorBrush(Color.FromRgb(76, 180, 255)), 1.6);
-        DrawPolyline(context, world, pen);
+        var pathPen = new Pen(new SolidColorBrush(Color.FromRgb(76, 180, 255)), 1.6);
+        DrawPolyline(context, world, pathPen);
 
         foreach (var wp in world)
             context.DrawEllipse(new SolidColorBrush(Color.FromRgb(34, 197, 94)), null, WorldToScreen(wp), 2.5, 2.5);
 
-        var tool = Interpolate(world, Progress);
-        context.DrawEllipse(new SolidColorBrush(Color.FromRgb(239, 68, 68)), null, WorldToScreen(tool), 5, 5);
+        var state = Interpolate(world, Progress);
+
+        // passed trajectory highlight for readability
+        var passed = world.Take(state.SegmentIndex + 1).ToList();
+        passed.Add(state.Position);
+        DrawPolyline(context, passed, new Pen(new SolidColorBrush(Color.FromRgb(34, 197, 94)), 2.2));
+
+        DrawNozzle(context, state.Position, state.Direction);
     }
 
     private void Fit(IList<Point> points)
@@ -93,10 +99,10 @@ public sealed class SimulationTopViewControl : Control
         ctx.DrawGeometry(null, pen, g);
     }
 
-    private static Point Interpolate(IList<Point> pts, double progress)
+    private static (Point Position, Point Direction, int SegmentIndex) Interpolate(IList<Point> pts, double progress)
     {
-        if (pts.Count == 0) return default;
-        if (pts.Count == 1) return pts[0];
+        if (pts.Count == 0) return (default, new Point(1, 0), 0);
+        if (pts.Count == 1) return (pts[0], new Point(1, 0), 0);
 
         progress = Math.Clamp(progress, 0, 1);
         var seg = new double[pts.Count - 1];
@@ -118,13 +124,39 @@ public sealed class SimulationTopViewControl : Control
             if (target <= next || i == seg.Length - 1)
             {
                 var t = seg[i] <= 1e-6 ? 1 : (target - acc) / seg[i];
-                return new Point(
-                    pts[i].X + (pts[i + 1].X - pts[i].X) * t,
-                    pts[i].Y + (pts[i + 1].Y - pts[i].Y) * t);
+                return (
+                    new Point(pts[i].X + (pts[i + 1].X - pts[i].X) * t, pts[i].Y + (pts[i + 1].Y - pts[i].Y) * t),
+                    new Point(pts[i + 1].X - pts[i].X, pts[i + 1].Y - pts[i].Y),
+                    i);
             }
             acc = next;
         }
 
-        return pts[^1];
+        return (pts[^1], new Point(pts[^1].X - pts[^2].X, pts[^1].Y - pts[^2].Y), pts.Count - 2);
+    }
+
+    private void DrawNozzle(DrawingContext ctx, Point worldPos, Point worldDir)
+    {
+        var p = WorldToScreen(worldPos);
+        var d = new Point(worldDir.X * _scale, -worldDir.Y * _scale);
+        var len = Math.Sqrt(d.X * d.X + d.Y * d.Y);
+        var dir = len <= 1e-6 ? new Point(1, 0) : new Point(d.X / len, d.Y / len);
+        var perp = new Point(-dir.Y, dir.X);
+
+        var tip = new Point(p.X + dir.X * 18, p.Y + dir.Y * 18);
+        var left = new Point(p.X + perp.X * 6, p.Y + perp.Y * 6);
+        var right = new Point(p.X - perp.X * 6, p.Y - perp.Y * 6);
+
+        var g = new StreamGeometry();
+        using (var gc = g.Open())
+        {
+            gc.BeginFigure(tip, true);
+            gc.LineTo(left);
+            gc.LineTo(right);
+            gc.EndFigure(true);
+        }
+
+        ctx.DrawGeometry(new SolidColorBrush(Color.FromRgb(248, 113, 113)), new Pen(Brushes.White, 1), g);
+        ctx.DrawEllipse(new SolidColorBrush(Color.FromRgb(239, 68, 68)), new Pen(Brushes.White, 1), p, 4.5, 4.5);
     }
 }
