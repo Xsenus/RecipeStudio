@@ -517,6 +517,13 @@ public sealed class RecipePlotControl : Control
         }
     }
 
+    private static Point GetToolPointForPlot(RecipePoint point, AppSettings _)
+    {
+        var xr = point.Xr0 + point.DX;
+        var zr = point.Zr0 + point.DZ;
+        return new Point(xr, zr);
+    }
+
     private void DrawToolMarker(DrawingContext ctx, Point toolWorld, Point targetWorld, Point direction)
     {
         var toolSp = WorldToScreen(toolWorld);
