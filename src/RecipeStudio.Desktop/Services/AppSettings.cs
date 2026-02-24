@@ -9,6 +9,7 @@ public sealed class AppSettings
     public double HZone { get; set; } = 1200;
     public double HContMax { get; set; } = 500;
     public double HBokMax { get; set; } = 100;
+    public double HFreeZ { get; set; } = 800;
 
     public double Xm { get; set; } = -2456;
     public double Ym { get; set; } = -1223;

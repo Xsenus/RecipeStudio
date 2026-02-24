@@ -26,10 +26,12 @@ public sealed class SettingsViewModel : ViewModelBase
         _createSampleRecipe = createSampleRecipe;
 
         SaveCommand = new RelayCommand(Save);
+        ResetToDefaultsCommand = new RelayCommand(ResetToDefaults);
         CreateSampleRecipeCommand = new RelayCommand(() => RequestCreateSampleRecipe?.Invoke());
     }
 
     public RelayCommand SaveCommand { get; }
+    public RelayCommand ResetToDefaultsCommand { get; }
     public RelayCommand CreateSampleRecipeCommand { get; }
 
     public event Action? RequestCreateSampleRecipe;
@@ -95,6 +97,7 @@ public sealed class SettingsViewModel : ViewModelBase
     public double HZone { get => _settings.Settings.HZone; set { _settings.Settings.HZone = value; RaisePropertyChanged(); } }
     public double HContMax { get => _settings.Settings.HContMax; set { _settings.Settings.HContMax = value; RaisePropertyChanged(); } }
     public double HBokMax { get => _settings.Settings.HBokMax; set { _settings.Settings.HBokMax = value; RaisePropertyChanged(); } }
+    public double HFreeZ { get => _settings.Settings.HFreeZ; set { _settings.Settings.HFreeZ = value; RaisePropertyChanged(); } }
     public double Xm { get => _settings.Settings.Xm; set { _settings.Settings.Xm = value; RaisePropertyChanged(); } }
     public double Ym { get => _settings.Settings.Ym; set { _settings.Settings.Ym = value; RaisePropertyChanged(); } }
     public double Zm { get => _settings.Settings.Zm; set { _settings.Settings.Zm = value; RaisePropertyChanged(); } }
@@ -214,5 +217,61 @@ public sealed class SettingsViewModel : ViewModelBase
         RaisePropertyChanged(nameof(SettingsFilePath));
         RaisePropertyChanged(nameof(DatabaseFilePath));
         RaisePropertyChanged(nameof(LogFilePath));
+    }
+
+    private void ResetToDefaults()
+    {
+        _settings.ResetToDefaults();
+        RaiseAllSettingsPropertiesChanged();
+        _settings.Save();
+        _onChanged();
+    }
+
+    private void RaiseAllSettingsPropertiesChanged()
+    {
+        RaisePropertyChanged(nameof(RecipesFolder));
+        RaisePropertyChanged(nameof(DatabaseFilePath));
+        RaisePropertyChanged(nameof(AutoCreateSampleRecipeOnEmpty));
+
+        RaisePropertyChanged(nameof(HZone));
+        RaisePropertyChanged(nameof(HContMax));
+        RaisePropertyChanged(nameof(HBokMax));
+        RaisePropertyChanged(nameof(HFreeZ));
+        RaisePropertyChanged(nameof(Xm));
+        RaisePropertyChanged(nameof(Ym));
+        RaisePropertyChanged(nameof(Zm));
+        RaisePropertyChanged(nameof(Lz));
+
+        RaisePropertyChanged(nameof(PulseX));
+        RaisePropertyChanged(nameof(PulseY));
+        RaisePropertyChanged(nameof(PulseZ));
+        RaisePropertyChanged(nameof(PulseA));
+        RaisePropertyChanged(nameof(PulseB));
+        RaisePropertyChanged(nameof(PulseTop));
+        RaisePropertyChanged(nameof(PulseLow));
+        RaisePropertyChanged(nameof(PulseClamp));
+
+        RaisePropertyChanged(nameof(PlotOpacity));
+        RaisePropertyChanged(nameof(PlotOpacityDisplay));
+        RaisePropertyChanged(nameof(PlotStrokeThickness));
+        RaisePropertyChanged(nameof(PlotPointRadius));
+        RaisePropertyChanged(nameof(PlotShowPolyline));
+        RaisePropertyChanged(nameof(PlotShowSmooth));
+        RaisePropertyChanged(nameof(PlotShowTargetPoints));
+        RaisePropertyChanged(nameof(PlotEnableDrag));
+        RaisePropertyChanged(nameof(PlotColorWorkingZone));
+        RaisePropertyChanged(nameof(PlotColorSafetyZone));
+        RaisePropertyChanged(nameof(PlotColorRobotPath));
+        RaisePropertyChanged(nameof(PlotColorPairLinks));
+        RaisePropertyChanged(nameof(PlotColorTool));
+        RaisePropertyChanged(nameof(SmoothSegmentsPerSpan));
+
+        RaisePropertyChanged(nameof(LoggingEnabled));
+        RaisePropertyChanged(nameof(LogRetentionDays));
+        RaisePropertyChanged(nameof(LogsFolder));
+        RaisePropertyChanged(nameof(LogMode));
+        RaisePropertyChanged(nameof(LogModeDescription));
+        RaisePropertyChanged(nameof(LogFilePath));
+        RaisePropertyChanged(nameof(SettingsFilePath));
     }
 }
