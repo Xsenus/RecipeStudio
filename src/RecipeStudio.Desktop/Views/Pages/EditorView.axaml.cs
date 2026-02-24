@@ -421,8 +421,8 @@ public sealed partial class EditorView : UserControl
     {
         ParametersPanel.Width = 390;
         ParametersPanel.Height = 210;
-        VisualizationPanel.Width = 520;
-        VisualizationPanel.Height = 360;
+        VisualizationPanel.Width = 760;
+        VisualizationPanel.Height = 520;
         SelectedPointPanel.Width = 430;
         SelectedPointPanel.Height = 280;
 

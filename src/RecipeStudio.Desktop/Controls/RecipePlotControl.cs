@@ -198,8 +198,8 @@ public sealed class RecipePlotControl : Control
 
         _worldBounds = new Rect(new Point(minX, minY), new Point(maxX, maxY)).Normalize();
 
-        // padding in pixels
-        _pad = 36;
+        // adaptive padding in pixels (keeps plot readable on smaller popups)
+        _pad = Math.Clamp(Math.Min(Bounds.Width, Bounds.Height) * 0.06, 16, 36);
 
         var w = Math.Max(1, Bounds.Width - 2 * _pad);
         var h = Math.Max(1, Bounds.Height - 2 * _pad);
@@ -435,15 +435,20 @@ public sealed class RecipePlotControl : Control
 
     private void DrawLegend(DrawingContext ctx)
     {
-        var x = 14;
-        var y = 14;
-        var lineH = 18;
+        var x = _pad + 4;
+        var y = _pad - 6;
+        var lineH = 16;
+
+        var entries = 5;
+        var legendHeight = entries * lineH + 8;
+        var legendWidth = 250;
+        ctx.FillRectangle(new SolidColorBrush(Color.FromArgb(110, 2, 6, 23)), new Rect(x - 8, y - 6, legendWidth, legendHeight));
 
         void Entry(Color c, string text)
         {
             ctx.FillRectangle(new SolidColorBrush(c), new Rect(x, y + 4, 10, 10));
             var ft = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-                new Typeface("Segoe UI"), 12, Brushes.White);
+                new Typeface("Segoe UI"), 11, Brushes.White);
             ctx.DrawText(ft, new Point(x + 16, y));
             y += lineH;
         }
