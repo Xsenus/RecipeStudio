@@ -29,7 +29,6 @@ public sealed class SimulationViewModel : ViewModelBase
     private bool _showGrid = true;
     private bool _showPairLinks = true;
 
-    // Extra factor to keep playback readable in UI (physical durations can be too long).
     private const double PlaybackScale = 4.0;
 
     public SimulationViewModel(EditorViewModel editor)
@@ -38,10 +37,10 @@ public sealed class SimulationViewModel : ViewModelBase
         _editor.Points.CollectionChanged += OnEditorPointsChanged;
         HookPointHandlers(_editor.Points);
 
-        PlayPauseCommand = new RelayCommand(TogglePlay, () => _editor.HasDocument && _editor.Points.Count > 1);
+        PlayPauseCommand = new RelayCommand(TogglePlay, () => _editor.HasDocument && GetSimulationPoints().Count > 1);
         StopCommand = new RelayCommand(Stop, () => _editor.HasDocument);
-        StepPreviousCommand = new RelayCommand(StepPrevious, () => _editor.HasDocument && _editor.Points.Count > 1);
-        StepNextCommand = new RelayCommand(StepNext, () => _editor.HasDocument && _editor.Points.Count > 1);
+        StepPreviousCommand = new RelayCommand(StepPrevious, () => _editor.HasDocument && GetSimulationPoints().Count > 1);
+        StepNextCommand = new RelayCommand(StepNext, () => _editor.HasDocument && GetSimulationPoints().Count > 1);
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
         _timer.Tick += (_, __) => Tick();
@@ -49,7 +48,7 @@ public sealed class SimulationViewModel : ViewModelBase
         RecalculateTimeline();
     }
 
-    public ObservableCollection<RecipePoint> Points => _editor.Points;
+    public IList<RecipePoint> PointsForSimulation => GetSimulationPoints();
     public AppSettings AppSettings => _editor.AppSettings;
     public string RecipePath => _editor.FilePath;
 
@@ -89,7 +88,7 @@ public sealed class SimulationViewModel : ViewModelBase
     }
 
     public int CurrentStepIndex => FindCurrentStep();
-    public int TotalSteps => Math.Max(0, Points.Count - 1);
+    public int TotalSteps => Math.Max(0, GetSimulationPoints().Count - 1);
 
     public double ToolR => Math.Round(Math.Sqrt(_toolPosition.X * _toolPosition.X + _toolPosition.Y * _toolPosition.Y), 1);
     public double ToolZ => Math.Round(_toolPosition.Z, 1);
@@ -116,7 +115,7 @@ public sealed class SimulationViewModel : ViewModelBase
 
     private void TogglePlay()
     {
-        if (Points.Count < 2)
+        if (GetSimulationPoints().Count < 2)
             return;
 
         if (IsPlaying)
@@ -190,23 +189,26 @@ public sealed class SimulationViewModel : ViewModelBase
 
     private void RecalculateTimeline()
     {
+        var points = GetSimulationPoints();
+
         _totalDurationSec = 0;
         _stepTimes.Clear();
         _stepTimes.Add(0);
 
-        if (Points.Count < 2)
+        if (points.Count < 2)
         {
             UpdateFromElapsed();
             RaiseCommandsState();
+            RaisePropertyChanged(nameof(PointsForSimulation));
             return;
         }
 
-        for (var i = 0; i < Points.Count - 1; i++)
+        for (var i = 0; i < points.Count - 1; i++)
         {
-            var a = GetRobotPosition(Points[i]);
-            var b = GetRobotPosition(Points[i + 1]);
+            var a = GetRobotPosition(points[i]);
+            var b = GetRobotPosition(points[i + 1]);
             var len = Distance(a, b);
-            var speedMmSec = Math.Max(1, Points[i].NozzleSpeedMmMin / 60.0);
+            var speedMmSec = Math.Max(1, points[i].NozzleSpeedMmMin / 60.0);
             var segDuration = len / speedMmSec / PlaybackScale;
             _totalDurationSec += segDuration;
             _stepTimes.Add(_totalDurationSec);
@@ -215,6 +217,7 @@ public sealed class SimulationViewModel : ViewModelBase
         _elapsedSec = Math.Min(_elapsedSec, _totalDurationSec);
         UpdateFromElapsed();
         RaiseCommandsState();
+        RaisePropertyChanged(nameof(PointsForSimulation));
     }
 
     private void RaiseCommandsState()
@@ -227,7 +230,9 @@ public sealed class SimulationViewModel : ViewModelBase
 
     private void UpdateFromElapsed()
     {
-        if (Points.Count == 0)
+        var points = GetSimulationPoints();
+
+        if (points.Count == 0)
         {
             _toolPosition = default;
             Progress = 0;
@@ -235,11 +240,11 @@ public sealed class SimulationViewModel : ViewModelBase
             return;
         }
 
-        if (Points.Count == 1 || _totalDurationSec <= 1e-6)
+        if (points.Count == 1 || _totalDurationSec <= 1e-6)
         {
-            _toolPosition = GetRobotPosition(Points[0]);
-            CurrentAlfa = Points[0].Alfa;
-            CurrentBetta = Points[0].Betta;
+            _toolPosition = GetRobotPosition(points[0]);
+            CurrentAlfa = points[0].Alfa;
+            CurrentBetta = points[0].Betta;
             Progress = 0;
             RaiseTelemetry();
             return;
@@ -249,22 +254,29 @@ public sealed class SimulationViewModel : ViewModelBase
         Progress = _totalDurationSec <= 0 ? 0 : t / _totalDurationSec;
 
         double acc = 0;
-        for (var i = 0; i < Points.Count - 1; i++)
+        for (var i = 0; i < points.Count - 1; i++)
         {
-            var a = GetRobotPosition(Points[i]);
-            var b = GetRobotPosition(Points[i + 1]);
+            var a = GetRobotPosition(points[i]);
+            var b = GetRobotPosition(points[i + 1]);
             var len = Distance(a, b);
-            var speedMmSec = Math.Max(1, Points[i].NozzleSpeedMmMin / 60.0);
+            var speedMmSec = Math.Max(1, points[i].NozzleSpeedMmMin / 60.0);
             var segDuration = len / speedMmSec / PlaybackScale;
             var next = acc + segDuration;
 
-            if (t <= next || i == Points.Count - 2)
+            if (t <= next || i == points.Count - 2)
             {
                 var local = segDuration <= 1e-9 ? 1 : (t - acc) / segDuration;
                 local = Math.Clamp(local, 0, 1);
                 _toolPosition = Lerp(a, b, local);
-                CurrentAlfa = Lerp(Points[i].Alfa, Points[i + 1].Alfa, local);
-                CurrentBetta = Lerp(Points[i].Betta, Points[i + 1].Betta, local);
+
+                // If user-defined angles are 0, derive current angles from movement vector for better telemetry continuity.
+                var rawAlfa = Lerp(points[i].Alfa, points[i + 1].Alfa, local);
+                var rawBetta = Lerp(points[i].Betta, points[i + 1].Betta, local);
+                var move = new Point3D(b.X - a.X, b.Y - a.Y, b.Z - a.Z);
+                var inferred = InferAngles(move);
+                CurrentAlfa = Math.Abs(rawAlfa) < 0.01 ? inferred.Alfa : rawAlfa;
+                CurrentBetta = Math.Abs(rawBetta) < 0.01 ? inferred.Betta : rawBetta;
+
                 RaiseTelemetry();
                 return;
             }
@@ -303,8 +315,22 @@ public sealed class SimulationViewModel : ViewModelBase
         RaisePropertyChanged(nameof(TotalSteps));
     }
 
+    private IList<RecipePoint> GetSimulationPoints()
+    {
+        var active = _editor.Points.Where(p => p.Act).ToList();
+        return active.Count >= 2 ? active : _editor.Points.ToList();
+    }
+
     private static Point3D GetRobotPosition(RecipePoint p)
         => new(p.Xr0 + p.DX, p.Yx0 + p.DY, p.Zr0 + p.DZ);
+
+    private static (double Alfa, double Betta) InferAngles(Point3D move)
+    {
+        var planar = Math.Sqrt(move.X * move.X + move.Y * move.Y);
+        var alfa = Math.Atan2(move.Z, Math.Max(1e-9, planar)) * 180.0 / Math.PI;
+        var betta = Math.Atan2(-move.Y, Math.Max(1e-9, Math.Abs(move.X))) * 180.0 / Math.PI;
+        return (Math.Round(alfa, 1), Math.Round(betta, 1));
+    }
 
     private static double Distance(Point3D a, Point3D b)
     {
@@ -341,7 +367,7 @@ public sealed class SimulationViewModel : ViewModelBase
 
     private void OnPointPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(RecipePoint.DX) or nameof(RecipePoint.DY) or nameof(RecipePoint.DZ) or nameof(RecipePoint.NozzleSpeedMmMin) or nameof(RecipePoint.Alfa) or nameof(RecipePoint.Betta))
+        if (e.PropertyName is nameof(RecipePoint.DX) or nameof(RecipePoint.DY) or nameof(RecipePoint.DZ) or nameof(RecipePoint.NozzleSpeedMmMin) or nameof(RecipePoint.Alfa) or nameof(RecipePoint.Betta) or nameof(RecipePoint.Act))
             RecalculateTimeline();
     }
 
