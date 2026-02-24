@@ -34,6 +34,9 @@ public sealed class RecipePlotControl : Control
     public static readonly StyledProperty<bool> ShowPairLinksProperty =
         AvaloniaProperty.Register<RecipePlotControl, bool>(nameof(ShowPairLinks), false);
 
+    public static readonly StyledProperty<bool> ShowGridProperty =
+        AvaloniaProperty.Register<RecipePlotControl, bool>(nameof(ShowGrid), true);
+
     private INotifyCollectionChanged? _collectionChanged;
     private readonly Dictionary<RecipePoint, PropertyChangedEventHandler> _pointHandlers = new();
 
@@ -85,6 +88,12 @@ public sealed class RecipePlotControl : Control
         set => SetValue(ShowPairLinksProperty, value);
     }
 
+    public bool ShowGrid
+    {
+        get => GetValue(ShowGridProperty);
+        set => SetValue(ShowGridProperty, value);
+    }
+
     static RecipePlotControl()
     {
         // Avoid relying on GetObservable/AffectsRender helpers (can vary between Avalonia versions).
@@ -97,6 +106,7 @@ public sealed class RecipePlotControl : Control
         SettingsProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         ShowLegendProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         ShowPairLinksProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
+        ShowGridProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
     }
 
     public RecipePlotControl()
@@ -278,7 +288,8 @@ public sealed class RecipePlotControl : Control
         }
 
         // Grid
-        DrawGrid(context);
+        if (ShowGrid)
+            DrawGrid(context);
 
         // Clamp rectangles (visual reference)
         DrawClamp(context, halfClamp, settings.HContMax, hFreeZ, settings.HZone);

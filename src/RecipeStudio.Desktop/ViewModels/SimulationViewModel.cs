@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -15,7 +16,9 @@ public sealed class SimulationViewModel : ViewModelBase
     private readonly EditorViewModel _editor;
     private readonly DispatcherTimer _timer;
 
-    private double _speedMultiplier = 1;
+    private readonly List<double> _stepTimes = new();
+
+    private double _speedMultiplier = 2.0;
     private bool _isPlaying;
     private double _elapsedSec;
     private double _totalDurationSec;
@@ -23,6 +26,10 @@ public sealed class SimulationViewModel : ViewModelBase
     private Point3D _toolPosition;
     private double _currentAlfa;
     private double _currentBetta;
+    private bool _showGrid = true;
+
+    // Extra factor to keep playback readable in UI (physical durations can be too long).
+    private const double PlaybackScale = 4.0;
 
     public SimulationViewModel(EditorViewModel editor)
     {
@@ -32,6 +39,8 @@ public sealed class SimulationViewModel : ViewModelBase
 
         PlayPauseCommand = new RelayCommand(TogglePlay, () => _editor.HasDocument && _editor.Points.Count > 1);
         StopCommand = new RelayCommand(Stop, () => _editor.HasDocument);
+        StepPreviousCommand = new RelayCommand(StepPrevious, () => _editor.HasDocument && _editor.Points.Count > 1);
+        StepNextCommand = new RelayCommand(StepNext, () => _editor.HasDocument && _editor.Points.Count > 1);
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
         _timer.Tick += (_, __) => Tick();
@@ -45,6 +54,8 @@ public sealed class SimulationViewModel : ViewModelBase
 
     public RelayCommand PlayPauseCommand { get; }
     public RelayCommand StopCommand { get; }
+    public RelayCommand StepPreviousCommand { get; }
+    public RelayCommand StepNextCommand { get; }
 
     public bool IsPlaying
     {
@@ -52,10 +63,16 @@ public sealed class SimulationViewModel : ViewModelBase
         private set => SetProperty(ref _isPlaying, value);
     }
 
+    public bool ShowGrid
+    {
+        get => _showGrid;
+        set => SetProperty(ref _showGrid, value);
+    }
+
     public double SpeedMultiplier
     {
         get => _speedMultiplier;
-        set => SetProperty(ref _speedMultiplier, Math.Clamp(value, 0.1, 6));
+        set => SetProperty(ref _speedMultiplier, Math.Clamp(value, 0.2, 12));
     }
 
     public double Progress
@@ -63,6 +80,9 @@ public sealed class SimulationViewModel : ViewModelBase
         get => _progress;
         private set => SetProperty(ref _progress, value);
     }
+
+    public int CurrentStepIndex => FindCurrentStep();
+    public int TotalSteps => Math.Max(0, Points.Count - 1);
 
     public double ToolR => Math.Round(Math.Sqrt(_toolPosition.X * _toolPosition.X + _toolPosition.Y * _toolPosition.Y), 1);
     public double ToolZ => Math.Round(_toolPosition.Z, 1);
@@ -117,6 +137,34 @@ public sealed class SimulationViewModel : ViewModelBase
         UpdateFromElapsed();
     }
 
+    private void StepNext()
+    {
+        if (_stepTimes.Count < 2)
+            return;
+
+        IsPlaying = false;
+        _timer.Stop();
+
+        var idx = FindCurrentStep();
+        var next = Math.Clamp(idx + 1, 0, _stepTimes.Count - 1);
+        _elapsedSec = _stepTimes[next];
+        UpdateFromElapsed();
+    }
+
+    private void StepPrevious()
+    {
+        if (_stepTimes.Count < 2)
+            return;
+
+        IsPlaying = false;
+        _timer.Stop();
+
+        var idx = FindCurrentStep();
+        var prev = Math.Clamp(idx - 1, 0, _stepTimes.Count - 1);
+        _elapsedSec = _stepTimes[prev];
+        UpdateFromElapsed();
+    }
+
     private void Tick()
     {
         if (!IsPlaying || _totalDurationSec <= 0)
@@ -136,11 +184,13 @@ public sealed class SimulationViewModel : ViewModelBase
     private void RecalculateTimeline()
     {
         _totalDurationSec = 0;
+        _stepTimes.Clear();
+        _stepTimes.Add(0);
+
         if (Points.Count < 2)
         {
             UpdateFromElapsed();
-            PlayPauseCommand.RaiseCanExecuteChanged();
-            StopCommand.RaiseCanExecuteChanged();
+            RaiseCommandsState();
             return;
         }
 
@@ -150,13 +200,22 @@ public sealed class SimulationViewModel : ViewModelBase
             var b = GetRobotPosition(Points[i + 1]);
             var len = Distance(a, b);
             var speedMmSec = Math.Max(1, Points[i].NozzleSpeedMmMin / 60.0);
-            _totalDurationSec += len / speedMmSec;
+            var segDuration = len / speedMmSec / PlaybackScale;
+            _totalDurationSec += segDuration;
+            _stepTimes.Add(_totalDurationSec);
         }
 
         _elapsedSec = Math.Min(_elapsedSec, _totalDurationSec);
         UpdateFromElapsed();
+        RaiseCommandsState();
+    }
+
+    private void RaiseCommandsState()
+    {
         PlayPauseCommand.RaiseCanExecuteChanged();
         StopCommand.RaiseCanExecuteChanged();
+        StepPreviousCommand.RaiseCanExecuteChanged();
+        StepNextCommand.RaiseCanExecuteChanged();
     }
 
     private void UpdateFromElapsed()
@@ -189,7 +248,7 @@ public sealed class SimulationViewModel : ViewModelBase
             var b = GetRobotPosition(Points[i + 1]);
             var len = Distance(a, b);
             var speedMmSec = Math.Max(1, Points[i].NozzleSpeedMmMin / 60.0);
-            var segDuration = len / speedMmSec;
+            var segDuration = len / speedMmSec / PlaybackScale;
             var next = acc + segDuration;
 
             if (t <= next || i == Points.Count - 2)
@@ -207,16 +266,34 @@ public sealed class SimulationViewModel : ViewModelBase
         }
     }
 
+    private int FindCurrentStep()
+    {
+        if (_stepTimes.Count <= 1)
+            return 0;
+
+        for (var i = 0; i < _stepTimes.Count - 1; i++)
+        {
+            if (_elapsedSec < _stepTimes[i + 1] - 1e-6)
+                return i;
+        }
+
+        return _stepTimes.Count - 1;
+    }
+
     private void RaiseTelemetry()
     {
         RaisePropertyChanged(nameof(ToolR));
         RaisePropertyChanged(nameof(ToolZ));
         RaisePropertyChanged(nameof(ToolX));
         RaisePropertyChanged(nameof(ToolY));
+        RaisePropertyChanged(nameof(CurrentAlfa));
+        RaisePropertyChanged(nameof(CurrentBetta));
         RaisePropertyChanged(nameof(CurrentXPuls));
         RaisePropertyChanged(nameof(CurrentYPuls));
         RaisePropertyChanged(nameof(CurrentZPuls));
         RaisePropertyChanged(nameof(ProgressPercent));
+        RaisePropertyChanged(nameof(CurrentStepIndex));
+        RaisePropertyChanged(nameof(TotalSteps));
     }
 
     private static Point3D GetRobotPosition(RecipePoint p)
