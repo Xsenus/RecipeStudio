@@ -28,6 +28,12 @@ public sealed class RecipePlotControl : Control
     public static readonly StyledProperty<AppSettings?> SettingsProperty =
         AvaloniaProperty.Register<RecipePlotControl, AppSettings?>(nameof(Settings));
 
+    public static readonly StyledProperty<bool> ShowLegendProperty =
+        AvaloniaProperty.Register<RecipePlotControl, bool>(nameof(ShowLegend), true);
+
+    public static readonly StyledProperty<bool> ShowPairLinksProperty =
+        AvaloniaProperty.Register<RecipePlotControl, bool>(nameof(ShowPairLinks), false);
+
     private INotifyCollectionChanged? _collectionChanged;
     private readonly Dictionary<RecipePoint, PropertyChangedEventHandler> _pointHandlers = new();
 
@@ -38,6 +44,7 @@ public sealed class RecipePlotControl : Control
     private Rect _worldBounds;
     private double _scale;
     private double _pad;
+    private double _zoomFactor = 1.0;
 
     public IList<RecipePoint>? Points
     {
@@ -66,6 +73,18 @@ public sealed class RecipePlotControl : Control
         set => SetValue(SettingsProperty, value);
     }
 
+    public bool ShowLegend
+    {
+        get => GetValue(ShowLegendProperty);
+        set => SetValue(ShowLegendProperty, value);
+    }
+
+    public bool ShowPairLinks
+    {
+        get => GetValue(ShowPairLinksProperty);
+        set => SetValue(ShowPairLinksProperty, value);
+    }
+
     static RecipePlotControl()
     {
         // Avoid relying on GetObservable/AffectsRender helpers (can vary between Avalonia versions).
@@ -76,12 +95,35 @@ public sealed class RecipePlotControl : Control
         SelectedPointProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         ProgressProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         SettingsProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
+        ShowLegendProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
+        ShowPairLinksProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
     }
 
     public RecipePlotControl()
     {
         // no-op (handlers are attached in the static ctor)
     }
+
+
+    public void ZoomIn()
+    {
+        _zoomFactor = Math.Clamp(_zoomFactor * 1.2, 1.0, 20.0);
+        InvalidateVisual();
+    }
+
+    public void ZoomOut()
+    {
+        _zoomFactor = Math.Clamp(_zoomFactor / 1.2, 1.0, 20.0);
+        InvalidateVisual();
+    }
+
+    public void ResetZoom()
+    {
+        _zoomFactor = 1.0;
+        InvalidateVisual();
+    }
+
+    public double ZoomFactor => _zoomFactor;
 
     private void OnPointsChanged(IList<RecipePoint>? points)
     {
@@ -198,8 +240,8 @@ public sealed class RecipePlotControl : Control
 
         _worldBounds = new Rect(new Point(minX, minY), new Point(maxX, maxY)).Normalize();
 
-        // padding in pixels
-        _pad = 36;
+        // adaptive padding in pixels (keeps plot readable on smaller popups)
+        _pad = Math.Clamp(Math.Min(Bounds.Width, Bounds.Height) * 0.06, 16, 36);
 
         var w = Math.Max(1, Bounds.Width - 2 * _pad);
         var h = Math.Max(1, Bounds.Height - 2 * _pad);
@@ -224,6 +266,17 @@ public sealed class RecipePlotControl : Control
             _worldBounds.Width + extraW,
             _worldBounds.Height + extraH);
 
+        // Zoom around current center (1.0 = fit-to-data)
+        if (_zoomFactor > 1.0)
+        {
+            var centerX = _worldBounds.Center.X;
+            var centerY = _worldBounds.Center.Y;
+            var zoomedWidth = _worldBounds.Width / _zoomFactor;
+            var zoomedHeight = _worldBounds.Height / _zoomFactor;
+            _worldBounds = new Rect(centerX - zoomedWidth / 2.0, centerY - zoomedHeight / 2.0, zoomedWidth, zoomedHeight);
+            _scale *= _zoomFactor;
+        }
+
         // Grid
         DrawGrid(context);
 
@@ -234,17 +287,27 @@ public sealed class RecipePlotControl : Control
         var opacity = Math.Clamp(settings.PlotOpacity, 0.05, 0.90);
         var thickness = Math.Max(1, settings.PlotStrokeThickness);
 
-        var penTool = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), 245, 158, 11)), thickness);
-        var penTarget = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), 34, 197, 94)), thickness);
-
-        // Dotted pen for target polyline ("строки точек")
-        var penTargetDotted = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), 34, 197, 94)), 1.5,
-            dashStyle: new DashStyle(new double[] { 4, 4 }, 0));
+        var workColor = ParseColorOrDefault(settings.PlotColorWorkingZone, Color.FromRgb(34, 197, 94));
+        var safetyColor = ParseColorOrDefault(settings.PlotColorSafetyZone, Color.FromRgb(156, 163, 175));
+        var robotColor = ParseColorOrDefault(settings.PlotColorRobotPath, Color.FromRgb(245, 158, 11));
+        var linksColor = ParseColorOrDefault(settings.PlotColorPairLinks, Color.FromRgb(251, 146, 60));
+        var penTool = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), robotColor.R, robotColor.G, robotColor.B)), thickness);
+        var penTargetWork = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), workColor.R, workColor.G, workColor.B)), thickness);
+        var penTargetSafe = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), safetyColor.R, safetyColor.G, safetyColor.B)), thickness);
+        var penTargetToTool = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), linksColor.R, linksColor.G, linksColor.B)), Math.Max(1, thickness - 1));
 
         if (settings.PlotShowPolyline)
         {
             DrawPolyline(context, tool, penTool);
-            DrawPolyline(context, target, penTargetDotted);
+
+            // Step 2: target polylines split by (Safe, Place) and pair links Xp/Zp <-> Xr/Zr for cleaning points.
+            DrawPolyline(context, SelectTarget(points, settings.HZone, safe: false, place: 0), penTargetWork);
+            DrawPolyline(context, SelectTarget(points, settings.HZone, safe: false, place: 1), penTargetWork);
+            DrawPolyline(context, SelectTarget(points, settings.HZone, safe: true, place: 0), penTargetSafe);
+            DrawPolyline(context, SelectTarget(points, settings.HZone, safe: true, place: 1), penTargetSafe);
+
+            if (ShowPairLinks)
+                DrawTargetToToolLinks(context, points, settings.HZone, penTargetToTool);
         }
 
         if (settings.PlotShowSmooth)
@@ -255,13 +318,15 @@ public sealed class RecipePlotControl : Control
 
         // Target points are always drawn to keep point markers visible in the editor.
         DrawPoints(context, points, settings, settings.HZone);
+        DrawRobotPoints(context, points, settings);
 
         // Tool marker
         var toolPos = GetToolPosition(tool, Progress);
         DrawToolMarker(context, toolPos);
 
         // Legend
-        DrawLegend(context);
+        if (ShowLegend)
+            DrawLegend(context);
     }
 
     private void DrawGrid(DrawingContext ctx)
@@ -368,8 +433,8 @@ public sealed class RecipePlotControl : Control
 
             // Working vs safety colors
             var color = p.Safe
-                ? Color.FromRgb(6, 182, 212)   // cyan
-                : Color.FromRgb(34, 197, 94);  // green
+                ? ParseColorOrDefault(settings.PlotColorSafetyZone, Color.FromRgb(156, 163, 175))
+                : ParseColorOrDefault(settings.PlotColorWorkingZone, Color.FromRgb(34, 197, 94));
 
             var brush = new SolidColorBrush(color);
 
@@ -384,32 +449,83 @@ public sealed class RecipePlotControl : Control
         }
     }
 
+    private void DrawRobotPoints(DrawingContext ctx, IList<RecipePoint> points, AppSettings settings)
+    {
+        var r = Math.Max(3, settings.PlotPointRadius - 1);
+        var brush = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+        var outline = new Pen(new SolidColorBrush(ParseColorOrDefault(settings.PlotColorRobotPath, Color.FromRgb(245, 158, 11))), 1.2);
+
+        foreach (var p in points)
+        {
+            var xr = p.Xr0 + p.DX;
+            var zr = p.Zr0 + p.DZ;
+            var sp = WorldToScreen(new Point(xr, zr));
+            ctx.DrawEllipse(brush, outline, sp, r, r);
+        }
+    }
+
+    private static List<Point> SelectTarget(IList<RecipePoint> points, double hZone, bool safe, int place)
+        => points
+            .Where(p => p.Safe == safe && p.Place == place)
+            .Select(p =>
+            {
+                var (xp, zp) = p.GetTargetPoint(hZone);
+                return new Point(xp, zp);
+            })
+            .ToList();
+
+    private void DrawTargetToToolLinks(DrawingContext ctx, IList<RecipePoint> points, double hZone, Pen pen)
+    {
+        foreach (var p in points.Where(x => !x.Safe))
+        {
+            var (xp, zp) = p.GetTargetPoint(hZone);
+            var xr = p.Xr0 + p.DX;
+            var zr = p.Zr0 + p.DZ;
+            ctx.DrawLine(pen, WorldToScreen(new Point(xp, zp)), WorldToScreen(new Point(xr, zr)));
+        }
+    }
+
     private void DrawToolMarker(DrawingContext ctx, Point world)
     {
         var sp = WorldToScreen(world);
-        var brush = new SolidColorBrush(Color.FromRgb(239, 68, 68));
+        var brush = new SolidColorBrush(ParseColorOrDefault((Settings ?? new AppSettings()).PlotColorTool, Color.FromRgb(239, 68, 68)));
         ctx.DrawEllipse(brush, null, sp, 5, 5);
     }
 
     private void DrawLegend(DrawingContext ctx)
     {
-        var x = 14;
-        var y = 14;
-        var lineH = 18;
+        var x = _pad + 4;
+        var y = _pad - 6;
+        var lineH = 16;
+
+        var entries = 5;
+        var legendHeight = entries * lineH + 8;
+        var legendWidth = 250;
+        ctx.FillRectangle(new SolidColorBrush(Color.FromArgb(110, 2, 6, 23)), new Rect(x - 8, y - 6, legendWidth, legendHeight));
 
         void Entry(Color c, string text)
         {
             ctx.FillRectangle(new SolidColorBrush(c), new Rect(x, y + 4, 10, 10));
             var ft = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-                new Typeface("Segoe UI"), 12, Brushes.White);
+                new Typeface("Segoe UI"), 11, Brushes.White);
             ctx.DrawText(ft, new Point(x + 16, y));
             y += lineH;
         }
 
-        Entry(Color.FromRgb(34, 197, 94), "Working Zone (Safe=0)");
-        Entry(Color.FromRgb(6, 182, 212), "Safety Zone (Safe=1)");
-        Entry(Color.FromRgb(245, 158, 11), "Robot/Tool Path");
-        Entry(Color.FromRgb(239, 68, 68), "Tool");
+                var settings = Settings ?? new AppSettings();
+        Entry(ParseColorOrDefault(settings.PlotColorWorkingZone, Color.FromRgb(34, 197, 94)), "Рабочая зона (Safe=0)");
+        Entry(ParseColorOrDefault(settings.PlotColorSafetyZone, Color.FromRgb(156, 163, 175)), "Безопасная зона (Safe=1)");
+        Entry(ParseColorOrDefault(settings.PlotColorRobotPath, Color.FromRgb(245, 158, 11)), "Траектория/точки робота (Xr,Zr)");
+        Entry(ParseColorOrDefault(settings.PlotColorPairLinks, Color.FromRgb(251, 146, 60)), "Связи Xp/Zp ↔ Xr/Zr (Safe=0)");
+        Entry(ParseColorOrDefault(settings.PlotColorTool, Color.FromRgb(239, 68, 68)), "Текущий инструмент");
+    }
+
+    private static Color ParseColorOrDefault(string? value, Color fallback)
+    {
+        if (!string.IsNullOrWhiteSpace(value) && Color.TryParse(value, out var parsed))
+            return parsed;
+
+        return fallback;
     }
 
     private Point WorldToScreen(Point w)
@@ -472,6 +588,16 @@ public sealed class RecipePlotControl : Control
             new Typeface("Segoe UI"), 14, Brushes.White);
         var p = new Point(bounds.Width / 2 - ft.Width / 2, bounds.Height / 2 - ft.Height / 2);
         ctx.DrawText(ft, p);
+    }
+
+    protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
+    {
+        base.OnPointerWheelChanged(e);
+
+        if (e.Delta.Y > 0)
+            ZoomIn();
+        else if (e.Delta.Y < 0)
+            ZoomOut();
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)

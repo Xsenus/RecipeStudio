@@ -131,6 +131,12 @@ public sealed class SettingsViewModel : ViewModelBase
     public bool PlotShowTargetPoints { get => _settings.Settings.PlotShowTargetPoints; set { _settings.Settings.PlotShowTargetPoints = value; RaisePropertyChanged(); } }
     public bool PlotEnableDrag { get => _settings.Settings.PlotEnableDrag; set { _settings.Settings.PlotEnableDrag = value; RaisePropertyChanged(); } }
 
+    public string PlotColorWorkingZone { get => _settings.Settings.PlotColorWorkingZone; set { _settings.Settings.PlotColorWorkingZone = value; RaisePropertyChanged(); } }
+    public string PlotColorSafetyZone { get => _settings.Settings.PlotColorSafetyZone; set { _settings.Settings.PlotColorSafetyZone = value; RaisePropertyChanged(); } }
+    public string PlotColorRobotPath { get => _settings.Settings.PlotColorRobotPath; set { _settings.Settings.PlotColorRobotPath = value; RaisePropertyChanged(); } }
+    public string PlotColorPairLinks { get => _settings.Settings.PlotColorPairLinks; set { _settings.Settings.PlotColorPairLinks = value; RaisePropertyChanged(); } }
+    public string PlotColorTool { get => _settings.Settings.PlotColorTool; set { _settings.Settings.PlotColorTool = value; RaisePropertyChanged(); } }
+
     public int SmoothSegmentsPerSpan
     {
         get => _settings.Settings.SmoothSegmentsPerSpan;

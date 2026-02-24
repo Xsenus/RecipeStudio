@@ -1,0 +1,45 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="RecipeStudio.Desktop.Views.Dialogs.ColorPickerDialog"
+        Width="420"
+        Height="455"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        SystemDecorations="None"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Title="Выбор цвета">
+
+  <Border BorderBrush="#2A3142" BorderThickness="1" Background="#0F1420">
+    <Grid RowDefinitions="Auto,*">
+      <Border Background="#111827" Padding="12,8" PointerPressed="Header_PointerPressed">
+        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+          <TextBlock Text="Выбор цвета" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Classes="window-btn" Click="Minimize_Click">—</Button>
+          <Button Grid.Column="2" Classes="window-btn" Click="Close_Click">✕</Button>
+        </Grid>
+      </Border>
+
+      <Grid Grid.Row="1" Margin="14" RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto" ColumnDefinitions="Auto,*" RowSpacing="12">
+        <TextBlock Grid.Row="0" Text="HEX" VerticalAlignment="Center" />
+        <TextBox x:Name="HexBox" Grid.Row="0" Grid.Column="1" Margin="10,0,0,0" />
+
+        <TextBlock Grid.Row="1" Text="R" VerticalAlignment="Center" />
+        <Slider x:Name="RSlider" Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="255" Margin="10,0,0,0" />
+
+        <TextBlock Grid.Row="2" Text="G" VerticalAlignment="Center" />
+        <Slider x:Name="GSlider" Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="255" Margin="10,0,0,0" />
+
+        <TextBlock Grid.Row="3" Text="B" VerticalAlignment="Center" />
+        <Slider x:Name="BSlider" Grid.Row="3" Grid.Column="1" Minimum="0" Maximum="255" Margin="10,0,0,0" />
+
+        <Border x:Name="PreviewBorder" Grid.Row="4" Grid.ColumnSpan="2" Margin="0,14,0,0" Height="64" CornerRadius="8" BorderBrush="#374151" BorderThickness="1" />
+
+        <StackPanel Grid.Row="6" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,16,0,0">
+          <Button Classes="accent" Click="Save_Click">Сохранить</Button>
+          <Button Click="Cancel_Click">Отмена</Button>
+        </StackPanel>
+      </Grid>
+    </Grid>
+  </Border>
+</Window>

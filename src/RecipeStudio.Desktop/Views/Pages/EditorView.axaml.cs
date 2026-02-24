@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
@@ -64,6 +65,9 @@ public sealed partial class EditorView : UserControl
 
         if (HasUsableCanvasSize())
             InitializePanelsLayout();
+
+        UpdateZoomText();
+        UpdatePlotOverlayButtons();
     }
 
     private void OnDetachedFromVisualTree(object? sender, Avalonia.VisualTreeAttachmentEventArgs e)
@@ -417,12 +421,60 @@ public sealed partial class EditorView : UserControl
         PersistPanelsLayout();
     }
 
+    private void ZoomInPlot_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        RecipePlot.ZoomIn();
+        UpdateZoomText();
+        UpdatePlotOverlayButtons();
+    }
+
+    private void ZoomOutPlot_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        RecipePlot.ZoomOut();
+        UpdateZoomText();
+        UpdatePlotOverlayButtons();
+    }
+
+    private void FitPlot_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        RecipePlot.ResetZoom();
+        UpdateZoomText();
+    }
+
+    private void UpdateZoomText()
+    {
+        ZoomText.Text = $"x{RecipePlot.ZoomFactor.ToString("0.00", CultureInfo.InvariantCulture)}";
+    }
+
+    private void ToggleLegend_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        RecipePlot.ShowLegend = !RecipePlot.ShowLegend;
+        UpdatePlotOverlayButtons();
+    }
+
+    private void TogglePairLinks_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        RecipePlot.ShowPairLinks = !RecipePlot.ShowPairLinks;
+        UpdatePlotOverlayButtons();
+    }
+
+    private void UpdatePlotOverlayButtons()
+    {
+        LegendToggleButton.Content = RecipePlot.ShowLegend ? "Пояснения: вкл" : "Пояснения: выкл";
+        LinksToggleButton.Content = RecipePlot.ShowPairLinks ? "Связи точек: вкл" : "Связи точек: выкл";
+    }
+
     private void ResetPanels_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         ParametersPanel.Width = 390;
         ParametersPanel.Height = 210;
-        VisualizationPanel.Width = 520;
-        VisualizationPanel.Height = 360;
+        VisualizationPanel.Width = 760;
+        VisualizationPanel.Height = 520;
+        RecipePlot.ResetZoom();
+        RecipePlot.ShowLegend = true;
+        RecipePlot.ShowPairLinks = false;
+        UpdateZoomText();
+        UpdatePlotOverlayButtons();
         SelectedPointPanel.Width = 430;
         SelectedPointPanel.Height = 280;
 
