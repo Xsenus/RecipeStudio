@@ -28,6 +28,12 @@ public sealed class RecipePlotControl : Control
     public static readonly StyledProperty<AppSettings?> SettingsProperty =
         AvaloniaProperty.Register<RecipePlotControl, AppSettings?>(nameof(Settings));
 
+    public static readonly StyledProperty<bool> ShowLegendProperty =
+        AvaloniaProperty.Register<RecipePlotControl, bool>(nameof(ShowLegend), true);
+
+    public static readonly StyledProperty<bool> ShowPairLinksProperty =
+        AvaloniaProperty.Register<RecipePlotControl, bool>(nameof(ShowPairLinks), false);
+
     private INotifyCollectionChanged? _collectionChanged;
     private readonly Dictionary<RecipePoint, PropertyChangedEventHandler> _pointHandlers = new();
 
@@ -67,6 +73,18 @@ public sealed class RecipePlotControl : Control
         set => SetValue(SettingsProperty, value);
     }
 
+    public bool ShowLegend
+    {
+        get => GetValue(ShowLegendProperty);
+        set => SetValue(ShowLegendProperty, value);
+    }
+
+    public bool ShowPairLinks
+    {
+        get => GetValue(ShowPairLinksProperty);
+        set => SetValue(ShowPairLinksProperty, value);
+    }
+
     static RecipePlotControl()
     {
         // Avoid relying on GetObservable/AffectsRender helpers (can vary between Avalonia versions).
@@ -77,6 +95,8 @@ public sealed class RecipePlotControl : Control
         SelectedPointProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         ProgressProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         SettingsProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
+        ShowLegendProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
+        ShowPairLinksProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
     }
 
     public RecipePlotControl()
@@ -282,7 +302,8 @@ public sealed class RecipePlotControl : Control
             DrawPolyline(context, SelectTarget(points, settings.HZone, safe: true, place: 0), penTargetSafe);
             DrawPolyline(context, SelectTarget(points, settings.HZone, safe: true, place: 1), penTargetSafe);
 
-            DrawTargetToToolLinks(context, points, settings.HZone, penTargetToTool);
+            if (ShowPairLinks)
+                DrawTargetToToolLinks(context, points, settings.HZone, penTargetToTool);
         }
 
         if (settings.PlotShowSmooth)
@@ -300,7 +321,8 @@ public sealed class RecipePlotControl : Control
         DrawToolMarker(context, toolPos);
 
         // Legend
-        DrawLegend(context);
+        if (ShowLegend)
+            DrawLegend(context);
     }
 
     private void DrawGrid(DrawingContext ctx)

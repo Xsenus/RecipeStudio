@@ -67,6 +67,7 @@ public sealed partial class EditorView : UserControl
             InitializePanelsLayout();
 
         UpdateZoomText();
+        UpdatePlotOverlayButtons();
     }
 
     private void OnDetachedFromVisualTree(object? sender, Avalonia.VisualTreeAttachmentEventArgs e)
@@ -424,23 +425,46 @@ public sealed partial class EditorView : UserControl
     {
         RecipePlot.ZoomIn();
         UpdateZoomText();
+        UpdatePlotOverlayButtons();
     }
 
     private void ZoomOutPlot_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         RecipePlot.ZoomOut();
         UpdateZoomText();
+        UpdatePlotOverlayButtons();
     }
 
     private void FitPlot_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         RecipePlot.ResetZoom();
+        RecipePlot.ShowLegend = true;
+        RecipePlot.ShowPairLinks = false;
         UpdateZoomText();
+        UpdatePlotOverlayButtons();
     }
 
     private void UpdateZoomText()
     {
         ZoomText.Text = $"x{RecipePlot.ZoomFactor.ToString("0.00", CultureInfo.InvariantCulture)}";
+    }
+
+    private void ToggleLegend_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        RecipePlot.ShowLegend = !RecipePlot.ShowLegend;
+        UpdatePlotOverlayButtons();
+    }
+
+    private void TogglePairLinks_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        RecipePlot.ShowPairLinks = !RecipePlot.ShowPairLinks;
+        UpdatePlotOverlayButtons();
+    }
+
+    private void UpdatePlotOverlayButtons()
+    {
+        LegendToggleButton.Content = RecipePlot.ShowLegend ? "Легенда: вкл" : "Легенда: выкл";
+        LinksToggleButton.Content = RecipePlot.ShowPairLinks ? "Связи: вкл" : "Связи: выкл";
     }
 
     private void ResetPanels_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -450,7 +474,10 @@ public sealed partial class EditorView : UserControl
         VisualizationPanel.Width = 760;
         VisualizationPanel.Height = 520;
         RecipePlot.ResetZoom();
+        RecipePlot.ShowLegend = true;
+        RecipePlot.ShowPairLinks = false;
         UpdateZoomText();
+        UpdatePlotOverlayButtons();
         SelectedPointPanel.Width = 430;
         SelectedPointPanel.Height = 280;
 

@@ -297,7 +297,7 @@
                                          Progress="{Binding Progress}"
                                          Settings="{Binding AppSettings}" />
 
-              <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,14,Auto,Auto,Auto,Auto,*,Auto" Margin="0,8,0,0">
+              <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,14,Auto,Auto,Auto,Auto,Auto,Auto,*,Auto" Margin="0,8,0,0">
                 <Button Command="{Binding PlayPauseCommand}" Classes="accent">▶ / ❚❚</Button>
                 <Button Grid.Column="1" Command="{Binding StopCommand}" Classes="ghost">⏹</Button>
 
@@ -306,8 +306,11 @@
                 <Button Grid.Column="5" Classes="ghost" ToolTip.Tip="Подогнать в окно" Click="FitPlot_Click">Fit</Button>
                 <TextBlock Grid.Column="6" x:Name="ZoomText" Text="x1.00" VerticalAlignment="Center" Classes="muted" Margin="8,0,0,0"/>
 
-                <TextBlock Grid.Column="7" Text="Скорость" VerticalAlignment="Center" Classes="muted" HorizontalAlignment="Right" Margin="0,0,8,0" />
-                <Slider Grid.Column="8" Minimum="0.2" Maximum="3" Value="{Binding SpeedMultiplier}" Width="120" />
+                <Button Grid.Column="7" x:Name="LegendToggleButton" Classes="ghost" ToolTip.Tip="Показать/скрыть описание (легенду)" Click="ToggleLegend_Click">Легенда: вкл</Button>
+                <Button Grid.Column="8" x:Name="LinksToggleButton" Classes="ghost" ToolTip.Tip="Показать/скрыть вспомогательные связи Xp/Zp ↔ Xr/Zr" Click="TogglePairLinks_Click">Связи: выкл</Button>
+
+                <TextBlock Grid.Column="9" Text="Скорость" VerticalAlignment="Center" Classes="muted" HorizontalAlignment="Right" Margin="0,0,8,0" />
+                <Slider Grid.Column="10" Minimum="0.2" Maximum="3" Value="{Binding SpeedMultiplier}" Width="120" />
               </Grid>
             </Grid>
           </Grid>
