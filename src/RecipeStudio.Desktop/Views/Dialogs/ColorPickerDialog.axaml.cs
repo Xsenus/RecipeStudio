@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Input;
 using Avalonia.Media;
 
 namespace RecipeStudio.Desktop.Views.Dialogs;
@@ -26,13 +27,26 @@ public sealed partial class ColorPickerDialog : Window
 
     public string SelectedHex { get; private set; } = "#22C55E";
 
-    private void Ok_Click(object? sender, RoutedEventArgs e)
+    private void Save_Click(object? sender, RoutedEventArgs e)
     {
         ApplyHexFromText();
         Close(true);
     }
 
     private void Cancel_Click(object? sender, RoutedEventArgs e)
+        => Close(false);
+
+
+    private void Header_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            BeginMoveDrag(e);
+    }
+
+    private void Minimize_Click(object? sender, RoutedEventArgs e)
+        => WindowState = WindowState.Minimized;
+
+    private void Close_Click(object? sender, RoutedEventArgs e)
         => Close(false);
 
     private void SetFromColor(Color color)
