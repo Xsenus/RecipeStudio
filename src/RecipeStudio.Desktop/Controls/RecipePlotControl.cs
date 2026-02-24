@@ -235,16 +235,21 @@ public sealed class RecipePlotControl : Control
         var thickness = Math.Max(1, settings.PlotStrokeThickness);
 
         var penTool = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), 245, 158, 11)), thickness);
-        var penTarget = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), 34, 197, 94)), thickness);
-
-        // Dotted pen for target polyline ("строки точек")
-        var penTargetDotted = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), 34, 197, 94)), 1.5,
-            dashStyle: new DashStyle(new double[] { 4, 4 }, 0));
+        var penTargetWork = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), 34, 197, 94)), thickness);
+        var penTargetSafe = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), 0, 0, 0)), thickness);
+        var penTargetToTool = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), 251, 146, 60)), Math.Max(1, thickness - 1));
 
         if (settings.PlotShowPolyline)
         {
             DrawPolyline(context, tool, penTool);
-            DrawPolyline(context, target, penTargetDotted);
+
+            // Step 2: target polylines split by (Safe, Place) and pair links Xp/Zp <-> Xr/Zr for cleaning points.
+            DrawPolyline(context, SelectTarget(points, settings.HZone, safe: false, place: 0), penTargetWork);
+            DrawPolyline(context, SelectTarget(points, settings.HZone, safe: false, place: 1), penTargetWork);
+            DrawPolyline(context, SelectTarget(points, settings.HZone, safe: true, place: 0), penTargetSafe);
+            DrawPolyline(context, SelectTarget(points, settings.HZone, safe: true, place: 1), penTargetSafe);
+
+            DrawTargetToToolLinks(context, points, settings.HZone, penTargetToTool);
         }
 
         if (settings.PlotShowSmooth)
@@ -255,6 +260,7 @@ public sealed class RecipePlotControl : Control
 
         // Target points are always drawn to keep point markers visible in the editor.
         DrawPoints(context, points, settings, settings.HZone);
+        DrawRobotPoints(context, points, settings);
 
         // Tool marker
         var toolPos = GetToolPosition(tool, Progress);
@@ -368,7 +374,7 @@ public sealed class RecipePlotControl : Control
 
             // Working vs safety colors
             var color = p.Safe
-                ? Color.FromRgb(6, 182, 212)   // cyan
+                ? Color.FromRgb(0, 0, 0)       // black (safety contour as in step-2 sheet)
                 : Color.FromRgb(34, 197, 94);  // green
 
             var brush = new SolidColorBrush(color);
@@ -381,6 +387,42 @@ public sealed class RecipePlotControl : Control
                 var selPen = new Pen(new SolidColorBrush(Color.FromRgb(239, 68, 68)), 2);
                 ctx.DrawEllipse(null, selPen, sp, r + 3, r + 3);
             }
+        }
+    }
+
+    private void DrawRobotPoints(DrawingContext ctx, IList<RecipePoint> points, AppSettings settings)
+    {
+        var r = Math.Max(3, settings.PlotPointRadius - 1);
+        var brush = new SolidColorBrush(Color.FromRgb(255, 255, 255));
+        var outline = new Pen(new SolidColorBrush(Color.FromRgb(245, 158, 11)), 1.2);
+
+        foreach (var p in points)
+        {
+            var xr = p.Xr0 + p.DX;
+            var zr = p.Zr0 + p.DZ;
+            var sp = WorldToScreen(new Point(xr, zr));
+            ctx.DrawEllipse(brush, outline, sp, r, r);
+        }
+    }
+
+    private static List<Point> SelectTarget(IList<RecipePoint> points, double hZone, bool safe, int place)
+        => points
+            .Where(p => p.Safe == safe && p.Place == place)
+            .Select(p =>
+            {
+                var (xp, zp) = p.GetTargetPoint(hZone);
+                return new Point(xp, zp);
+            })
+            .ToList();
+
+    private void DrawTargetToToolLinks(DrawingContext ctx, IList<RecipePoint> points, double hZone, Pen pen)
+    {
+        foreach (var p in points.Where(x => !x.Safe))
+        {
+            var (xp, zp) = p.GetTargetPoint(hZone);
+            var xr = p.Xr0 + p.DX;
+            var zr = p.Zr0 + p.DZ;
+            ctx.DrawLine(pen, WorldToScreen(new Point(xp, zp)), WorldToScreen(new Point(xr, zr)));
         }
     }
 
@@ -407,8 +449,9 @@ public sealed class RecipePlotControl : Control
         }
 
         Entry(Color.FromRgb(34, 197, 94), "Working Zone (Safe=0)");
-        Entry(Color.FromRgb(6, 182, 212), "Safety Zone (Safe=1)");
-        Entry(Color.FromRgb(245, 158, 11), "Robot/Tool Path");
+        Entry(Color.FromRgb(0, 0, 0), "Safety Zone (Safe=1)");
+        Entry(Color.FromRgb(245, 158, 11), "Robot points/path (Xr,Zr)");
+        Entry(Color.FromRgb(251, 146, 60), "Pair links Xp/Zp ↔ Xr/Zr (Safe=0)");
         Entry(Color.FromRgb(239, 68, 68), "Tool");
     }
 
