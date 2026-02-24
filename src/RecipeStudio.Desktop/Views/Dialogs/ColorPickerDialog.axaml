@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="RecipeStudio.Desktop.Views.Dialogs.ColorPickerDialog"
         Width="420"
-        Height="400"
+        Height="430"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         SystemDecorations="None"
@@ -20,7 +20,7 @@
         </Grid>
       </Border>
 
-      <Grid Grid.Row="1" Margin="14" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*" RowSpacing="12">
+      <Grid Grid.Row="1" Margin="14" RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto" ColumnDefinitions="Auto,*" RowSpacing="12">
         <TextBlock Grid.Row="0" Text="HEX" VerticalAlignment="Center" />
         <TextBox x:Name="HexBox" Grid.Row="0" Grid.Column="1" Margin="10,0,0,0" />
 
@@ -33,11 +33,11 @@
         <TextBlock Grid.Row="3" Text="B" VerticalAlignment="Center" />
         <Slider x:Name="BSlider" Grid.Row="3" Grid.Column="1" Minimum="0" Maximum="255" Margin="10,0,0,0" />
 
-        <Border x:Name="PreviewBorder" Grid.Row="4" Grid.ColumnSpan="2" Margin="0,8,0,0" Height="64" CornerRadius="8" BorderBrush="#374151" BorderThickness="1" />
+        <Border x:Name="PreviewBorder" Grid.Row="4" Grid.ColumnSpan="2" Margin="0,14,0,0" Height="64" CornerRadius="8" BorderBrush="#374151" BorderThickness="1" />
 
-        <StackPanel Grid.Row="5" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,12,0,0">
+        <StackPanel Grid.Row="6" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,16,0,0">
           <Button Classes="accent" Click="Save_Click">Сохранить</Button>
-          <Button Classes="ghost" Click="Cancel_Click">Отмена</Button>
+          <Button Click="Cancel_Click">Отмена</Button>
         </StackPanel>
       </Grid>
     </Grid>
