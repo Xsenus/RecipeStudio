@@ -228,7 +228,7 @@ public sealed class RecipePlotControl : Control
         var dClamp = points[0].Container ? points[0].DClampCont : points[0].DClampForm;
         var halfClamp = Math.Max(10, dClamp / 2.0);
 
-        var hFreeZ = (settings.HZone - (settings.HContMax + settings.HBokMax)) / 2.0 + settings.HContMax;
+        var hFreeZ = Math.Clamp(settings.HFreeZ, Math.Min(settings.HContMax, settings.HZone), Math.Max(settings.HContMax, settings.HZone));
 
         var xs = target.Select(p => p.X).Concat(tool.Select(p => p.X)).Concat(new[] { -halfClamp, halfClamp, 0.0 });
         var ys = target.Select(p => p.Y).Concat(tool.Select(p => p.Y)).Concat(new[] { 0.0, settings.HZone, settings.HContMax, hFreeZ });

@@ -39,9 +39,10 @@
 
     <Grid Grid.Column="1" Margin="12,0,0,0" RowDefinitions="Auto,*">
       <Border Grid.Row="0" Classes="card">
-        <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+        <Grid ColumnDefinitions="*,Auto,Auto" VerticalAlignment="Center">
           <TextBlock Text="{Binding CurrentSectionTitle}" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
-          <Button Grid.Column="1" Command="{Binding SaveCommand}" Classes="accent" ToolTip.Tip="Сохранить все изменения">Сохранить</Button>
+          <Button Grid.Column="1" Command="{Binding ResetToDefaultsCommand}" Classes="ghost" Margin="0,0,8,0" ToolTip.Tip="Сбросить все настройки к стандартным значениям">Сбросить</Button>
+          <Button Grid.Column="2" Command="{Binding SaveCommand}" Classes="accent" ToolTip.Tip="Сохранить все изменения">Сохранить</Button>
         </Grid>
       </Border>
 
@@ -111,15 +112,18 @@
               <Border Grid.Column="1" Classes="card" Padding="12" Margin="12,0,0,0">
                 <StackPanel Spacing="10">
                   <TextBlock Text="Безопасность и зоны" FontWeight="SemiBold" />
-                  <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto">
-                    <TextBlock Text="Высота перехода (H_cont)" VerticalAlignment="Center" ToolTip.Tip="Безопасная высота перехода, мм" Margin="0,0,0,8" />
-                    <TextBox Grid.Column="1" Classes="value-box" Text="{Binding HContMax}" Margin="10,0,0,8" ToolTip.Tip="Безопасная высота перехода, мм" />
+                  <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                    <TextBlock Text="Высота перехода (H_cont)" VerticalAlignment="Center" ToolTip.Tip="Максимальная высота контейнера, мм" Margin="0,0,0,8" />
+                    <TextBox Grid.Column="1" Classes="value-box" Text="{Binding HContMax}" Margin="10,0,0,8" ToolTip.Tip="Максимальная высота контейнера, мм" />
 
-                    <TextBlock Grid.Row="1" Text="Зона безопасности (H_zone)" VerticalAlignment="Center" ToolTip.Tip="Максимальная рабочая зона по высоте, мм" Margin="0,0,0,8" />
-                    <TextBox Grid.Row="1" Grid.Column="1" Classes="value-box" Text="{Binding HZone}" Margin="10,0,0,8" ToolTip.Tip="Максимальная рабочая зона по высоте, мм" />
+                    <TextBlock Grid.Row="1" Text="Зона безопасности (H_zone)" VerticalAlignment="Center" ToolTip.Tip="Зазор между столом и фланцем, мм" Margin="0,0,0,8" />
+                    <TextBox Grid.Row="1" Grid.Column="1" Classes="value-box" Text="{Binding HZone}" Margin="10,0,0,8" ToolTip.Tip="Зазор между столом и фланцем, мм" />
 
-                    <TextBlock Grid.Row="2" Text="Боковой предел (H_bok)" VerticalAlignment="Center" ToolTip.Tip="Боковое ограничение, мм" />
-                    <TextBox Grid.Row="2" Grid.Column="1" Classes="value-box" Text="{Binding HBokMax}" Margin="10,0,0,0" ToolTip.Tip="Боковое ограничение, мм" />
+                    <TextBlock Grid.Row="2" Text="Боковой предел (H_bok)" VerticalAlignment="Center" ToolTip.Tip="Максимальная толщина крышки, мм" Margin="0,0,0,8" />
+                    <TextBox Grid.Row="2" Grid.Column="1" Classes="value-box" Text="{Binding HBokMax}" Margin="10,0,0,8" ToolTip.Tip="Максимальная толщина крышки, мм" />
+
+                    <TextBlock Grid.Row="3" Text="Нейтральная плоскость (H_freeZ)" VerticalAlignment="Center" ToolTip.Tip="Высота от стола до промежуточной нейтральной плоскости между контейнером и крышкой, мм" />
+                    <TextBox Grid.Row="3" Grid.Column="1" Classes="value-box" Text="{Binding HFreeZ}" Margin="10,0,0,0" ToolTip.Tip="Высота от стола до промежуточной нейтральной плоскости между контейнером и крышкой, мм" />
                   </Grid>
                 </StackPanel>
               </Border>
@@ -142,14 +146,14 @@
                 <TextBox Grid.Row="1" Grid.Column="3" Classes="value-box" Text="{Binding PulseA}" Margin="12,0,0,10" ToolTip.Tip="Коэффициент импульсов по оси A" />
 
                 <TextBlock Grid.Row="2" Text="VPULSE_B" ToolTip.Tip="Коэффициент импульсов по оси B" Margin="0,0,0,6" />
-                <TextBlock Grid.Row="2" Grid.Column="1" Text="VPULSE_TOP" Margin="12,0,0,6" ToolTip.Tip="Коэффициент верхнего механизма" />
-                <TextBlock Grid.Row="2" Grid.Column="2" Text="VPULSE_LOW" Margin="12,0,0,6" ToolTip.Tip="Коэффициент нижнего механизма" />
-                <TextBlock Grid.Row="2" Grid.Column="3" Text="VPULSE_CLAMP" Margin="12,0,0,6" ToolTip.Tip="Коэффициент зажима" />
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="VPULSE_TOP" Margin="12,0,0,6" ToolTip.Tip="Коэффициент импульсов одного оборота TOP" />
+                <TextBlock Grid.Row="2" Grid.Column="2" Text="VPULSE_LOW" Margin="12,0,0,6" ToolTip.Tip="Коэффициент импульсов одного оборота LOW" />
+                <TextBlock Grid.Row="2" Grid.Column="3" Text="VPULSE_CLAMP" Margin="12,0,0,6" ToolTip.Tip="Коэффициент импульсов одного оборота зажима" />
 
                 <TextBox Grid.Row="3" Classes="value-box" Text="{Binding PulseB}" ToolTip.Tip="Коэффициент импульсов по оси B" />
-                <TextBox Grid.Row="3" Grid.Column="1" Classes="value-box" Text="{Binding PulseTop}" Margin="12,0,0,0" ToolTip.Tip="Коэффициент верхнего механизма" />
-                <TextBox Grid.Row="3" Grid.Column="2" Classes="value-box" Text="{Binding PulseLow}" Margin="12,0,0,0" ToolTip.Tip="Коэффициент нижнего механизма" />
-                <TextBox Grid.Row="3" Grid.Column="3" Classes="value-box" Text="{Binding PulseClamp}" Margin="12,0,0,0" ToolTip.Tip="Коэффициент зажима" />
+                <TextBox Grid.Row="3" Grid.Column="1" Classes="value-box" Text="{Binding PulseTop}" Margin="12,0,0,0" ToolTip.Tip="Коэффициент импульсов одного оборота TOP" />
+                <TextBox Grid.Row="3" Grid.Column="2" Classes="value-box" Text="{Binding PulseLow}" Margin="12,0,0,0" ToolTip.Tip="Коэффициент импульсов одного оборота LOW" />
+                <TextBox Grid.Row="3" Grid.Column="3" Classes="value-box" Text="{Binding PulseClamp}" Margin="12,0,0,0" ToolTip.Tip="Коэффициент импульсов одного оборота зажима" />
               </Grid>
             </StackPanel>
           </Border>
