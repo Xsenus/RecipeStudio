@@ -25,7 +25,7 @@ public sealed class MainViewModel : ViewModelBase
         Dashboard = new DashboardViewModel(_repo, _importService, OpenInEditor);
         Editor = new EditorViewModel(_settings, _repo, _excel, _importService, NavigateToDashboard);
         Editor.PropertyChanged += OnEditorPropertyChanged;
-        Simulation = new SimulationViewModel();
+        Simulation = new SimulationViewModel(Editor);
         Settings = new SettingsViewModel(_settings, OnSettingsChanged, CreateSampleRecipeFromSettings);
 
         _currentPage = Dashboard;
