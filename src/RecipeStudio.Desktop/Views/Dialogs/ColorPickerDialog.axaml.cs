@@ -19,9 +19,9 @@ public sealed partial class ColorPickerDialog : Window
         SetFromColor(color);
 
         HexBox.LostFocus += (_, _) => ApplyHexFromText();
-        RSlider.PropertyChanged += (_, e) => { if (e.Property == RangeBase.ValueProperty) UpdateFromSliders(); };
-        GSlider.PropertyChanged += (_, e) => { if (e.Property == RangeBase.ValueProperty) UpdateFromSliders(); };
-        BSlider.PropertyChanged += (_, e) => { if (e.Property == RangeBase.ValueProperty) UpdateFromSliders(); };
+        RSlider.PropertyChanged += (_, e) => { if (e.Property == Slider.ValueProperty) UpdateFromSliders(); };
+        GSlider.PropertyChanged += (_, e) => { if (e.Property == Slider.ValueProperty) UpdateFromSliders(); };
+        BSlider.PropertyChanged += (_, e) => { if (e.Property == Slider.ValueProperty) UpdateFromSliders(); };
     }
 
     public string SelectedHex { get; private set; } = "#22C55E";
