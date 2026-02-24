@@ -34,6 +34,13 @@ public sealed class AppSettings
     public bool PlotShowTargetPoints { get; set; } = true;
     public bool PlotEnableDrag { get; set; } = true;
 
+    // Plot colors (hex: #RRGGBB or #AARRGGBB)
+    public string PlotColorWorkingZone { get; set; } = "#22C55E";
+    public string PlotColorSafetyZone { get; set; } = "#9CA3AF";
+    public string PlotColorRobotPath { get; set; } = "#F59E0B";
+    public string PlotColorPairLinks { get; set; } = "#FB923C";
+    public string PlotColorTool { get; set; } = "#EF4444";
+
     public int SmoothSegmentsPerSpan { get; set; } = 16;
 
     public WindowPlacementSettings WindowPlacement { get; set; } = new();

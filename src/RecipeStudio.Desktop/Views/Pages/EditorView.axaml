@@ -290,14 +290,19 @@
               <Button Grid.Column="1" Classes="ghost panel-close-btn" Click="HideVisualizationPanel_Click">✕</Button>
             </Grid>
 
-            <Grid Grid.Row="1" RowDefinitions="*,Auto" Margin="0,10,0,0">
-              <controls:RecipePlotControl x:Name="RecipePlot" MinHeight="320"
+            <Grid Grid.Row="1" RowDefinitions="Auto,*,Auto" Margin="0,10,0,0">
+              <Grid ColumnDefinitions="Auto,Auto,*" Margin="0,0,0,8">
+                <Button x:Name="LegendToggleButton" Classes="ghost" ToolTip.Tip="Показать/скрыть пояснения на графике" Click="ToggleLegend_Click">Пояснения: вкл</Button>
+                <Button Grid.Column="1" x:Name="LinksToggleButton" Classes="ghost" ToolTip.Tip="Показать/скрыть вспомогательные связи Xp/Zp ↔ Xr/Zr" Click="TogglePairLinks_Click" Margin="8,0,0,0">Связи точек: выкл</Button>
+              </Grid>
+
+              <controls:RecipePlotControl Grid.Row="1" x:Name="RecipePlot" MinHeight="320"
                                          Points="{Binding Points}"
                                          SelectedPoint="{Binding SelectedPoint}"
                                          Progress="{Binding Progress}"
                                          Settings="{Binding AppSettings}" />
 
-              <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,14,Auto,Auto,Auto,Auto,Auto,Auto,*,Auto" Margin="0,8,0,0">
+              <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,14,Auto,Auto,Auto,*,Auto" Margin="0,8,0,0">
                 <Button Command="{Binding PlayPauseCommand}" Classes="accent">▶ / ❚❚</Button>
                 <Button Grid.Column="1" Command="{Binding StopCommand}" Classes="ghost">⏹</Button>
 
@@ -306,11 +311,8 @@
                 <Button Grid.Column="5" Classes="ghost" ToolTip.Tip="Подогнать в окно" Click="FitPlot_Click">Fit</Button>
                 <TextBlock Grid.Column="6" x:Name="ZoomText" Text="x1.00" VerticalAlignment="Center" Classes="muted" Margin="8,0,0,0"/>
 
-                <Button Grid.Column="7" x:Name="LegendToggleButton" Classes="ghost" ToolTip.Tip="Показать/скрыть описание (легенду)" Click="ToggleLegend_Click">Легенда: вкл</Button>
-                <Button Grid.Column="8" x:Name="LinksToggleButton" Classes="ghost" ToolTip.Tip="Показать/скрыть вспомогательные связи Xp/Zp ↔ Xr/Zr" Click="TogglePairLinks_Click">Связи: выкл</Button>
-
-                <TextBlock Grid.Column="9" Text="Скорость" VerticalAlignment="Center" Classes="muted" HorizontalAlignment="Right" Margin="0,0,8,0" />
-                <Slider Grid.Column="10" Minimum="0.2" Maximum="3" Value="{Binding SpeedMultiplier}" Width="120" />
+                <TextBlock Grid.Column="7" Text="Скорость" VerticalAlignment="Center" Classes="muted" HorizontalAlignment="Right" Margin="0,0,8,0" />
+                <Slider Grid.Column="8" Minimum="0.2" Maximum="3" Value="{Binding SpeedMultiplier}" Width="120" />
               </Grid>
             </Grid>
           </Grid>

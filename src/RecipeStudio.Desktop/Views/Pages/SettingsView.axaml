@@ -173,15 +173,30 @@
                 </Border>
 
                 <Border Grid.Column="1" Classes="card" Padding="12" Margin="12,0,0,0">
-                  <Grid ColumnDefinitions="180,*" RowDefinitions="Auto,Auto,Auto" Margin="0,2,0,0">
+                  <Grid ColumnDefinitions="180,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="0,2,0,0">
                     <TextBlock Text="Толщина линии" VerticalAlignment="Center" ToolTip.Tip="Толщина основной линии графика" Margin="0,0,0,10" />
                     <TextBox Grid.Column="1" Classes="value-box" Text="{Binding PlotStrokeThickness}" Margin="10,0,0,10" ToolTip.Tip="Толщина основной линии графика" />
 
                     <TextBlock Grid.Row="1" Text="Радиус точек" VerticalAlignment="Center" ToolTip.Tip="Размер отображаемых точек на графике" Margin="0,0,0,10" />
                     <TextBox Grid.Row="1" Grid.Column="1" Classes="value-box" Text="{Binding PlotPointRadius}" Margin="10,0,0,10" ToolTip.Tip="Размер отображаемых точек на графике" />
 
-                    <TextBlock Grid.Row="2" Text="Сегменты сглаживания" VerticalAlignment="Center" ToolTip.Tip="Чем выше значение, тем более плавная кривая и выше нагрузка" />
-                    <TextBox Grid.Row="2" Grid.Column="1" Classes="value-box" Text="{Binding SmoothSegmentsPerSpan}" Margin="10,0,0,0" ToolTip.Tip="Чем выше значение, тем более плавная кривая и выше нагрузка" />
+                    <TextBlock Grid.Row="2" Text="Сегменты сглаживания" VerticalAlignment="Center" ToolTip.Tip="Чем выше значение, тем более плавная кривая и выше нагрузка" Margin="0,0,0,10" />
+                    <TextBox Grid.Row="2" Grid.Column="1" Classes="value-box" Text="{Binding SmoothSegmentsPerSpan}" Margin="10,0,0,10" ToolTip.Tip="Чем выше значение, тем более плавная кривая и выше нагрузка" />
+
+                    <TextBlock Grid.Row="3" Text="Цвет рабочей зоны" VerticalAlignment="Center" Margin="0,0,0,10" ToolTip.Tip="HEX цвет, например #22C55E" />
+                    <TextBox Grid.Row="3" Grid.Column="1" Classes="value-box" Text="{Binding PlotColorWorkingZone}" Margin="10,0,0,10" ToolTip.Tip="HEX цвет, например #22C55E" />
+
+                    <TextBlock Grid.Row="4" Text="Цвет safe-зоны" VerticalAlignment="Center" Margin="0,0,0,10" ToolTip.Tip="HEX цвет, например #9CA3AF" />
+                    <TextBox Grid.Row="4" Grid.Column="1" Classes="value-box" Text="{Binding PlotColorSafetyZone}" Margin="10,0,0,10" ToolTip.Tip="HEX цвет, например #9CA3AF" />
+
+                    <TextBlock Grid.Row="5" Text="Цвет робота/траектории" VerticalAlignment="Center" Margin="0,0,0,10" ToolTip.Tip="HEX цвет, например #F59E0B" />
+                    <TextBox Grid.Row="5" Grid.Column="1" Classes="value-box" Text="{Binding PlotColorRobotPath}" Margin="10,0,0,10" ToolTip.Tip="HEX цвет, например #F59E0B" />
+
+                    <TextBlock Grid.Row="6" Text="Цвет связей" VerticalAlignment="Center" Margin="0,0,0,10" ToolTip.Tip="HEX цвет, например #FB923C" />
+                    <TextBox Grid.Row="6" Grid.Column="1" Classes="value-box" Text="{Binding PlotColorPairLinks}" Margin="10,0,0,10" ToolTip.Tip="HEX цвет, например #FB923C" />
+
+                    <TextBlock Grid.Row="7" Text="Цвет инструмента" VerticalAlignment="Center" ToolTip.Tip="HEX цвет, например #EF4444" />
+                    <TextBox Grid.Row="7" Grid.Column="1" Classes="value-box" Text="{Binding PlotColorTool}" Margin="10,0,0,0" ToolTip.Tip="HEX цвет, например #EF4444" />
                   </Grid>
                 </Border>
               </Grid>

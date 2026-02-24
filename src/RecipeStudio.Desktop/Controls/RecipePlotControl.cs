@@ -287,10 +287,14 @@ public sealed class RecipePlotControl : Control
         var opacity = Math.Clamp(settings.PlotOpacity, 0.05, 0.90);
         var thickness = Math.Max(1, settings.PlotStrokeThickness);
 
-        var penTool = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), 245, 158, 11)), thickness);
-        var penTargetWork = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), 34, 197, 94)), thickness);
-        var penTargetSafe = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), 0, 0, 0)), thickness);
-        var penTargetToTool = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), 251, 146, 60)), Math.Max(1, thickness - 1));
+        var workColor = ParseColorOrDefault(settings.PlotColorWorkingZone, Color.FromRgb(34, 197, 94));
+        var safetyColor = ParseColorOrDefault(settings.PlotColorSafetyZone, Color.FromRgb(156, 163, 175));
+        var robotColor = ParseColorOrDefault(settings.PlotColorRobotPath, Color.FromRgb(245, 158, 11));
+        var linksColor = ParseColorOrDefault(settings.PlotColorPairLinks, Color.FromRgb(251, 146, 60));
+        var penTool = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), robotColor.R, robotColor.G, robotColor.B)), thickness);
+        var penTargetWork = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), workColor.R, workColor.G, workColor.B)), thickness);
+        var penTargetSafe = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), safetyColor.R, safetyColor.G, safetyColor.B)), thickness);
+        var penTargetToTool = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), linksColor.R, linksColor.G, linksColor.B)), Math.Max(1, thickness - 1));
 
         if (settings.PlotShowPolyline)
         {
@@ -429,8 +433,8 @@ public sealed class RecipePlotControl : Control
 
             // Working vs safety colors
             var color = p.Safe
-                ? Color.FromRgb(0, 0, 0)       // black (safety contour as in step-2 sheet)
-                : Color.FromRgb(34, 197, 94);  // green
+                ? ParseColorOrDefault(settings.PlotColorSafetyZone, Color.FromRgb(156, 163, 175))
+                : ParseColorOrDefault(settings.PlotColorWorkingZone, Color.FromRgb(34, 197, 94));
 
             var brush = new SolidColorBrush(color);
 
@@ -449,7 +453,7 @@ public sealed class RecipePlotControl : Control
     {
         var r = Math.Max(3, settings.PlotPointRadius - 1);
         var brush = new SolidColorBrush(Color.FromRgb(255, 255, 255));
-        var outline = new Pen(new SolidColorBrush(Color.FromRgb(245, 158, 11)), 1.2);
+        var outline = new Pen(new SolidColorBrush(ParseColorOrDefault(settings.PlotColorRobotPath, Color.FromRgb(245, 158, 11))), 1.2);
 
         foreach (var p in points)
         {
@@ -484,7 +488,7 @@ public sealed class RecipePlotControl : Control
     private void DrawToolMarker(DrawingContext ctx, Point world)
     {
         var sp = WorldToScreen(world);
-        var brush = new SolidColorBrush(Color.FromRgb(239, 68, 68));
+        var brush = new SolidColorBrush(ParseColorOrDefault((Settings ?? new AppSettings()).PlotColorTool, Color.FromRgb(239, 68, 68)));
         ctx.DrawEllipse(brush, null, sp, 5, 5);
     }
 
@@ -508,11 +512,20 @@ public sealed class RecipePlotControl : Control
             y += lineH;
         }
 
-        Entry(Color.FromRgb(34, 197, 94), "Working Zone (Safe=0)");
-        Entry(Color.FromRgb(0, 0, 0), "Safety Zone (Safe=1)");
-        Entry(Color.FromRgb(245, 158, 11), "Robot points/path (Xr,Zr)");
-        Entry(Color.FromRgb(251, 146, 60), "Pair links Xp/Zp ↔ Xr/Zr (Safe=0)");
-        Entry(Color.FromRgb(239, 68, 68), "Tool");
+                var settings = Settings ?? new AppSettings();
+        Entry(ParseColorOrDefault(settings.PlotColorWorkingZone, Color.FromRgb(34, 197, 94)), "Рабочая зона (Safe=0)");
+        Entry(ParseColorOrDefault(settings.PlotColorSafetyZone, Color.FromRgb(156, 163, 175)), "Безопасная зона (Safe=1)");
+        Entry(ParseColorOrDefault(settings.PlotColorRobotPath, Color.FromRgb(245, 158, 11)), "Траектория/точки робота (Xr,Zr)");
+        Entry(ParseColorOrDefault(settings.PlotColorPairLinks, Color.FromRgb(251, 146, 60)), "Связи Xp/Zp ↔ Xr/Zr (Safe=0)");
+        Entry(ParseColorOrDefault(settings.PlotColorTool, Color.FromRgb(239, 68, 68)), "Текущий инструмент");
+    }
+
+    private static Color ParseColorOrDefault(string? value, Color fallback)
+    {
+        if (!string.IsNullOrWhiteSpace(value) && Color.TryParse(value, out var parsed))
+            return parsed;
+
+        return fallback;
     }
 
     private Point WorldToScreen(Point w)

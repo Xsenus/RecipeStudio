@@ -438,10 +438,7 @@ public sealed partial class EditorView : UserControl
     private void FitPlot_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         RecipePlot.ResetZoom();
-        RecipePlot.ShowLegend = true;
-        RecipePlot.ShowPairLinks = false;
         UpdateZoomText();
-        UpdatePlotOverlayButtons();
     }
 
     private void UpdateZoomText()
@@ -463,8 +460,8 @@ public sealed partial class EditorView : UserControl
 
     private void UpdatePlotOverlayButtons()
     {
-        LegendToggleButton.Content = RecipePlot.ShowLegend ? "Легенда: вкл" : "Легенда: выкл";
-        LinksToggleButton.Content = RecipePlot.ShowPairLinks ? "Связи: вкл" : "Связи: выкл";
+        LegendToggleButton.Content = RecipePlot.ShowLegend ? "Пояснения: вкл" : "Пояснения: выкл";
+        LinksToggleButton.Content = RecipePlot.ShowPairLinks ? "Связи точек: вкл" : "Связи точек: выкл";
     }
 
     private void ResetPanels_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
