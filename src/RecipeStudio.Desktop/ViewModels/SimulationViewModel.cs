@@ -27,6 +27,7 @@ public sealed class SimulationViewModel : ViewModelBase
     private double _currentAlfa;
     private double _currentBetta;
     private bool _showGrid = true;
+    private bool _showPairLinks = true;
 
     // Extra factor to keep playback readable in UI (physical durations can be too long).
     private const double PlaybackScale = 4.0;
@@ -67,6 +68,12 @@ public sealed class SimulationViewModel : ViewModelBase
     {
         get => _showGrid;
         set => SetProperty(ref _showGrid, value);
+    }
+
+    public bool ShowPairLinks
+    {
+        get => _showPairLinks;
+        set => SetProperty(ref _showPairLinks, value);
     }
 
     public double SpeedMultiplier
