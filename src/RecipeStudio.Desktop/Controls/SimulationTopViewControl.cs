@@ -103,7 +103,9 @@ public sealed class SimulationTopViewControl : Control
         double total = 0;
         for (var i = 0; i < seg.Length; i++)
         {
-            var d = (pts[i + 1] - pts[i]).Length;
+            var dx = pts[i + 1].X - pts[i].X;
+            var dy = pts[i + 1].Y - pts[i].Y;
+            var d = Math.Sqrt(dx * dx + dy * dy);
             seg[i] = d;
             total += d;
         }
