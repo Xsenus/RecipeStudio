@@ -239,9 +239,8 @@ public sealed class RecipePlotControl : Control
             var (xp, zp) = p.GetTargetPoint(settings.HZone);
             target.Add(new Point(xp, zp));
 
-            var xr = p.Xr0 + p.DX;
-            var zr = p.Zr0 + p.DZ;
-            tool.Add(new Point(xr, zr));
+            var toolPoint = GetToolPointForPlot(p, settings);
+            tool.Add(toolPoint);
         }
 
         // Separate set for animation (usually working cleaning points only).
@@ -262,7 +261,7 @@ public sealed class RecipePlotControl : Control
         var dClamp = points[0].Container ? points[0].DClampCont : points[0].DClampForm;
         var halfClamp = Math.Max(10, dClamp / 2.0);
 
-        var hFreeZ = (settings.HZone - (settings.HContMax + settings.HBokMax)) / 2.0 + settings.HContMax;
+        var hFreeZ = Math.Clamp(settings.HFreeZ, Math.Min(settings.HContMax, settings.HZone), Math.Max(settings.HContMax, settings.HZone));
 
         var xs = target.Select(p => p.X).Concat(tool.Select(p => p.X)).Concat(new[] { -halfClamp, halfClamp, 0.0 });
         var ys = target.Select(p => p.Y).Concat(tool.Select(p => p.Y)).Concat(new[] { 0.0, settings.HZone, settings.HContMax, hFreeZ });
@@ -492,9 +491,8 @@ public sealed class RecipePlotControl : Control
 
         foreach (var p in points)
         {
-            var xr = p.Xr0 + p.DX;
-            var zr = p.Zr0 + p.DZ;
-            var sp = WorldToScreen(new Point(xr, zr));
+            var toolPoint = GetToolPointForPlot(p, settings);
+            var sp = WorldToScreen(toolPoint);
             ctx.DrawEllipse(brush, outline, sp, r, r);
         }
     }
@@ -514,9 +512,8 @@ public sealed class RecipePlotControl : Control
         foreach (var p in points.Where(x => !x.Safe))
         {
             var (xp, zp) = p.GetTargetPoint(hZone);
-            var xr = p.Xr0 + p.DX;
-            var zr = p.Zr0 + p.DZ;
-            ctx.DrawLine(pen, WorldToScreen(new Point(xp, zp)), WorldToScreen(new Point(xr, zr)));
+            var toolPoint = GetToolPointForPlot(p, Settings ?? new AppSettings());
+            ctx.DrawLine(pen, WorldToScreen(new Point(xp, zp)), WorldToScreen(toolPoint));
         }
     }
 

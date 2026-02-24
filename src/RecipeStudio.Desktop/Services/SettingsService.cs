@@ -96,6 +96,12 @@ public sealed class SettingsService
         }
     }
 
+    public void ResetToDefaults()
+    {
+        Settings = new AppSettings();
+        EnsureDefaults();
+    }
+
     private void EnsureDefaults()
     {
         if (string.IsNullOrWhiteSpace(Settings.RecipesFolder))
@@ -153,7 +159,7 @@ public sealed class SettingsService
 
     private static bool ValidateSettings(AppSettings s, out string error)
     {
-        if (!IsFinite(s.HZone) || !IsFinite(s.HContMax) || !IsFinite(s.HBokMax) ||
+        if (!IsFinite(s.HZone) || !IsFinite(s.HContMax) || !IsFinite(s.HBokMax) || !IsFinite(s.HFreeZ) ||
             !IsFinite(s.Xm) || !IsFinite(s.Ym) || !IsFinite(s.Zm) || !IsFinite(s.Lz) ||
             !IsFinite(s.PulseX) || !IsFinite(s.PulseY) || !IsFinite(s.PulseZ) || !IsFinite(s.PulseA) ||
             !IsFinite(s.PulseB) || !IsFinite(s.PulseTop) || !IsFinite(s.PulseLow) || !IsFinite(s.PulseClamp) ||
