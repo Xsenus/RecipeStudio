@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
@@ -64,6 +65,8 @@ public sealed partial class EditorView : UserControl
 
         if (HasUsableCanvasSize())
             InitializePanelsLayout();
+
+        UpdateZoomText();
     }
 
     private void OnDetachedFromVisualTree(object? sender, Avalonia.VisualTreeAttachmentEventArgs e)
@@ -417,12 +420,37 @@ public sealed partial class EditorView : UserControl
         PersistPanelsLayout();
     }
 
+    private void ZoomInPlot_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        RecipePlot.ZoomIn();
+        UpdateZoomText();
+    }
+
+    private void ZoomOutPlot_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        RecipePlot.ZoomOut();
+        UpdateZoomText();
+    }
+
+    private void FitPlot_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        RecipePlot.ResetZoom();
+        UpdateZoomText();
+    }
+
+    private void UpdateZoomText()
+    {
+        ZoomText.Text = $"x{RecipePlot.ZoomFactor.ToString("0.00", CultureInfo.InvariantCulture)}";
+    }
+
     private void ResetPanels_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         ParametersPanel.Width = 390;
         ParametersPanel.Height = 210;
         VisualizationPanel.Width = 760;
         VisualizationPanel.Height = 520;
+        RecipePlot.ResetZoom();
+        UpdateZoomText();
         SelectedPointPanel.Width = 430;
         SelectedPointPanel.Height = 280;
 

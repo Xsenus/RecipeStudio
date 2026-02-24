@@ -38,6 +38,7 @@ public sealed class RecipePlotControl : Control
     private Rect _worldBounds;
     private double _scale;
     private double _pad;
+    private double _zoomFactor = 1.0;
 
     public IList<RecipePoint>? Points
     {
@@ -82,6 +83,27 @@ public sealed class RecipePlotControl : Control
     {
         // no-op (handlers are attached in the static ctor)
     }
+
+
+    public void ZoomIn()
+    {
+        _zoomFactor = Math.Clamp(_zoomFactor * 1.2, 1.0, 20.0);
+        InvalidateVisual();
+    }
+
+    public void ZoomOut()
+    {
+        _zoomFactor = Math.Clamp(_zoomFactor / 1.2, 1.0, 20.0);
+        InvalidateVisual();
+    }
+
+    public void ResetZoom()
+    {
+        _zoomFactor = 1.0;
+        InvalidateVisual();
+    }
+
+    public double ZoomFactor => _zoomFactor;
 
     private void OnPointsChanged(IList<RecipePoint>? points)
     {
@@ -223,6 +245,17 @@ public sealed class RecipePlotControl : Control
             _worldBounds.Y - extraH / 2.0,
             _worldBounds.Width + extraW,
             _worldBounds.Height + extraH);
+
+        // Zoom around current center (1.0 = fit-to-data)
+        if (_zoomFactor > 1.0)
+        {
+            var centerX = _worldBounds.Center.X;
+            var centerY = _worldBounds.Center.Y;
+            var zoomedWidth = _worldBounds.Width / _zoomFactor;
+            var zoomedHeight = _worldBounds.Height / _zoomFactor;
+            _worldBounds = new Rect(centerX - zoomedWidth / 2.0, centerY - zoomedHeight / 2.0, zoomedWidth, zoomedHeight);
+            _scale *= _zoomFactor;
+        }
 
         // Grid
         DrawGrid(context);
@@ -520,6 +553,16 @@ public sealed class RecipePlotControl : Control
             new Typeface("Segoe UI"), 14, Brushes.White);
         var p = new Point(bounds.Width / 2 - ft.Width / 2, bounds.Height / 2 - ft.Height / 2);
         ctx.DrawText(ft, p);
+    }
+
+    protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
+    {
+        base.OnPointerWheelChanged(e);
+
+        if (e.Delta.Y > 0)
+            ZoomIn();
+        else if (e.Delta.Y < 0)
+            ZoomOut();
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
