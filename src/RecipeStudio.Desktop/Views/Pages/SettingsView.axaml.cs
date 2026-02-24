@@ -166,6 +166,38 @@ public sealed partial class SettingsView : UserControl
         }
     }
 
+
+    private void ColorPreset_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_vm is null || sender is not Button { Tag: string tag })
+            return;
+
+        var parts = tag.Split(':', 2, StringSplitOptions.TrimEntries);
+        if (parts.Length != 2)
+            return;
+
+        var key = parts[0];
+        var value = parts[1];
+
+        switch (key)
+        {
+            case nameof(SettingsViewModel.PlotColorWorkingZone):
+                _vm.PlotColorWorkingZone = value;
+                break;
+            case nameof(SettingsViewModel.PlotColorSafetyZone):
+                _vm.PlotColorSafetyZone = value;
+                break;
+            case nameof(SettingsViewModel.PlotColorRobotPath):
+                _vm.PlotColorRobotPath = value;
+                break;
+            case nameof(SettingsViewModel.PlotColorPairLinks):
+                _vm.PlotColorPairLinks = value;
+                break;
+            case nameof(SettingsViewModel.PlotColorTool):
+                _vm.PlotColorTool = value;
+                break;
+        }
+    }
     private static void OpenFolder(string? path)
     {
         if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
