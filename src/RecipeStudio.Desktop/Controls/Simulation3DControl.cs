@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using Avalonia;
@@ -58,6 +59,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     private bool _failed;
     private bool _glInitialized;
     private bool _hasRenderedFrame;
+    private string? _failureDetails;
 
     public IList<RecipePoint>? Points { get => GetValue(PointsProperty); set => SetValue(PointsProperty, value); }
     public AppSettings? Settings { get => GetValue(SettingsProperty); set => SetValue(SettingsProperty, value); }
@@ -94,6 +96,8 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     {
         try
         {
+            _failed = false;
+            _failureDetails = null;
             _gl = GL.GetApi(gl.GetProcAddress);
             _meshShader = new ShaderProgram();
             _meshShader.Create(_gl, MeshVertexShader, MeshFragmentShader);
@@ -123,9 +127,11 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             _glInitialized = true;
             RebuildGeometry();
         }
-        catch
+        catch (Exception ex)
         {
             _failed = true;
+            _failureDetails = $"{ex.GetType().Name}: {ex.Message}";
+            Debug.WriteLine($"[Simulation3DControl] OpenGL init failed: {ex}");
         }
     }
 
@@ -133,6 +139,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     {
         _glInitialized = false;
         _hasRenderedFrame = false;
+        _failureDetails = null;
         if (_gl is null)
             return;
 
@@ -217,6 +224,18 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             13,
             Brushes.Orange);
         context.DrawText(ft, new Point(12, 12));
+
+        if (!string.IsNullOrWhiteSpace(_failureDetails))
+        {
+            var details = new FormattedText(
+                _failureDetails,
+                System.Globalization.CultureInfo.CurrentCulture,
+                FlowDirection.LeftToRight,
+                new Typeface("Consolas"),
+                11,
+                Brushes.OrangeRed);
+            context.DrawText(details, new Point(12, 30));
+        }
     }
 
     private void DrawSoftwareFallback(DrawingContext context)
