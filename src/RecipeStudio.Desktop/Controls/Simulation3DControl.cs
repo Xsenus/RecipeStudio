@@ -56,6 +56,8 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     private bool _isPanning;
     private Point _last;
     private bool _failed;
+    private bool _glInitialized;
+    private bool _hasRenderedFrame;
 
     public IList<RecipePoint>? Points { get => GetValue(PointsProperty); set => SetValue(PointsProperty, value); }
     public AppSettings? Settings { get => GetValue(SettingsProperty); set => SetValue(SettingsProperty, value); }
@@ -118,6 +120,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             _gl.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), (void*)0);
             _gl.BindVertexArray(0);
 
+            _glInitialized = true;
             RebuildGeometry();
         }
         catch
@@ -128,6 +131,8 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
 
     protected override void OnOpenGlDeinit(GlInterface gl)
     {
+        _glInitialized = false;
+        _hasRenderedFrame = false;
         if (_gl is null)
             return;
 
@@ -153,6 +158,8 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     {
         if (_failed || _gl is null || _meshShader is null || _lineShader is null || _texShader is null)
             return;
+
+        _hasRenderedFrame = true;
 
         _gl.Enable(EnableCap.DepthTest);
         _gl.Enable(EnableCap.Blend);
@@ -192,17 +199,65 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        if (!_failed)
+
+        if (_hasRenderedFrame)
             return;
 
-        var ft = new Avalonia.Media.FormattedText(
-            "OpenGL недоступен",
+        DrawSoftwareFallback(context);
+
+        var message = _failed || !_glInitialized
+            ? "OpenGL 3D сейчас недоступен — показан fallback"
+            : "Инициализация 3D...";
+
+        var ft = new FormattedText(
+            message,
             System.Globalization.CultureInfo.CurrentCulture,
-            Avalonia.Media.FlowDirection.LeftToRight,
-            new Avalonia.Media.Typeface("Segoe UI"),
-            14,
-            Avalonia.Media.Brushes.OrangeRed);
+            FlowDirection.LeftToRight,
+            new Typeface("Segoe UI"),
+            13,
+            Brushes.Orange);
         context.DrawText(ft, new Point(12, 12));
+    }
+
+    private void DrawSoftwareFallback(DrawingContext context)
+    {
+        context.FillRectangle(new SolidColorBrush(Color.FromRgb(6, 20, 40)), Bounds);
+
+        var pts = Points?.Select(p => new Vector3((float)(p.Xr0 + p.DX), (float)(p.Yx0 + p.DY), (float)(p.Zr0 + p.DZ))).ToList();
+        if (pts is null || pts.Count < 2)
+            return;
+
+        static Point Project(Vector3 p)
+        {
+            var x = p.X - p.Y * 0.45f;
+            var y = -p.Z + (p.X + p.Y) * 0.18f;
+            return new Point(x, y);
+        }
+
+        var projected = pts.Select(Project).ToList();
+        var minX = projected.Min(p => p.X);
+        var maxX = projected.Max(p => p.X);
+        var minY = projected.Min(p => p.Y);
+        var maxY = projected.Max(p => p.Y);
+        var w = Math.Max(1, maxX - minX);
+        var h = Math.Max(1, maxY - minY);
+        var scale = Math.Min((Bounds.Width - 24) / w, (Bounds.Height - 24) / h);
+
+        Point ToScreen(Point p) => new(12 + (p.X - minX) * scale, 12 + (p.Y - minY) * scale);
+
+        var geometry = new StreamGeometry();
+        using (var gc = geometry.Open())
+        {
+            gc.BeginFigure(ToScreen(projected[0]), false);
+            for (var i = 1; i < projected.Count; i++)
+                gc.LineTo(ToScreen(projected[i]));
+            gc.EndFigure(false);
+        }
+
+        context.DrawGeometry(null, new Pen(new SolidColorBrush(Color.FromRgb(240, 170, 40)), 2), geometry);
+
+        var nozzle = ToScreen(Project(new Vector3((float)ToolXRaw, (float)ToolYRaw, (float)ToolZRaw)));
+        context.DrawEllipse(new SolidColorBrush(Color.FromRgb(240, 80, 80)), new Pen(Brushes.White, 1), nozzle, 4, 4);
     }
 
     private void DrawMesh(Mesh mesh, Matrix4x4 model, Vector3 color, float alpha, Matrix4x4 view, Matrix4x4 proj)
@@ -513,7 +568,9 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         _isPanning = props.IsRightButtonPressed || e.KeyModifiers.HasFlag(KeyModifiers.Shift);
 
         if (e.ClickCount == 2)
+        {
             RebuildGeometry();
+        }
     }
 
     protected override void OnPointerMoved(PointerEventArgs e)
