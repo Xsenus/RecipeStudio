@@ -1,0 +1,100 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.rid }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rid: [win-x64, win-x86, win-arm64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Restore
+        run: dotnet restore RecipeStudio.sln
+
+      - name: Publish single-file exe
+        shell: pwsh
+        run: |
+          $rid = "${{ matrix.rid }}"
+          dotnet publish src\RecipeStudio.Desktop\RecipeStudio.Desktop.csproj `
+            -c Release `
+            -r $rid `
+            --self-contained true `
+            /p:PublishSingleFile=true `
+            /p:IncludeNativeLibrariesForSelfExtract=true `
+            /p:EnableCompressionInSingleFile=true `
+            /p:DebugType=None `
+            /p:DebugSymbols=false `
+            /p:GenerateDocumentationFile=false `
+            -o "publish\$rid"
+
+          if (-not (Test-Path "publish\$rid\RecipeStudio.Desktop.exe")) {
+            throw "publish\\$rid\\RecipeStudio.Desktop.exe not found"
+          }
+
+      - name: Pack release asset
+        shell: pwsh
+        run: |
+          $rid = "${{ matrix.rid }}"
+          $tag = "${{ github.ref_name }}"
+
+          New-Item -ItemType Directory -Path release-assets -Force | Out-Null
+          New-Item -ItemType Directory -Path "staging\$rid" -Force | Out-Null
+
+          Copy-Item "publish\$rid\RecipeStudio.Desktop.exe" "staging\$rid\RecipeStudio.Desktop.exe" -Force
+          Copy-Item RELEASE_README.md "staging\$rid\README.md" -Force
+
+          $zipName = "recipestudio-$tag-$rid.zip"
+          Compress-Archive -Path "staging\$rid\*" -DestinationPath "release-assets\$zipName" -Force
+
+          $hash = (Get-FileHash "release-assets\$zipName" -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $zipName" | Out-File -FilePath "release-assets\SHA256SUMS-$rid.txt" -Encoding ascii
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.rid }}
+          path: release-assets/*
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: release-assets
+
+      - name: Merge checksums
+        run: cat release-assets/SHA256SUMS-*.txt > release-assets/SHA256SUMS.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            release-assets/*.zip
+            release-assets/SHA256SUMS.txt
