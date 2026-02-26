@@ -44,13 +44,13 @@ public sealed class Mesh
         gl.BindVertexArray(0);
     }
 
-    public void Draw(GL gl)
+    public unsafe void Draw(GL gl)
     {
         if (Vao == 0)
             return;
 
         gl.BindVertexArray(Vao);
-        gl.DrawElements(PrimitiveType.Triangles, (uint)Indices.Length, DrawElementsType.UnsignedInt, null);
+        gl.DrawElements(PrimitiveType.Triangles, (uint)Indices.Length, DrawElementsType.UnsignedInt, (void*)0);
         gl.BindVertexArray(0);
     }
 

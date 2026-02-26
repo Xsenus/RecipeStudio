@@ -122,7 +122,7 @@ public sealed class SimulationPathService
         if (Math.Abs(b.Length - a.Length) < 1e-6f)
             return b.T;
 
-        var local = (target - a.Length) / (b.Length - a.Length);
+        var local = (float)((target - a.Length) / (b.Length - a.Length));
         return a.T + (b.T - a.T) * local;
     }
 

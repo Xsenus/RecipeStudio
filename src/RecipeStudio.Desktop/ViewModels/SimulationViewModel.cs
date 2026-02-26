@@ -145,7 +145,7 @@ public sealed class SimulationViewModel : ViewModelBase
     private void RecalculateTimeline()
     {
         var points = GetAnimationPoints();
-        _timeline = _pathService.Build(points, SmoothMotion);
+        _timeline = _pathService.Build(points.ToList(), SmoothMotion);
         _totalDurationSec = _timeline.TotalDurationSec;
         _stepTimes.Clear();
         _stepTimes.Add(0);
