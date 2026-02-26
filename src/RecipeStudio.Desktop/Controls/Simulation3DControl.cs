@@ -172,6 +172,9 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         if (TryCreate("GLSL100ES", MeshVertexShader100Es, MeshFragmentShader100Es, LineVertexShader100Es, LineFragmentShader100Es, TexVertexShader100Es, TexFragmentShader100Es, ("aPos", 0), ("aNormal", 1)))
             return;
 
+        if (TryCreate("LEGACY", MeshVertexShaderLegacy, MeshFragmentShaderLegacy, LineVertexShaderLegacy, LineFragmentShaderLegacy, TexVertexShaderLegacy, TexFragmentShaderLegacy, ("aPos", 0), ("aNormal", 1)))
+            return;
+
         throw new InvalidOperationException("Shader fallback failed: " + string.Join(" | ", errors));
     }
 
@@ -686,4 +689,11 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     private const string LineFragmentShader100Es = "#version 100\nprecision mediump float;uniform vec3 uColor;uniform float uAlpha;void main(){gl_FragColor=vec4(uColor,uAlpha);}";
     private const string TexVertexShader100Es = "#version 100\nattribute vec3 aPos;uniform mat4 uModel;uniform mat4 uView;uniform mat4 uProjection;varying vec2 vUv;void main(){vUv=aPos.xz+vec2(0.5,0.5);gl_Position=uProjection*uView*uModel*vec4(aPos,1.0);}";
     private const string TexFragmentShader100Es = "#version 100\nprecision mediump float;varying vec2 vUv;uniform sampler2D uTex0;uniform float uAlpha;void main(){vec4 c=texture2D(uTex0,vUv);gl_FragColor=vec4(c.rgb,c.a*uAlpha);}";
+
+    private const string MeshVertexShaderLegacy = "attribute vec3 aPos;attribute vec3 aNormal;uniform mat4 uModel;uniform mat4 uView;uniform mat4 uProjection;varying vec3 vNormal;void main(){vNormal=mat3(uModel)*aNormal;gl_Position=uProjection*uView*uModel*vec4(aPos,1.0);}";
+    private const string MeshFragmentShaderLegacy = "varying vec3 vNormal;uniform vec3 uLightDir;uniform vec3 uColor;uniform float uAlpha;void main(){vec3 n=normalize(vNormal);float diff=max(dot(n,normalize(-uLightDir)),0.2);vec3 col=uColor*(0.25+0.75*diff);gl_FragColor=vec4(col,uAlpha);}";
+    private const string LineVertexShaderLegacy = "attribute vec3 aPos;uniform mat4 uModel;uniform mat4 uView;uniform mat4 uProjection;void main(){gl_Position=uProjection*uView*uModel*vec4(aPos,1.0);}";
+    private const string LineFragmentShaderLegacy = "uniform vec3 uColor;uniform float uAlpha;void main(){gl_FragColor=vec4(uColor,uAlpha);}";
+    private const string TexVertexShaderLegacy = "attribute vec3 aPos;uniform mat4 uModel;uniform mat4 uView;uniform mat4 uProjection;varying vec2 vUv;void main(){vUv=aPos.xz+vec2(0.5,0.5);gl_Position=uProjection*uView*uModel*vec4(aPos,1.0);}";
+    private const string TexFragmentShaderLegacy = "varying vec2 vUv;uniform sampler2D uTex0;uniform float uAlpha;void main(){vec4 c=texture2D(uTex0,vUv);gl_FragColor=vec4(c.rgb,c.a*uAlpha);}";
 }
