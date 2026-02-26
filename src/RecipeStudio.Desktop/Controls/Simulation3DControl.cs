@@ -10,6 +10,7 @@ using Avalonia.OpenGL;
 using Avalonia.OpenGL.Controls;
 using RecipeStudio.Desktop.Graphics3D;
 using RecipeStudio.Desktop.Models;
+using RecipeStudio.Desktop.Services;
 using Silk.NET.OpenGL;
 
 namespace RecipeStudio.Desktop.Controls;
@@ -87,7 +88,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         BlueprintScaleProperty.Changed.AddClassHandler<Simulation3DControl>((c, _) => c.RequestNextFrameRendering());
     }
 
-    protected override void OnOpenGlInit(GlInterface gl, int fb)
+    protected override void OnOpenGlInit(GlInterface gl)
     {
         try
         {
@@ -125,7 +126,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         }
     }
 
-    protected override void OnOpenGlDeinit(GlInterface gl, int fb)
+    protected override void OnOpenGlDeinit(GlInterface gl)
     {
         if (_gl is null)
             return;
