@@ -99,12 +99,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             _failed = false;
             _failureDetails = null;
             _gl = GL.GetApi(gl.GetProcAddress);
-            _meshShader = new ShaderProgram();
-            _meshShader.Create(_gl, MeshVertexShader, MeshFragmentShader);
-            _lineShader = new ShaderProgram();
-            _lineShader.Create(_gl, LineVertexShader, LineFragmentShader);
-            _texShader = new ShaderProgram();
-            _texShader.Create(_gl, TexVertexShader, TexFragmentShader);
+            CreateShadersWithFallback();
 
             _nozzleMesh = NozzleMeshBuilder.Build();
             _nozzleMesh.Upload(_gl);
@@ -132,6 +127,35 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             _failed = true;
             _failureDetails = $"{ex.GetType().Name}: {ex.Message}";
             Debug.WriteLine($"[Simulation3DControl] OpenGL init failed: {ex}");
+        }
+    }
+
+
+    private void CreateShadersWithFallback()
+    {
+        _meshShader = new ShaderProgram();
+        _lineShader = new ShaderProgram();
+        _texShader = new ShaderProgram();
+
+        try
+        {
+            _meshShader.Create(_gl!, MeshVertexShader330, MeshFragmentShader330);
+            _lineShader.Create(_gl!, LineVertexShader330, LineFragmentShader330);
+            _texShader.Create(_gl!, TexVertexShader330, TexFragmentShader330);
+        }
+        catch
+        {
+            _meshShader.Dispose(_gl!);
+            _lineShader.Dispose(_gl!);
+            _texShader.Dispose(_gl!);
+
+            _meshShader = new ShaderProgram();
+            _lineShader = new ShaderProgram();
+            _texShader = new ShaderProgram();
+
+            _meshShader.Create(_gl!, MeshVertexShader120, MeshFragmentShader120, ("aPos", 0), ("aNormal", 1));
+            _lineShader.Create(_gl!, LineVertexShader120, LineFragmentShader120, ("aPos", 0));
+            _texShader.Create(_gl!, TexVertexShader120, TexFragmentShader120, ("aPos", 0));
         }
     }
 
@@ -619,10 +643,17 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         RequestNextFrameRendering();
     }
 
-    private const string MeshVertexShader = "#version 330 core\nlayout(location=0) in vec3 aPos;layout(location=1) in vec3 aNormal;uniform mat4 uModel;uniform mat4 uView;uniform mat4 uProjection;out vec3 vNormal;void main(){vNormal=mat3(uModel)*aNormal;gl_Position=uProjection*uView*uModel*vec4(aPos,1.0);}";
-    private const string MeshFragmentShader = "#version 330 core\nin vec3 vNormal;uniform vec3 uLightDir;uniform vec3 uColor;uniform float uAlpha;out vec4 FragColor;void main(){vec3 n=normalize(vNormal);float diff=max(dot(n,normalize(-uLightDir)),0.2);vec3 col=uColor*(0.25+0.75*diff);FragColor=vec4(col,uAlpha);}";
-    private const string LineVertexShader = "#version 330 core\nlayout(location=0) in vec3 aPos;uniform mat4 uModel;uniform mat4 uView;uniform mat4 uProjection;void main(){gl_Position=uProjection*uView*uModel*vec4(aPos,1.0);}";
-    private const string LineFragmentShader = "#version 330 core\nuniform vec3 uColor;uniform float uAlpha;out vec4 FragColor;void main(){FragColor=vec4(uColor,uAlpha);}";
-    private const string TexVertexShader = "#version 330 core\nlayout(location=0) in vec3 aPos;uniform mat4 uModel;uniform mat4 uView;uniform mat4 uProjection;out vec2 vUv;void main(){vUv=aPos.xz+vec2(0.5,0.5);gl_Position=uProjection*uView*uModel*vec4(aPos,1.0);}";
-    private const string TexFragmentShader = "#version 330 core\nin vec2 vUv;uniform sampler2D uTex0;uniform float uAlpha;out vec4 FragColor;void main(){vec4 c=texture(uTex0,vUv);FragColor=vec4(c.rgb,c.a*uAlpha);}";
+    private const string MeshVertexShader330 = "#version 330 core\nlayout(location=0) in vec3 aPos;layout(location=1) in vec3 aNormal;uniform mat4 uModel;uniform mat4 uView;uniform mat4 uProjection;out vec3 vNormal;void main(){vNormal=mat3(uModel)*aNormal;gl_Position=uProjection*uView*uModel*vec4(aPos,1.0);}";
+    private const string MeshFragmentShader330 = "#version 330 core\nin vec3 vNormal;uniform vec3 uLightDir;uniform vec3 uColor;uniform float uAlpha;out vec4 FragColor;void main(){vec3 n=normalize(vNormal);float diff=max(dot(n,normalize(-uLightDir)),0.2);vec3 col=uColor*(0.25+0.75*diff);FragColor=vec4(col,uAlpha);}";
+    private const string LineVertexShader330 = "#version 330 core\nlayout(location=0) in vec3 aPos;uniform mat4 uModel;uniform mat4 uView;uniform mat4 uProjection;void main(){gl_Position=uProjection*uView*uModel*vec4(aPos,1.0);}";
+    private const string LineFragmentShader330 = "#version 330 core\nuniform vec3 uColor;uniform float uAlpha;out vec4 FragColor;void main(){FragColor=vec4(uColor,uAlpha);}";
+    private const string TexVertexShader330 = "#version 330 core\nlayout(location=0) in vec3 aPos;uniform mat4 uModel;uniform mat4 uView;uniform mat4 uProjection;out vec2 vUv;void main(){vUv=aPos.xz+vec2(0.5,0.5);gl_Position=uProjection*uView*uModel*vec4(aPos,1.0);}";
+    private const string TexFragmentShader330 = "#version 330 core\nin vec2 vUv;uniform sampler2D uTex0;uniform float uAlpha;out vec4 FragColor;void main(){vec4 c=texture(uTex0,vUv);FragColor=vec4(c.rgb,c.a*uAlpha);}";
+
+    private const string MeshVertexShader120 = "#version 120\nattribute vec3 aPos;attribute vec3 aNormal;uniform mat4 uModel;uniform mat4 uView;uniform mat4 uProjection;varying vec3 vNormal;void main(){vNormal=mat3(uModel)*aNormal;gl_Position=uProjection*uView*uModel*vec4(aPos,1.0);}";
+    private const string MeshFragmentShader120 = "#version 120\nvarying vec3 vNormal;uniform vec3 uLightDir;uniform vec3 uColor;uniform float uAlpha;void main(){vec3 n=normalize(vNormal);float diff=max(dot(n,normalize(-uLightDir)),0.2);vec3 col=uColor*(0.25+0.75*diff);gl_FragColor=vec4(col,uAlpha);}";
+    private const string LineVertexShader120 = "#version 120\nattribute vec3 aPos;uniform mat4 uModel;uniform mat4 uView;uniform mat4 uProjection;void main(){gl_Position=uProjection*uView*uModel*vec4(aPos,1.0);}";
+    private const string LineFragmentShader120 = "#version 120\nuniform vec3 uColor;uniform float uAlpha;void main(){gl_FragColor=vec4(uColor,uAlpha);}";
+    private const string TexVertexShader120 = "#version 120\nattribute vec3 aPos;uniform mat4 uModel;uniform mat4 uView;uniform mat4 uProjection;varying vec2 vUv;void main(){vUv=aPos.xz+vec2(0.5,0.5);gl_Position=uProjection*uView*uModel*vec4(aPos,1.0);}";
+    private const string TexFragmentShader120 = "#version 120\nvarying vec2 vUv;uniform sampler2D uTex0;uniform float uAlpha;void main(){vec4 c=texture2D(uTex0,vUv);gl_FragColor=vec4(c.rgb,c.a*uAlpha);}";
 }

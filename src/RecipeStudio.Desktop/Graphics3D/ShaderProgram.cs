@@ -8,13 +8,17 @@ public sealed class ShaderProgram
 {
     public uint Handle { get; private set; }
 
-    public void Create(GL gl, string vert, string frag)
+    public void Create(GL gl, string vert, string frag, params (string Name, uint Location)[] attributeBindings)
     {
         var v = Compile(gl, ShaderType.VertexShader, vert);
         var f = Compile(gl, ShaderType.FragmentShader, frag);
         Handle = gl.CreateProgram();
         gl.AttachShader(Handle, v);
         gl.AttachShader(Handle, f);
+
+        foreach (var binding in attributeBindings)
+            gl.BindAttribLocation(Handle, binding.Location, binding.Name);
+
         gl.LinkProgram(Handle);
         gl.GetProgram(Handle, ProgramPropertyARB.LinkStatus, out var ok);
         if (ok == 0)
