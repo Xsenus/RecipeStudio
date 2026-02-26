@@ -4,7 +4,6 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
-using Avalonia;
 using Avalonia.Threading;
 using RecipeStudio.Desktop.Models;
 using RecipeStudio.Desktop.Services;
@@ -15,7 +14,7 @@ public sealed class SimulationViewModel : ViewModelBase
 {
     private readonly EditorViewModel _editor;
     private readonly DispatcherTimer _timer;
-
+    private readonly SimulationPathService _pathService = new();
     private readonly List<double> _stepTimes = new();
 
     private double _speedMultiplier = 2.0;
@@ -28,8 +27,9 @@ public sealed class SimulationViewModel : ViewModelBase
     private double _currentBetta;
     private bool _showGrid = true;
     private bool _showPairLinks = true;
-
-    private const double PlaybackScale = 4.0;
+    private bool _includeSafePoints = true;
+    private bool _smoothMotion = true;
+    private SimulationPath _timeline = new(new List<PathWaypoint>(), new List<PathSegment>(), 0);
 
     public SimulationViewModel(EditorViewModel editor)
     {
@@ -58,22 +58,20 @@ public sealed class SimulationViewModel : ViewModelBase
     public RelayCommand StepPreviousCommand { get; }
     public RelayCommand StepNextCommand { get; }
 
-    public bool IsPlaying
+    public bool IsPlaying { get => _isPlaying; private set => SetProperty(ref _isPlaying, value); }
+    public bool ShowGrid { get => _showGrid; set => SetProperty(ref _showGrid, value); }
+    public bool ShowPairLinks { get => _showPairLinks; set => SetProperty(ref _showPairLinks, value); }
+
+    public bool IncludeSafePoints
     {
-        get => _isPlaying;
-        private set => SetProperty(ref _isPlaying, value);
+        get => _includeSafePoints;
+        set { if (SetProperty(ref _includeSafePoints, value)) RecalculateTimeline(); }
     }
 
-    public bool ShowGrid
+    public bool SmoothMotion
     {
-        get => _showGrid;
-        set => SetProperty(ref _showGrid, value);
-    }
-
-    public bool ShowPairLinks
-    {
-        get => _showPairLinks;
-        set => SetProperty(ref _showPairLinks, value);
+        get => _smoothMotion;
+        set { if (SetProperty(ref _smoothMotion, value)) RecalculateTimeline(); }
     }
 
     public double SpeedMultiplier
@@ -82,56 +80,28 @@ public sealed class SimulationViewModel : ViewModelBase
         set => SetProperty(ref _speedMultiplier, Math.Clamp(value, 0.2, 12));
     }
 
-    public double Progress
-    {
-        get => _progress;
-        private set => SetProperty(ref _progress, value);
-    }
-
+    public double Progress { get => _progress; private set => SetProperty(ref _progress, value); }
     public int CurrentStepIndex => FindCurrentStep();
     public int TotalSteps => Math.Max(0, GetAnimationPoints().Count - 1);
-
     public double ToolR => Math.Round(Math.Sqrt(_toolPosition.X * _toolPosition.X + _toolPosition.Y * _toolPosition.Y), 1);
     public double ToolZ => Math.Round(_toolPosition.Z, 1);
     public double ToolX => Math.Round(_toolPosition.X, 1);
     public double ToolY => Math.Round(_toolPosition.Y, 1);
-
-    public double CurrentAlfa
-    {
-        get => _currentAlfa;
-        private set => SetProperty(ref _currentAlfa, value);
-    }
-
-    public double CurrentBetta
-    {
-        get => _currentBetta;
-        private set => SetProperty(ref _currentBetta, value);
-    }
-
+    public double ToolXRaw => _toolPosition.X;
+    public double ToolYRaw => _toolPosition.Y;
+    public double ToolZRaw => _toolPosition.Z;
+    public double CurrentAlfa { get => _currentAlfa; private set => SetProperty(ref _currentAlfa, value); }
+    public double CurrentBetta { get => _currentBetta; private set => SetProperty(ref _currentBetta, value); }
     public int CurrentXPuls => (int)Math.Round(ToolX * AppSettings.PulseX, 0, MidpointRounding.AwayFromZero);
     public int CurrentYPuls => (int)Math.Round(ToolY * AppSettings.PulseY, 0, MidpointRounding.AwayFromZero);
     public int CurrentZPuls => (int)Math.Round(ToolZ * AppSettings.PulseZ, 0, MidpointRounding.AwayFromZero);
-
     public int ProgressPercent => (int)Math.Round(Progress * 100, 0, MidpointRounding.AwayFromZero);
 
     private void TogglePlay()
     {
-        if (GetAnimationPoints().Count < 2)
-            return;
-
-        if (IsPlaying)
-        {
-            IsPlaying = false;
-            _timer.Stop();
-            return;
-        }
-
-        if (Progress >= 1)
-        {
-            _elapsedSec = 0;
-            UpdateFromElapsed();
-        }
-
+        if (GetAnimationPoints().Count < 2) return;
+        if (IsPlaying) { IsPlaying = false; _timer.Stop(); return; }
+        if (Progress >= 1) { _elapsedSec = 0; UpdateFromElapsed(); }
         IsPlaying = true;
         _timer.Start();
     }
@@ -146,75 +116,41 @@ public sealed class SimulationViewModel : ViewModelBase
 
     private void StepNext()
     {
-        if (_stepTimes.Count < 2)
-            return;
-
+        if (_stepTimes.Count < 2) return;
         IsPlaying = false;
         _timer.Stop();
-
         var idx = FindCurrentStep();
-        var next = Math.Clamp(idx + 1, 0, _stepTimes.Count - 1);
-        _elapsedSec = _stepTimes[next];
+        _elapsedSec = _stepTimes[Math.Clamp(idx + 1, 0, _stepTimes.Count - 1)];
         UpdateFromElapsed();
     }
 
     private void StepPrevious()
     {
-        if (_stepTimes.Count < 2)
-            return;
-
+        if (_stepTimes.Count < 2) return;
         IsPlaying = false;
         _timer.Stop();
-
         var idx = FindCurrentStep();
-        var prev = Math.Clamp(idx - 1, 0, _stepTimes.Count - 1);
-        _elapsedSec = _stepTimes[prev];
+        _elapsedSec = _stepTimes[Math.Clamp(idx - 1, 0, _stepTimes.Count - 1)];
         UpdateFromElapsed();
     }
 
     private void Tick()
     {
-        if (!IsPlaying || _totalDurationSec <= 0)
-            return;
-
+        if (!IsPlaying || _totalDurationSec <= 0) return;
         _elapsedSec += 0.016 * SpeedMultiplier;
-        if (_elapsedSec >= _totalDurationSec)
-        {
-            _elapsedSec = _totalDurationSec;
-            IsPlaying = false;
-            _timer.Stop();
-        }
-
+        if (_elapsedSec >= _totalDurationSec) { _elapsedSec = _totalDurationSec; IsPlaying = false; _timer.Stop(); }
         UpdateFromElapsed();
     }
 
     private void RecalculateTimeline()
     {
         var points = GetAnimationPoints();
-
-        _totalDurationSec = 0;
+        _timeline = _pathService.Build(points, SmoothMotion);
+        _totalDurationSec = _timeline.TotalDurationSec;
         _stepTimes.Clear();
         _stepTimes.Add(0);
-
-        if (points.Count < 2)
-        {
-            UpdateFromElapsed();
-            RaiseCommandsState();
-            RaisePropertyChanged(nameof(PointsForAnimation));
-            RaisePropertyChanged(nameof(PointsForPlot));
-            return;
-        }
-
-        for (var i = 0; i < points.Count - 1; i++)
-        {
-            var a = GetRobotPosition(points[i]);
-            var b = GetRobotPosition(points[i + 1]);
-            var len = Distance(a, b);
-            var speedMmSec = Math.Max(1, points[i].NozzleSpeedMmMin / 60.0);
-            var segDuration = len / speedMmSec / PlaybackScale;
-            _totalDurationSec += segDuration;
-            _stepTimes.Add(_totalDurationSec);
-        }
+        foreach (var seg in _timeline.Segments)
+            _stepTimes.Add(seg.EndSec);
 
         _elapsedSec = Math.Min(_elapsedSec, _totalDurationSec);
         UpdateFromElapsed();
@@ -234,7 +170,6 @@ public sealed class SimulationViewModel : ViewModelBase
     private void UpdateFromElapsed()
     {
         var points = GetAnimationPoints();
-
         if (points.Count == 0)
         {
             _toolPosition = default;
@@ -243,62 +178,20 @@ public sealed class SimulationViewModel : ViewModelBase
             return;
         }
 
-        if (points.Count == 1 || _totalDurationSec <= 1e-6)
-        {
-            _toolPosition = GetRobotPosition(points[0]);
-            CurrentAlfa = points[0].Alfa;
-            CurrentBetta = points[0].Betta;
-            Progress = 0;
-            RaiseTelemetry();
-            return;
-        }
-
-        var t = Math.Clamp(_elapsedSec, 0, _totalDurationSec);
-        Progress = _totalDurationSec <= 0 ? 0 : t / _totalDurationSec;
-
-        double acc = 0;
-        for (var i = 0; i < points.Count - 1; i++)
-        {
-            var a = GetRobotPosition(points[i]);
-            var b = GetRobotPosition(points[i + 1]);
-            var len = Distance(a, b);
-            var speedMmSec = Math.Max(1, points[i].NozzleSpeedMmMin / 60.0);
-            var segDuration = len / speedMmSec / PlaybackScale;
-            var next = acc + segDuration;
-
-            if (t <= next || i == points.Count - 2)
-            {
-                var local = segDuration <= 1e-9 ? 1 : (t - acc) / segDuration;
-                local = Math.Clamp(local, 0, 1);
-                _toolPosition = Lerp(a, b, local);
-
-                // If user-defined angles are 0, derive current angles from movement vector for better telemetry continuity.
-                var rawAlfa = Lerp(points[i].Alfa, points[i + 1].Alfa, local);
-                var rawBetta = Lerp(points[i].Betta, points[i + 1].Betta, local);
-                var move = new Point3D(b.X - a.X, b.Y - a.Y, b.Z - a.Z);
-                var inferred = InferAngles(move);
-                CurrentAlfa = Math.Abs(rawAlfa) < 0.01 ? inferred.Alfa : rawAlfa;
-                CurrentBetta = Math.Abs(rawBetta) < 0.01 ? inferred.Betta : rawBetta;
-
-                RaiseTelemetry();
-                return;
-            }
-
-            acc = next;
-        }
+        var sample = _pathService.Evaluate(_timeline, _elapsedSec, SmoothMotion);
+        _toolPosition = new Point3D(sample.Position.X, sample.Position.Y, sample.Position.Z);
+        Progress = sample.Progress;
+        CurrentAlfa = sample.Alfa;
+        CurrentBetta = sample.Betta;
+        RaiseTelemetry();
     }
 
     private int FindCurrentStep()
     {
-        if (_stepTimes.Count <= 1)
-            return 0;
-
+        if (_stepTimes.Count <= 1) return 0;
         for (var i = 0; i < _stepTimes.Count - 1; i++)
-        {
             if (_elapsedSec < _stepTimes[i + 1] - 1e-6)
                 return i;
-        }
-
         return _stepTimes.Count - 1;
     }
 
@@ -308,6 +201,9 @@ public sealed class SimulationViewModel : ViewModelBase
         RaisePropertyChanged(nameof(ToolZ));
         RaisePropertyChanged(nameof(ToolX));
         RaisePropertyChanged(nameof(ToolY));
+        RaisePropertyChanged(nameof(ToolXRaw));
+        RaisePropertyChanged(nameof(ToolYRaw));
+        RaisePropertyChanged(nameof(ToolZRaw));
         RaisePropertyChanged(nameof(CurrentAlfa));
         RaisePropertyChanged(nameof(CurrentBetta));
         RaisePropertyChanged(nameof(CurrentXPuls));
@@ -320,43 +216,12 @@ public sealed class SimulationViewModel : ViewModelBase
 
     private IList<RecipePoint> GetAnimationPoints()
     {
-        // Cleaning animation should move only along working points.
-        var working = _editor.Points.Where(p => p.Act && !p.Safe).ToList();
-        if (working.Count >= 2)
-            return working;
-
-        // Fallbacks for incomplete recipes.
+        var working = _editor.Points.Where(p => p.Act && (!p.Safe || IncludeSafePoints)).ToList();
+        if (working.Count >= 2) return working;
         var active = _editor.Points.Where(p => p.Act).ToList();
-        if (active.Count >= 2)
-            return active;
-
+        if (active.Count >= 2) return active;
         return _editor.Points.ToList();
     }
-
-    private static Point3D GetRobotPosition(RecipePoint p)
-        => new(p.Xr0 + p.DX, p.Yx0 + p.DY, p.Zr0 + p.DZ);
-
-    private static (double Alfa, double Betta) InferAngles(Point3D move)
-    {
-        var planar = Math.Sqrt(move.X * move.X + move.Y * move.Y);
-        var alfa = Math.Atan2(move.Z, Math.Max(1e-9, planar)) * 180.0 / Math.PI;
-        var betta = Math.Atan2(-move.Y, Math.Max(1e-9, Math.Abs(move.X))) * 180.0 / Math.PI;
-        return (Math.Round(alfa, 1), Math.Round(betta, 1));
-    }
-
-    private static double Distance(Point3D a, Point3D b)
-    {
-        var dx = b.X - a.X;
-        var dy = b.Y - a.Y;
-        var dz = b.Z - a.Z;
-        return Math.Sqrt(dx * dx + dy * dy + dz * dz);
-    }
-
-    private static Point3D Lerp(Point3D a, Point3D b, double t)
-        => new(a.X + (b.X - a.X) * t, a.Y + (b.Y - a.Y) * t, a.Z + (b.Z - a.Z) * t);
-
-    private static double Lerp(double a, double b, double t)
-        => a + (b - a) * t;
 
     private void OnEditorPointsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
@@ -379,7 +244,7 @@ public sealed class SimulationViewModel : ViewModelBase
 
     private void OnPointPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(RecipePoint.DX) or nameof(RecipePoint.DY) or nameof(RecipePoint.DZ) or nameof(RecipePoint.NozzleSpeedMmMin) or nameof(RecipePoint.Alfa) or nameof(RecipePoint.Betta) or nameof(RecipePoint.Act))
+        if (e.PropertyName is nameof(RecipePoint.DX) or nameof(RecipePoint.DY) or nameof(RecipePoint.DZ) or nameof(RecipePoint.NozzleSpeedMmMin) or nameof(RecipePoint.Alfa) or nameof(RecipePoint.Betta) or nameof(RecipePoint.Act) or nameof(RecipePoint.Safe))
             RecalculateTimeline();
     }
 
