@@ -5,6 +5,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ApplicationManifest>app.manifest</ApplicationManifest>
 
     <!-- Publish settings: single-file executable that runs without installed .NET runtime -->
@@ -22,6 +23,7 @@
     <PackageReference Include="Avalonia.Desktop" Version="11.3.12" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.12" />
     <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.12" />
+    <PackageReference Include="Silk.NET.OpenGL" Version="2.22.0" />
 
     <!-- Storage: SQLite + Excel import/export -->
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.3" />
