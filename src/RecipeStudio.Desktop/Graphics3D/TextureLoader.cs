@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Silk.NET.OpenGL;
@@ -25,7 +26,7 @@ public static class TextureLoader
 
             var texture = gl.GenTexture();
             gl.BindTexture(TextureTarget.Texture2D, texture);
-            gl.TexImage2D(TextureTarget.Texture2D, 0, (int)InternalFormat.Rgba, (uint)width, (uint)height, 0, PixelFormat.Bgra, PixelType.UnsignedByte, (void*)pixels);
+            gl.TexImage2D(TextureTarget.Texture2D, 0, (int)InternalFormat.Rgba, (uint)width, (uint)height, 0, Silk.NET.OpenGL.PixelFormat.Bgra, PixelType.UnsignedByte, (void*)pixels);
             gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
             gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
             gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
