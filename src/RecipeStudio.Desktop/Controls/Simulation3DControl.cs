@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using Avalonia;
@@ -67,6 +68,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     private bool _geometryDirty = true;
     private readonly AppLogger _logger = new();
     private bool _loggedRenderSuccess;
+    private bool _loggerConfigured;
 
     private List<Vector3> _toolPath = new();
     private List<Vector3> _targetPath = new();
@@ -110,7 +112,8 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             _loggedRenderSuccess = false;
             _failureDetails = null;
             _gl = GL.GetApi(gl.GetProcAddress);
-            _logger.Info("Simulation3DControl: OpenGL init started");
+            ConfigureLoggerFromSettings();
+            LogInfo("OpenGL init started");
             CreateShadersWithFallback();
 
             _nozzleMesh = NozzleMeshBuilder.Build();
@@ -134,7 +137,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             _gl.BindVertexArray(0);
 
             _glInitialized = true;
-            _logger.Info("Simulation3DControl: OpenGL init success.");
+            LogInfo("OpenGL init success.");
             LogGlErrors("OnOpenGlInit");
             RebuildGeometry();
         }
@@ -142,7 +145,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         {
             _failed = true;
             _failureDetails = $"{ex.GetType().Name}: {ex.Message}";
-            _logger.Error("Simulation3DControl: OpenGL init failed", ex);
+            LogError("OpenGL init failed", ex);
             Debug.WriteLine($"[Simulation3DControl] OpenGL init failed: {ex}");
         }
     }
@@ -174,7 +177,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             {
                 var msg = $"{label}: {ex.Message}";
                 errors.Add(msg);
-                _logger.Warn($"Simulation3DControl shader fallback failed: {msg}");
+                LogWarn($"shader fallback failed: {msg}");
                 return false;
             }
         }
@@ -195,7 +198,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             return;
 
         var shaderError = "Shader fallback failed: " + string.Join(" | ", errors);
-        _logger.Error($"Simulation3DControl: {shaderError}");
+        LogError(shaderError, null);
         throw new InvalidOperationException(shaderError);
     }
 
@@ -270,16 +273,16 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             if (!_loggedRenderSuccess)
             {
                 _loggedRenderSuccess = true;
-                _logger.Info("Simulation3DControl: first successful OpenGL frame rendered.");
+                LogInfo("first successful OpenGL frame rendered.");
             }
 
             RequestNextFrameRendering();
         }
         catch (Exception ex)
         {
-            _failed = true;
             _failureDetails = $"{ex.GetType().Name}: {ex.Message}";
-            _logger.Error("Simulation3DControl: OpenGL render failed", ex);
+            LogError("OpenGL render failed", ex);
+            _geometryDirty = true;
             Debug.WriteLine($"[Simulation3DControl] OpenGL render failed: {ex}");
             _hasRenderedFrame = false;
         }
@@ -576,6 +579,58 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     }
 
 
+    private void ConfigureLoggerFromSettings()
+    {
+        if (_loggerConfigured)
+            return;
+
+        var s = Settings;
+        _logger.Configure(s?.LoggingEnabled ?? true, s?.LogRetentionDays ?? 14, s?.LogMode ?? LogSeverity.Info, s?.LogsFolder);
+        _loggerConfigured = true;
+        LogInfo($"logger configured. folder={(s?.LogsFolder ?? "<default>")}");
+    }
+
+    private static string LocalDiagnosticsPath
+        => Path.Combine(AppContext.BaseDirectory, "logs", "simulation3d.log");
+
+    private void LogInfo(string message)
+    {
+        _logger.Info($"Simulation3DControl: {message}");
+        WriteLocalDiag("INFO", message, null);
+    }
+
+    private void LogWarn(string message)
+    {
+        _logger.Warn($"Simulation3DControl: {message}");
+        WriteLocalDiag("WARN", message, null);
+    }
+
+    private void LogError(string message, Exception? ex)
+    {
+        _logger.Error($"Simulation3DControl: {message}", ex);
+        WriteLocalDiag("ERROR", message, ex);
+    }
+
+    private static void WriteLocalDiag(string level, string message, Exception? ex)
+    {
+        try
+        {
+            var dir = Path.GetDirectoryName(LocalDiagnosticsPath);
+            if (!string.IsNullOrWhiteSpace(dir))
+                Directory.CreateDirectory(dir);
+
+            using var sw = File.AppendText(LocalDiagnosticsPath);
+            sw.WriteLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {level} {message}");
+            if (ex is not null)
+                sw.WriteLine(ex.ToString());
+        }
+        catch
+        {
+            // never throw from diagnostics
+        }
+    }
+
+
     private void LogGlErrors(string stage)
     {
         if (_gl is null)
@@ -589,7 +644,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
                 break;
 
             hadErrors = true;
-            _logger.Warn($"Simulation3DControl GL error at {stage}: {err}");
+            LogWarn($"GL error at {stage}: {err}");
         }
 
         if (hadErrors)
@@ -607,18 +662,20 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         if (!_geometryDirty || _gl is null)
             return;
 
+        ConfigureLoggerFromSettings();
+
         try
         {
             RebuildPartMesh();
             RebuildTrajectory();
             RebuildGrid();
             _geometryDirty = false;
-            _logger.Info($"Simulation3DControl: geometry rebuilt. partMesh={(_partMesh is null ? 0 : _partMesh.Vertices.Length / 6)} verts, toolPath={_toolPath.Count}, targetPath={_targetPath.Count}, gridVertices={_gridCount}");
+            LogInfo($"geometry rebuilt. partMesh={(_partMesh is null ? 0 : _partMesh.Vertices.Length / 6)} verts, toolPath={_toolPath.Count}, targetPath={_targetPath.Count}, gridVertices={_gridCount}");
             LogGlErrors("EnsureGeometryBuilt");
         }
         catch (Exception ex)
         {
-            _logger.Error("Simulation3DControl: geometry rebuild failed", ex);
+            LogError("geometry rebuild failed", ex);
             throw;
         }
     }
