@@ -64,6 +64,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     private bool _glInitialized;
     private bool _hasRenderedFrame;
     private string? _failureDetails;
+    private bool _geometryDirty = true;
 
     private List<Vector3> _toolPath = new();
     private List<Vector3> _targetPath = new();
@@ -192,6 +193,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         _glInitialized = false;
         _hasRenderedFrame = false;
         _failureDetails = null;
+        _geometryDirty = true;
         if (_gl is null)
             return;
 
@@ -221,35 +223,46 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         if (_failed || _gl is null || _meshShader is null || _lineShader is null || _texShader is null)
             return;
 
-        _hasRenderedFrame = true;
+        try
+        {
+            EnsureGeometryBuilt();
+            _hasRenderedFrame = true;
 
-        _gl.Enable(EnableCap.DepthTest);
-        _gl.Enable(EnableCap.Blend);
-        _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-        _gl.ClearColor(0.05f, 0.09f, 0.15f, 1f);
-        _gl.Clear((uint)(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit));
+            _gl.Enable(EnableCap.DepthTest);
+            _gl.Enable(EnableCap.Blend);
+            _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+            _gl.ClearColor(0.05f, 0.09f, 0.15f, 1f);
+            _gl.Clear((uint)(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit));
 
-        var view = _camera.GetView();
-        var proj = _camera.GetProjection((float)Math.Max(1, Bounds.Width), (float)Math.Max(1, Bounds.Height));
+            var view = _camera.GetView();
+            var proj = _camera.GetProjection((float)Math.Max(1, Bounds.Width), (float)Math.Max(1, Bounds.Height));
 
-        if (ShowGrid)
-            DrawGrid(view, proj);
+            if (ShowGrid)
+                DrawGrid(view, proj);
 
-        DrawTrajectory(view, proj);
+            DrawTrajectory(view, proj);
 
-        if (ShowBlueprints)
-            DrawBlueprints(view, proj);
+            if (ShowBlueprints)
+                DrawBlueprints(view, proj);
 
-        if (_partMesh is not null)
-            DrawMesh(_partMesh, Matrix4x4.Identity, new Vector3(0.75f, 0.78f, 0.83f), 0.5f, view, proj);
+            if (_partMesh is not null)
+                DrawMesh(_partMesh, Matrix4x4.Identity, new Vector3(0.75f, 0.78f, 0.83f), 0.5f, view, proj);
 
-        var nozzleBase = new Vector3((float)ToolXRaw, (float)ToolYRaw, (float)ToolZRaw);
-        var currentTarget = GetCurrentTargetPoint(nozzleBase, out _, out _);
-        var nozzleDir = SafeNormalize(currentTarget - nozzleBase, AnglesToDirection(CurrentAlfa, CurrentBetta));
+            var nozzleBase = new Vector3((float)ToolXRaw, (float)ToolYRaw, (float)ToolZRaw);
+            var currentTarget = GetCurrentTargetPoint(nozzleBase, out _, out _);
+            var nozzleDir = SafeNormalize(currentTarget - nozzleBase, AnglesToDirection(CurrentAlfa, CurrentBetta));
 
-        DrawNozzle(nozzleBase, nozzleDir, currentTarget, view, proj);
+            DrawNozzle(nozzleBase, nozzleDir, currentTarget, view, proj);
 
-        RequestNextFrameRendering();
+            RequestNextFrameRendering();
+        }
+        catch (Exception ex)
+        {
+            _failed = true;
+            _failureDetails = $"{ex.GetType().Name}: {ex.Message}";
+            Debug.WriteLine($"[Simulation3DControl] OpenGL render failed: {ex}");
+            _hasRenderedFrame = false;
+        }
     }
 
 
@@ -513,13 +526,19 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
 
     private void RebuildGeometry()
     {
-        if (_gl is null)
+        _geometryDirty = true;
+        RequestNextFrameRendering();
+    }
+
+    private void EnsureGeometryBuilt()
+    {
+        if (!_geometryDirty || _gl is null)
             return;
 
         RebuildPartMesh();
         RebuildTrajectory();
         RebuildGrid();
-        RequestNextFrameRendering();
+        _geometryDirty = false;
     }
 
     private void RebuildPartMesh()
