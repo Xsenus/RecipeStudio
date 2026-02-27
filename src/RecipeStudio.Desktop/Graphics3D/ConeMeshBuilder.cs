@@ -11,44 +11,33 @@ public static class ConeMeshBuilder
         if (segments < 3)
             return new Mesh(Array.Empty<float>(), Array.Empty<uint>());
 
-        var vertices = new List<float>((segments + 1) * 6 * 2);
-        var indices = new List<uint>(segments * 6);
+        var vertices = new List<float>((segments + 2) * 6);
+        var indices = new List<uint>(segments * 3);
 
+        // Apex at z=0, base ring at z=1 (side-only cone)
+        vertices.AddRange([0f, 0f, 0f, 0f, 0f, -1f]);
+
+        var slope = Vector2.Normalize(new Vector2(1f, 1f));
         for (var i = 0; i <= segments; i++)
         {
             var a = i / (float)segments * MathF.Tau;
             var c = MathF.Cos(a);
             var s = MathF.Sin(a);
 
-            var normal = Vector3.Normalize(new Vector3(c, s, -1f));
-
-            vertices.Add(0f);
-            vertices.Add(0f);
-            vertices.Add(0f);
-            vertices.Add(normal.X);
-            vertices.Add(normal.Y);
-            vertices.Add(normal.Z);
-
             vertices.Add(c);
             vertices.Add(s);
             vertices.Add(1f);
-            vertices.Add(normal.X);
-            vertices.Add(normal.Y);
-            vertices.Add(normal.Z);
+
+            vertices.Add(c * slope.X);
+            vertices.Add(s * slope.X);
+            vertices.Add(slope.Y);
         }
 
-        for (uint i = 0; i < segments; i++)
+        for (uint i = 1; i <= segments; i++)
         {
-            var a = i * 2;
-            var b = a + 1;
-            var c = a + 2;
-            var d = a + 3;
-            indices.Add(a);
-            indices.Add(b);
-            indices.Add(d);
-            indices.Add(a);
-            indices.Add(d);
-            indices.Add(c);
+            indices.Add(0);
+            indices.Add(i);
+            indices.Add(i + 1);
         }
 
         return new Mesh(vertices.ToArray(), indices.ToArray());

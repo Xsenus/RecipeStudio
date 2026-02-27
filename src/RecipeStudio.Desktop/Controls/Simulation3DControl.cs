@@ -245,9 +245,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
 
         var nozzleBase = new Vector3((float)ToolXRaw, (float)ToolYRaw, (float)ToolZRaw);
         var currentTarget = GetCurrentTargetPoint(nozzleBase, out _, out _);
-        var nozzleDir = Vector3.Normalize(currentTarget - nozzleBase);
-        if (nozzleDir.LengthSquared() < 1e-6f)
-            nozzleDir = AnglesToDirection(CurrentAlfa, CurrentBetta);
+        var nozzleDir = SafeNormalize(currentTarget - nozzleBase, AnglesToDirection(CurrentAlfa, CurrentBetta));
 
         DrawNozzle(nozzleBase, nozzleDir, currentTarget, view, proj);
 
@@ -442,7 +440,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         var jetLen = toTarget.Length();
         if (_jetConeMesh is not null && jetLen > 1e-3f)
         {
-            var jetDir = Vector3.Normalize(toTarget);
+            var jetDir = SafeNormalize(toTarget, direction);
             var jetRadius = Math.Clamp(jetLen * 0.12f, 8f, 60f);
             var jetModel = Matrix4x4.CreateScale(jetRadius, jetRadius, jetLen)
                 * CreateRotationFromForward(jetDir, Vector3.UnitZ)
@@ -559,7 +557,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         _toolPath = new List<Vector3>();
         _targetPath = new List<Vector3>();
 
-        var points = Points;
+        var points = Points?.Where(p => p.Act).ToList();
         if (points is null || points.Count == 0)
         {
             _trajectoryCount = 0;
@@ -572,13 +570,12 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         {
             var toolPos = new Vector3((float)(p.Xr0 + p.DX), (float)(p.Yx0 + p.DY), (float)(p.Zr0 + p.DZ));
             var target = p.GetTargetPoint(hZone);
-            var radial = new Vector3(toolPos.X, toolPos.Y, 0f);
-            if (radial.LengthSquared() < 1e-8f)
-                radial = Vector3.UnitX;
-            else
-                radial = Vector3.Normalize(radial);
-
+            var radial = SafeNormalize(new Vector3(toolPos.X, toolPos.Y, 0f), Vector3.UnitX);
             var targetPos = radial * MathF.Abs((float)target.Xp) + new Vector3(0, 0, (float)target.Zp);
+
+            if (!IsFinite(toolPos) || !IsFinite(targetPos))
+                continue;
+
             _toolPath.Add(toolPos);
             _targetPath.Add(targetPos);
         }
@@ -676,7 +673,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             var b = _toolPath[i + 1];
             var ab = b - a;
             var lenSq = ab.LengthSquared();
-            var t = lenSq < 1e-8f ? 0f : Math.Clamp(Vector3.Dot(position - a, ab) / lenSq, 0f, 1f);
+            var t = lenSq < 1e-8f ? 0f : Clamp01(Vector3.Dot(position - a, ab) / lenSq);
             var projected = a + ab * t;
             var d = Vector3.DistanceSquared(position, projected);
             if (d < bestDistance)
@@ -716,7 +713,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             var b = _toolPath[i + 1];
             var ab = b - a;
             var lenSq = ab.LengthSquared();
-            var t = lenSq < 1e-8f ? 0f : Math.Clamp(Vector3.Dot(nozzleBase - a, ab) / lenSq, 0f, 1f);
+            var t = lenSq < 1e-8f ? 0f : Clamp01(Vector3.Dot(nozzleBase - a, ab) / lenSq);
             var projected = a + ab * t;
             var d = Vector3.DistanceSquared(nozzleBase, projected);
             if (d < bestDistance)
@@ -731,21 +728,35 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         return Vector3.Lerp(_targetPath[segmentIndex], _targetPath[i1], segmentT);
     }
 
+
+    private static float Clamp01(float value) => Math.Clamp(value, 0f, 1f);
+
+    private static Vector3 SafeNormalize(Vector3 value, Vector3 fallback)
+    {
+        var lenSq = value.LengthSquared();
+        if (lenSq < 1e-8f || float.IsNaN(lenSq) || float.IsInfinity(lenSq))
+            return fallback;
+
+        var v = value / MathF.Sqrt(lenSq);
+        return IsFinite(v) ? v : fallback;
+    }
+
+    private static bool IsFinite(Vector3 v)
+        => float.IsFinite(v.X) && float.IsFinite(v.Y) && float.IsFinite(v.Z);
+
     private static Vector3 AnglesToDirection(double alfaDeg, double bettaDeg)
     {
         var a = (float)(alfaDeg * Math.PI / 180.0);
         var b = (float)(bettaDeg * Math.PI / 180.0);
         var dir = new Vector3(MathF.Cos(b) * MathF.Cos(a), MathF.Sin(b), -MathF.Cos(b) * MathF.Sin(a));
-        return dir.LengthSquared() < 1e-6f ? Vector3.UnitX : Vector3.Normalize(dir);
+        return SafeNormalize(dir, Vector3.UnitX);
     }
 
     private static Matrix4x4 CreateRotationFromForward(Vector3 forward, Vector3 up)
     {
-        var f = Vector3.Normalize(forward);
-        var r = Vector3.Normalize(Vector3.Cross(up, f));
-        if (r.LengthSquared() < 1e-6f)
-            r = Vector3.UnitY;
-        var u = Vector3.Normalize(Vector3.Cross(f, r));
+        var f = SafeNormalize(forward, Vector3.UnitZ);
+        var r = SafeNormalize(Vector3.Cross(up, f), Vector3.UnitY);
+        var u = SafeNormalize(Vector3.Cross(f, r), Vector3.UnitX);
 
         return new Matrix4x4(
             r.X, r.Y, r.Z, 0,
