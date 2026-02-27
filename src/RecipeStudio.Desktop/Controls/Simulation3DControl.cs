@@ -66,6 +66,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     private string? _failureDetails;
     private bool _geometryDirty = true;
     private readonly AppLogger _logger = new();
+    private bool _loggedRenderSuccess;
 
     private List<Vector3> _toolPath = new();
     private List<Vector3> _targetPath = new();
@@ -106,6 +107,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         try
         {
             _failed = false;
+            _loggedRenderSuccess = false;
             _failureDetails = null;
             _gl = GL.GetApi(gl.GetProcAddress);
             _logger.Info("Simulation3DControl: OpenGL init started");
@@ -132,6 +134,8 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             _gl.BindVertexArray(0);
 
             _glInitialized = true;
+            _logger.Info("Simulation3DControl: OpenGL init success.");
+            LogGlErrors("OnOpenGlInit");
             RebuildGeometry();
         }
         catch (Exception ex)
@@ -198,6 +202,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     protected override void OnOpenGlDeinit(GlInterface gl)
     {
         _glInitialized = false;
+        _loggedRenderSuccess = false;
         _hasRenderedFrame = false;
         _failureDetails = null;
         _geometryDirty = true;
@@ -260,6 +265,13 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             var nozzleDir = SafeNormalize(currentTarget - nozzleBase, AnglesToDirection(CurrentAlfa, CurrentBetta));
 
             DrawNozzle(nozzleBase, nozzleDir, currentTarget, view, proj);
+            LogGlErrors("OnOpenGlRender");
+
+            if (!_loggedRenderSuccess)
+            {
+                _loggedRenderSuccess = true;
+                _logger.Info("Simulation3DControl: first successful OpenGL frame rendered.");
+            }
 
             RequestNextFrameRendering();
         }
@@ -563,6 +575,27 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         _gl.BindVertexArray(0);
     }
 
+
+    private void LogGlErrors(string stage)
+    {
+        if (_gl is null)
+            return;
+
+        var hadErrors = false;
+        for (var i = 0; i < 16; i++)
+        {
+            var err = _gl.GetError();
+            if (err == GLEnum.NoError)
+                break;
+
+            hadErrors = true;
+            _logger.Warn($"Simulation3DControl GL error at {stage}: {err}");
+        }
+
+        if (hadErrors)
+            Debug.WriteLine($"[Simulation3DControl] GL errors detected at {stage}");
+    }
+
     private void RebuildGeometry()
     {
         _geometryDirty = true;
@@ -580,6 +613,8 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             RebuildTrajectory();
             RebuildGrid();
             _geometryDirty = false;
+            _logger.Info($"Simulation3DControl: geometry rebuilt. partMesh={(_partMesh is null ? 0 : _partMesh.Vertices.Length / 6)} verts, toolPath={_toolPath.Count}, targetPath={_targetPath.Count}, gridVertices={_gridCount}");
+            LogGlErrors("EnsureGeometryBuilt");
         }
         catch (Exception ex)
         {
