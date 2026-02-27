@@ -70,6 +70,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     private bool _loggedRenderSuccess;
     private bool _loggerConfigured;
     private DateTime _lastGlErrorLogUtc = DateTime.MinValue;
+    private bool _loggedFramebufferInfo;
 
     private List<Vector3> _toolPath = new();
     private List<Vector3> _targetPath = new();
@@ -111,6 +112,8 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         {
             _failed = false;
             _loggedRenderSuccess = false;
+        _loggedFramebufferInfo = false;
+            _loggedFramebufferInfo = false;
             _failureDetails = null;
             _gl = GL.GetApi(gl.GetProcAddress);
             ConfigureLoggerFromSettings();
@@ -244,6 +247,17 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             EnsureGeometryBuilt();
             _hasRenderedFrame = true;
 
+            _gl.BindFramebuffer(FramebufferTarget.Framebuffer, (uint)fb);
+            var vpW = (uint)Math.Max(1, (int)Math.Ceiling(Bounds.Width));
+            var vpH = (uint)Math.Max(1, (int)Math.Ceiling(Bounds.Height));
+            _gl.Viewport(0, 0, vpW, vpH);
+
+            if (!_loggedFramebufferInfo)
+            {
+                _loggedFramebufferInfo = true;
+                LogInfo($"render target bound. fb={fb}, viewport={vpW}x{vpH}");
+            }
+
             _gl.Enable(EnableCap.DepthTest);
             _gl.Enable(EnableCap.Blend);
             _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
@@ -251,7 +265,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             _gl.Clear((uint)(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit));
 
             var view = _camera.GetView();
-            var proj = _camera.GetProjection((float)Math.Max(1, Bounds.Width), (float)Math.Max(1, Bounds.Height));
+            var proj = _camera.GetProjection(vpW, vpH);
 
             if (ShowGrid)
                 DrawGrid(view, proj);
