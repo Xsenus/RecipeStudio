@@ -45,12 +45,17 @@ public sealed class RecipePlotControl : Control
 
     private bool _isDragging;
     private RecipePoint? _dragPoint;
+    private bool _isPanning;
+    private Point _panStartScreen;
+    private Point _panStartOffset;
 
     // Cached transform
     private Rect _worldBounds;
+    private Rect _fitWorldBounds;
     private double _scale;
     private double _pad;
     private double _zoomFactor = 1.0;
+    private Point _panOffset;
 
     public IList<RecipePoint>? Points
     {
@@ -122,24 +127,28 @@ public sealed class RecipePlotControl : Control
     public RecipePlotControl()
     {
         // no-op (handlers are attached in the static ctor)
+        ClipToBounds = true;
     }
 
 
     public void ZoomIn()
     {
         _zoomFactor = Math.Clamp(_zoomFactor * 1.2, 1.0, 20.0);
+        ClampPanOffset();
         InvalidateVisual();
     }
 
     public void ZoomOut()
     {
         _zoomFactor = Math.Clamp(_zoomFactor / 1.2, 1.0, 20.0);
+        ClampPanOffset();
         InvalidateVisual();
     }
 
     public void ResetZoom()
     {
         _zoomFactor = 1.0;
+        _panOffset = default;
         InvalidateVisual();
     }
 
@@ -302,22 +311,22 @@ public sealed class RecipePlotControl : Control
         var extraW = scaledWorldW - worldW;
         var extraH = scaledWorldH - worldH;
 
-        _worldBounds = new Rect(
+        _fitWorldBounds = new Rect(
             _worldBounds.X - extraW / 2.0,
             _worldBounds.Y - extraH / 2.0,
             _worldBounds.Width + extraW,
             _worldBounds.Height + extraH);
 
+        _worldBounds = _fitWorldBounds;
+
         // Zoom around current center (1.0 = fit-to-data)
-        if (_zoomFactor > 1.0)
-        {
-            var centerX = _worldBounds.Center.X;
-            var centerY = _worldBounds.Center.Y;
-            var zoomedWidth = _worldBounds.Width / _zoomFactor;
-            var zoomedHeight = _worldBounds.Height / _zoomFactor;
-            _worldBounds = new Rect(centerX - zoomedWidth / 2.0, centerY - zoomedHeight / 2.0, zoomedWidth, zoomedHeight);
-            _scale *= _zoomFactor;
-        }
+        ClampPanOffset();
+        var centerX = _fitWorldBounds.Center.X + _panOffset.X;
+        var centerY = _fitWorldBounds.Center.Y + _panOffset.Y;
+        var zoomedWidth = _fitWorldBounds.Width / _zoomFactor;
+        var zoomedHeight = _fitWorldBounds.Height / _zoomFactor;
+        _worldBounds = new Rect(centerX - zoomedWidth / 2.0, centerY - zoomedHeight / 2.0, zoomedWidth, zoomedHeight);
+        _scale *= _zoomFactor;
 
         // Grid
         if (ShowGrid)
@@ -785,15 +794,23 @@ public sealed class RecipePlotControl : Control
         // select nearest target point
         var hit = HitTestTargetPoint(pos, settings);
         if (hit is not null)
-        {
             SelectedPoint = hit;
 
-            if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            if (hit is not null)
             {
                 _isDragging = true;
                 _dragPoint = hit;
-                e.Pointer.Capture(this);
             }
+            else
+            {
+                _isPanning = true;
+                _panStartScreen = pos;
+                _panStartOffset = _panOffset;
+            }
+
+            e.Pointer.Capture(this);
         }
     }
 
@@ -803,9 +820,21 @@ public sealed class RecipePlotControl : Control
 
         var settings = Settings ?? new AppSettings();
 
+        var pos = e.GetPosition(this);
+
+        if (_isPanning)
+        {
+            var delta = pos - _panStartScreen;
+            var worldDx = -delta.X / _scale;
+            var worldDy = delta.Y / _scale;
+            _panOffset = new Point(_panStartOffset.X + worldDx, _panStartOffset.Y + worldDy);
+            ClampPanOffset();
+            InvalidateVisual();
+            return;
+        }
+
         if (!_isDragging || _dragPoint is null) return;
 
-        var pos = e.GetPosition(this);
         var w = ScreenToWorld(pos);
 
         // Update underlying RCrd/ZCrd based on place.
@@ -825,12 +854,32 @@ public sealed class RecipePlotControl : Control
     {
         base.OnPointerReleased(e);
 
-        if (_isDragging)
+        if (_isDragging || _isPanning)
         {
             _isDragging = false;
             _dragPoint = null;
+            _isPanning = false;
             e.Pointer.Capture(null);
         }
+    }
+
+    private void ClampPanOffset()
+    {
+        if (_fitWorldBounds.Width <= 0 || _fitWorldBounds.Height <= 0)
+        {
+            _panOffset = default;
+            return;
+        }
+
+        var visibleWidth = _fitWorldBounds.Width / Math.Max(1.0, _zoomFactor);
+        var visibleHeight = _fitWorldBounds.Height / Math.Max(1.0, _zoomFactor);
+
+        var maxOffsetX = Math.Max(0, (_fitWorldBounds.Width - visibleWidth) / 2.0);
+        var maxOffsetY = Math.Max(0, (_fitWorldBounds.Height - visibleHeight) / 2.0);
+
+        _panOffset = new Point(
+            Math.Clamp(_panOffset.X, -maxOffsetX, maxOffsetX),
+            Math.Clamp(_panOffset.Y, -maxOffsetY, maxOffsetY));
     }
 
     private RecipePoint? HitTestTargetPoint(Point screen, AppSettings settings)
