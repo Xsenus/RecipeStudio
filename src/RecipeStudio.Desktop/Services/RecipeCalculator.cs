@@ -113,13 +113,20 @@ public static class RecipeCalculator
             var yx = Round1(-sinB * ln1);
             var zr = Round1(zp + cosB * sinA * ln1);
 
-            var dx = Round1(xr - xr0Base);
-            var dy = Round1(yx - yx0Base);
-            var dz = Round1(zr - zr0Base);
+            // Safe rows in Excel CALC are reference/clearance points:
+            // they keep their own base and do not apply robot deltas.
+            var useOwnBase = p.Safe;
+            var xr0 = useOwnBase ? Round1(r0 - ln1) : xr0Base;
+            var yx0 = useOwnBase ? 0d : yx0Base;
+            var zr0 = useOwnBase ? Round1(z0) : zr0Base;
 
-            p.Xr0 = xr0Base;
-            p.Yx0 = yx0Base;
-            p.Zr0 = zr0Base;
+            var dx = useOwnBase ? 0d : Round1(xr - xr0Base);
+            var dy = useOwnBase ? 0d : Round1(yx - yx0Base);
+            var dz = useOwnBase ? 0d : Round1(zr - zr0Base);
+
+            p.Xr0 = xr0;
+            p.Yx0 = yx0;
+            p.Zr0 = zr0;
 
             p.DX = dx;
             p.DY = dy;

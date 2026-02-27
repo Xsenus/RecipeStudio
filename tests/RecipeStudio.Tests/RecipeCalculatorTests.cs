@@ -121,4 +121,47 @@ public sealed class RecipeCalculatorTests
         Assert.Equal(46.9, p2.DZ);
     }
 
+    [Fact]
+    public void Recalculate_UsesOwnBaseAndZeroDeltas_ForSafeRows()
+    {
+        var doc = new RecipeDocument { RecipeCode = "T4" };
+        doc.Points.Add(new RecipePoint
+        {
+            RecipeCode = "T4",
+            NPoint = 1,
+            Act = true,
+            Safe = false,
+            RCrd = 364,
+            ZCrd = 354,
+            ANozzle = 20,
+            Alfa = -30,
+            Betta = 12,
+            SpeedTable = 3,
+            IceRate = 100
+        });
+        doc.Points.Add(new RecipePoint
+        {
+            RecipeCode = "T4",
+            NPoint = 32,
+            Act = true,
+            Safe = true,
+            RCrd = 364,
+            ZCrd = 374,
+            ANozzle = 0,
+            Alfa = 0,
+            Betta = 0,
+            SpeedTable = 0,
+            IceRate = 0
+        });
+
+        RecipeCalculator.Recalculate(doc, new AppSettings { Lz = 250 });
+
+        var safe = doc.Points[1];
+        Assert.Equal(114, safe.Xr0);
+        Assert.Equal(374, safe.Zr0);
+        Assert.Equal(0, safe.DX);
+        Assert.Equal(0, safe.DY);
+        Assert.Equal(0, safe.DZ);
+    }
+
 }
