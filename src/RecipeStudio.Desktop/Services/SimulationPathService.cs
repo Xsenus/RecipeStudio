@@ -13,7 +13,8 @@ public sealed class SimulationPathService
 
     public SimulationPath Build(IReadOnlyList<RecipePoint> points, bool smoothMotion)
     {
-        var waypoints = points.Select((p, i) => new PathWaypoint(i, p, new Vector3((float)(p.Xr0 + p.DX), (float)(p.Yx0 + p.DY), (float)(p.Zr0 + p.DZ)))).ToList();
+        var absolutePositions = RobotCoordinateResolver.BuildAbsolutePositions(points);
+        var waypoints = points.Select((p, i) => new PathWaypoint(i, p, absolutePositions[Math.Min(i, absolutePositions.Count - 1)])).ToList();
         if (waypoints.Count <= 1)
             return new SimulationPath(waypoints, Array.Empty<PathSegment>(), 0);
 

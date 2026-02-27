@@ -77,12 +77,28 @@ public static class RecipeCalculator
         }
 
         // CALC/SAVE outputs
+        var originPoint = doc.Points.FirstOrDefault(pt => pt.Act && !pt.Safe) ?? doc.Points[0];
+        var originLn1 = settings.Lz + originPoint.ANozzle;
+        var xr0Base = Round1(originPoint.RCrd - originLn1);
+        var yx0Base = 0d;
+        var zr0Base = Round1(originPoint.ZCrd);
+
+        // Excel stores increments between consecutive robot points;
+        // first working point is measured from the base origin.
+        var prevXr = xr0Base;
+        var prevYx = yx0Base;
+        var prevZr = zr0Base;
+        var prevAlfa = 0d;
+        var prevBetta = 0d;
+
         foreach (var p in doc.Points)
         {
             var ln = settings.Lz;
             var la = p.ANozzle;
             var ln1 = ln + la;
 
+            // Совместимость с Excel CALC/SAVE: используем угол Alfa без инверсии знака.
+            // Иначе расчетные Xr/Zr и график будут расходиться с workbook.
             var alfaRad = p.Alfa * Math.PI / 180.0;
             var bettaRad = p.Betta * Math.PI / 180.0;
 
@@ -101,28 +117,48 @@ public static class RecipeCalculator
             // Xr0/Yx0/Zr0 and (Xr,Yx,Zr) are expected in the same local frame as Excel CALC/SAVE.
             // Manipulator base constants (Xm/Ym/Zm) are station reference constants, but should not
             // shift these plotted/exported local coordinates.
-            var xr0 = Round1(r0 - ln1);
-            var yx0 = 0;
-            var zr0 = Round1(z0);
-
             var xr = Round1(xp - cosB * cosA * ln1);
             var yx = Round1(-sinB * ln1);
             var zr = Round1(zp + cosB * sinA * ln1);
 
-            var dx = Round1(xr - xr0);
-            var dy = Round1(yx - yx0);
-            var dz = Round1(zr - zr0);
+            var dx = 0d;
+            var dy = 0d;
+            var dz = 0d;
+            var dA = 0d;
+            var aB = 0d;
 
-            p.Xr0 = xr0;
-            p.Yx0 = yx0;
-            p.Zr0 = zr0;
+            if (!p.Safe)
+            {
+                p.Xr0 = xr0Base;
+                p.Yx0 = yx0Base;
+                p.Zr0 = zr0Base;
+
+                dx = Round1(xr - prevXr);
+                dy = Round1(yx - prevYx);
+                dz = Round1(zr - prevZr);
+                dA = Round1(p.Alfa - prevAlfa);
+                aB = Round1(p.Betta - prevBetta);
+
+                prevXr = xr;
+                prevYx = yx;
+                prevZr = zr;
+                prevAlfa = p.Alfa;
+                prevBetta = p.Betta;
+            }
+            else
+            {
+                // Safe reference rows stay zeroed in exported CALC/SAVE block.
+                p.Xr0 = 0;
+                p.Yx0 = 0;
+                p.Zr0 = 0;
+            }
 
             p.DX = dx;
             p.DY = dy;
             p.DZ = dz;
 
-            p.DA = p.Alfa;
-            p.AB = p.Betta;
+            p.DA = dA;
+            p.AB = aB;
 
             p.XPuls = dx * settings.PulseX;
             p.YPuls = dy * settings.PulseY;

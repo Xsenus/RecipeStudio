@@ -220,12 +220,12 @@ public sealed class RecipePlotControl : Control
         base.Render(context);
 
         var settings = Settings ?? new AppSettings();
-        var points = Points;
+        var points = FilterRenderablePoints(Points);
 
         // background
         context.FillRectangle(new SolidColorBrush(Color.FromRgb(11, 18, 32)), new Rect(Bounds.Size));
 
-        if (points is null || points.Count == 0)
+        if (points.Count == 0)
         {
             DrawCenteredText(context, "Нет точек", Bounds);
             return;
@@ -233,18 +233,21 @@ public sealed class RecipePlotControl : Control
 
         // Collect world points (full profile for drawing)
         var target = new List<Point>();
-        var tool = new List<Point>();
         foreach (var p in points)
         {
             var (xp, zp) = p.GetTargetPoint(settings.HZone);
             target.Add(new Point(xp, zp));
-
-            var toolPoint = GetToolPointForPlot(p, settings);
-            tool.Add(toolPoint);
         }
 
+        var robotPoints = points.Where(p => !p.Safe).ToList();
+        if (robotPoints.Count == 0)
+            robotPoints = points;
+        var absoluteRobot = RobotCoordinateResolver.BuildAbsolutePositions(robotPoints);
+        var tool = absoluteRobot.Select(v => new Point(v.X, v.Z)).ToList();
+        var robotToolMap = robotPoints.Select((p, i) => new { p, pt = tool[i] }).ToDictionary(x => x.p, x => x.pt);
+
         // Separate set for animation (usually working cleaning points only).
-        var animSrc = AnimationPoints is { Count: > 0 } ? AnimationPoints : points;
+        var animSrc = SelectToolPoints(FilterRenderablePoints(AnimationPoints, fallback: robotPoints));
         var animTarget = new List<Point>();
         var animTool = new List<Point>();
         foreach (var p in animSrc)
@@ -252,9 +255,15 @@ public sealed class RecipePlotControl : Control
             var (xp, zp) = p.GetTargetPoint(settings.HZone);
             animTarget.Add(new Point(xp, zp));
 
-            var xr = p.Xr0 + p.DX;
-            var zr = p.Zr0 + p.DZ;
-            animTool.Add(new Point(xr, zr));
+            if (robotToolMap.TryGetValue(p, out var absPoint))
+            {
+                animTool.Add(absPoint);
+            }
+            else
+            {
+                var abs = RobotCoordinateResolver.BuildAbsolutePositions(new List<RecipePoint> { p })[0];
+                animTool.Add(new Point(abs.X, abs.Z));
+            }
         }
 
         // Determine bounds including clamp rectangles
@@ -330,18 +339,23 @@ public sealed class RecipePlotControl : Control
         var penTargetSafe = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), safetyColor.R, safetyColor.G, safetyColor.B)), thickness);
         var penTargetToTool = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), linksColor.R, linksColor.G, linksColor.B)), Math.Max(1, thickness - 1));
 
+        // Summary: keep series parity with Excel charts while avoiding artificial cross-group joins.
         if (settings.PlotShowPolyline)
         {
-            DrawPolyline(context, tool, penTool);
+            // Robot path is split by (Safe, Place) the same way as Excel series,
+            // so unrelated groups are not connected by artificial long segments.
+            DrawPolyline(context, SelectTool(robotPoints, robotToolMap, safe: false, place: 0), penTool);
+            DrawPolyline(context, SelectTool(robotPoints, robotToolMap, safe: false, place: 1), penTool);
 
             // Step 2: target polylines split by (Safe, Place) and pair links Xp/Zp <-> Xr/Zr for cleaning points.
             DrawPolyline(context, SelectTarget(points, settings.HZone, safe: false, place: 0), penTargetWork);
             DrawPolyline(context, SelectTarget(points, settings.HZone, safe: false, place: 1), penTargetWork);
+            DrawWorkTransitionLinks(context, points, settings.HZone, penTargetWork);
             DrawPolyline(context, SelectTarget(points, settings.HZone, safe: true, place: 0), penTargetSafe);
             DrawPolyline(context, SelectTarget(points, settings.HZone, safe: true, place: 1), penTargetSafe);
 
             if (ShowPairLinks)
-                DrawTargetToToolLinks(context, points, settings.HZone, penTargetToTool);
+                DrawTargetToToolLinks(context, points, robotToolMap, settings.HZone, penTargetToTool);
         }
 
         if (settings.PlotShowSmooth)
@@ -352,7 +366,7 @@ public sealed class RecipePlotControl : Control
 
         // Target points are always drawn to keep point markers visible in the editor.
         DrawPoints(context, points, settings, settings.HZone);
-        DrawRobotPoints(context, points, settings);
+        DrawRobotPoints(context, robotPoints, robotToolMap, settings);
 
         // Tool marker rendered as a smooth nozzle link Target->Robot.
         var toolState = GetToolState(animTool, animTarget, Progress);
@@ -361,6 +375,53 @@ public sealed class RecipePlotControl : Control
         // Legend
         if (ShowLegend)
             DrawLegend(context);
+    }
+
+
+    /// <summary>
+    /// Selects rows that can be rendered on charts, preferring active + visible + geometric rows,
+    /// with graceful fallback to less strict subsets when source data is sparse.
+    /// </summary>
+    private static List<RecipePoint> FilterRenderablePoints(IList<RecipePoint>? source, IList<RecipePoint>? fallback = null)
+    {
+        var src = source?.ToList() ?? new List<RecipePoint>();
+        if (src.Count == 0 && fallback is not null)
+            src = fallback.ToList();
+
+        if (src.Count == 0)
+            return src;
+
+        var activeRenderable = src.Where(p => p.Act && !p.Hidden && HasRenderableGeometry(p)).ToList();
+        if (activeRenderable.Count > 0)
+            return activeRenderable;
+
+        var activeVisible = src.Where(p => p.Act && !p.Hidden).ToList();
+        if (activeVisible.Count > 0)
+            return activeVisible;
+
+        var active = src.Where(p => p.Act).ToList();
+        return active.Count > 0 ? active : src;
+    }
+
+    /// <summary>
+    /// Chooses animation points for the tool path: working rows first, otherwise the full source.
+    /// </summary>
+    private static List<RecipePoint> SelectToolPoints(IList<RecipePoint> source)
+    {
+        var working = source.Where(p => !p.Safe).ToList();
+        return working.Count > 0 ? working : source.ToList();
+    }
+
+    /// <summary>
+    /// Returns true when a row contains non-zero geometry either in target or robot columns.
+    /// </summary>
+    private static bool HasRenderableGeometry(RecipePoint p)
+    {
+        const double eps = 1e-6;
+        return Math.Abs(p.RCrd) > eps
+            || Math.Abs(p.ZCrd) > eps
+            || Math.Abs(p.Xr0 + p.DX) > eps
+            || Math.Abs(p.Zr0 + p.DZ) > eps;
     }
 
     private void DrawGrid(DrawingContext ctx)
@@ -483,7 +544,7 @@ public sealed class RecipePlotControl : Control
         }
     }
 
-    private void DrawRobotPoints(DrawingContext ctx, IList<RecipePoint> points, AppSettings settings)
+    private void DrawRobotPoints(DrawingContext ctx, IList<RecipePoint> points, Dictionary<RecipePoint, Point> robotToolMap, AppSettings settings)
     {
         var r = Math.Max(3, settings.PlotPointRadius - 1);
         var brush = new SolidColorBrush(Color.FromRgb(255, 255, 255));
@@ -491,12 +552,17 @@ public sealed class RecipePlotControl : Control
 
         foreach (var p in points)
         {
-            var toolPoint = GetToolPointForPlot(p, settings);
+            if (!robotToolMap.TryGetValue(p, out var toolPoint))
+                continue;
+
             var sp = WorldToScreen(toolPoint);
             ctx.DrawEllipse(brush, outline, sp, r, r);
         }
     }
 
+    /// <summary>
+    /// Builds target polyline points for a specific (Safe, Place) series.
+    /// </summary>
     private static List<Point> SelectTarget(IList<RecipePoint> points, double hZone, bool safe, int place)
         => points
             .Where(p => p.Safe == safe && p.Place == place)
@@ -507,12 +573,47 @@ public sealed class RecipePlotControl : Control
             })
             .ToList();
 
-    private void DrawTargetToToolLinks(DrawingContext ctx, IList<RecipePoint> points, double hZone, Pen pen)
+    /// <summary>
+    /// Builds robot/tool polyline points for a specific (Safe, Place) series.
+    /// </summary>
+    private static List<Point> SelectTool(IList<RecipePoint> points, Dictionary<RecipePoint, Point> robotToolMap, bool safe, int place)
+        => points
+            .Where(p => p.Safe == safe && p.Place == place)
+            .Where(robotToolMap.ContainsKey)
+            .Select(p => robotToolMap[p])
+            .ToList();
+
+    /// <summary>
+    /// Restores workbook-style green bridge segments between consecutive working points
+    /// when sequence transitions from one Place group to another.
+    /// </summary>
+    private void DrawWorkTransitionLinks(DrawingContext ctx, IList<RecipePoint> points, double hZone, Pen pen)
+    {
+        for (var i = 1; i < points.Count; i++)
+        {
+            var prev = points[i - 1];
+            var cur = points[i];
+
+            if (prev.Safe || cur.Safe || prev.Place == cur.Place)
+                continue;
+
+            var (x1, z1) = prev.GetTargetPoint(hZone);
+            var (x2, z2) = cur.GetTargetPoint(hZone);
+            ctx.DrawLine(pen, WorldToScreen(new Point(x1, z1)), WorldToScreen(new Point(x2, z2)));
+        }
+    }
+
+    /// <summary>
+    /// Draws pair links Xp/Zp -> Xr/Zr for working rows (Safe=0).
+    /// </summary>
+    private void DrawTargetToToolLinks(DrawingContext ctx, IList<RecipePoint> points, Dictionary<RecipePoint, Point> robotToolMap, double hZone, Pen pen)
     {
         foreach (var p in points.Where(x => !x.Safe))
         {
             var (xp, zp) = p.GetTargetPoint(hZone);
-            var toolPoint = GetToolPointForPlot(p, Settings ?? new AppSettings());
+            if (!robotToolMap.TryGetValue(p, out var toolPoint))
+                continue;
+
             ctx.DrawLine(pen, WorldToScreen(new Point(xp, zp)), WorldToScreen(toolPoint));
         }
     }

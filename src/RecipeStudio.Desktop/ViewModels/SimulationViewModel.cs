@@ -26,9 +26,9 @@ public sealed class SimulationViewModel : ViewModelBase
     private double _currentAlfa;
     private double _currentBetta;
     private bool _showGrid = true;
-    private bool _showPairLinks = true;
-    private bool _includeSafePoints = true;
-    private bool _smoothMotion = true;
+    private bool _showPairLinks = false;
+    private bool _includeSafePoints = false;
+    private bool _smoothMotion = false;
     private SimulationPath _timeline = new(new List<PathWaypoint>(), new List<PathSegment>(), 0);
 
     public SimulationViewModel(EditorViewModel editor)
@@ -216,11 +216,30 @@ public sealed class SimulationViewModel : ViewModelBase
 
     private IList<RecipePoint> GetAnimationPoints()
     {
-        var working = _editor.Points.Where(p => p.Act && (!p.Safe || IncludeSafePoints)).ToList();
-        if (working.Count >= 2) return working;
+        // Excel-совместимый путь: анимация строится по рабочим точкам очистки (Safe=0).
+        // Safe-контуры отображаются на графике как отдельные серии и не должны искажать основную траекторию.
+        var working = _editor.Points.Where(p => p.Act && !p.Safe && !p.Hidden && IsRenderable(p)).ToList();
+        if (working.Count >= 2)
+            return working;
+
+        var activeVisible = _editor.Points.Where(p => p.Act && !p.Hidden).ToList();
+        if (activeVisible.Count >= 2)
+            return activeVisible;
+
         var active = _editor.Points.Where(p => p.Act).ToList();
-        if (active.Count >= 2) return active;
+        if (active.Count >= 2)
+            return active;
+
         return _editor.Points.ToList();
+    }
+
+    private static bool IsRenderable(RecipePoint p)
+    {
+        const double eps = 1e-6;
+        return Math.Abs(p.RCrd) > eps
+            || Math.Abs(p.ZCrd) > eps
+            || Math.Abs(p.Xr0 + p.DX) > eps
+            || Math.Abs(p.Zr0 + p.DZ) > eps;
     }
 
     private void OnEditorPointsChanged(object? sender, NotifyCollectionChangedEventArgs e)

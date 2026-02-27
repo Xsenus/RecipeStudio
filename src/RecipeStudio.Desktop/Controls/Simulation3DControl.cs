@@ -346,11 +346,13 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             return;
 
         var hZone = Settings?.HZone ?? 0;
+        var absolute = RobotCoordinateResolver.BuildAbsolutePositions(points);
         var tool = new List<Vector3>(points.Count);
         var target = new List<Vector3>(points.Count);
-        foreach (var p in points)
+        for (var idx = 0; idx < points.Count && idx < absolute.Count; idx++)
         {
-            var toolPos = new Vector3((float)(p.Xr0 + p.DX), (float)(p.Yx0 + p.DY), (float)(p.Zr0 + p.DZ));
+            var p = points[idx];
+            var toolPos = absolute[idx];
             var t = p.GetTargetPoint(hZone);
             var radial = SafeNormalize(new Vector3(toolPos.X, toolPos.Y, 0f), Vector3.UnitX);
             var targetPos = radial * MathF.Abs((float)t.Xp) + new Vector3(0, 0, (float)t.Zp);
@@ -708,9 +710,26 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         if (all.Count == 0)
             return all;
 
-        // Keep 3D geometry stable: use the full current recipe set.
-        // Some runtime modes toggle Act flags, which should not collapse/reshape the 3D mesh each tick.
-        return all;
+        // Для соответствия Excel исключаем служебные/пустые строки (Act=0/Hidden/нулевая геометрия).
+        var activeRenderable = all.Where(p => p.Act && !p.Hidden && HasRenderableGeometry(p)).ToList();
+        if (activeRenderable.Count > 0)
+            return activeRenderable;
+
+        var activeVisible = all.Where(p => p.Act && !p.Hidden).ToList();
+        if (activeVisible.Count > 0)
+            return activeVisible;
+
+        var active = all.Where(p => p.Act).ToList();
+        return active.Count > 0 ? active : all;
+    }
+
+    private static bool HasRenderableGeometry(RecipePoint p)
+    {
+        const double eps = 1e-6;
+        return Math.Abs(p.RCrd) > eps
+            || Math.Abs(p.ZCrd) > eps
+            || Math.Abs(p.Xr0 + p.DX) > eps
+            || Math.Abs(p.Zr0 + p.DZ) > eps;
     }
 
     private void RebuildPartMesh()
@@ -757,9 +776,11 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         }
 
         var hZone = Settings?.HZone ?? 0;
-        foreach (var p in points)
+        var absolute = RobotCoordinateResolver.BuildAbsolutePositions(points);
+        for (var idx = 0; idx < points.Count && idx < absolute.Count; idx++)
         {
-            var toolPos = new Vector3((float)(p.Xr0 + p.DX), (float)(p.Yx0 + p.DY), (float)(p.Zr0 + p.DZ));
+            var p = points[idx];
+            var toolPos = absolute[idx];
             var target = p.GetTargetPoint(hZone);
             var radial = SafeNormalize(new Vector3(toolPos.X, toolPos.Y, 0f), Vector3.UnitX);
             var targetPos = radial * MathF.Abs((float)target.Xp) + new Vector3(0, 0, (float)target.Zp);

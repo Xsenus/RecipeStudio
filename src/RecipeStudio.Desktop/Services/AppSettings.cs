@@ -31,7 +31,7 @@ public sealed class AppSettings
     public double PlotOpacity { get; set; } = 0.55; // requested: configurable in 0.05..0.90
     public double PlotPointRadius { get; set; } = 4;
     public bool PlotShowPolyline { get; set; } = true;
-    public bool PlotShowSmooth { get; set; } = true;
+    public bool PlotShowSmooth { get; set; } = false;
     public bool PlotShowTargetPoints { get; set; } = true;
     public bool PlotEnableDrag { get; set; } = true;
 

@@ -234,10 +234,45 @@ public sealed class EditorViewModel : ViewModelBase
 
         HookPoints();
 
-        Recalculate();
+        RecalculateIfNeeded();
         SelectedPoint = Points.FirstOrDefault();
         Stop();
         ImportDiagnosticsSummary = "";
+    }
+
+    private void RecalculateIfNeeded()
+    {
+        if (Document is null)
+            return;
+
+        SyncDocumentPointsFromEditor();
+
+        if (HasCalculatedCoordinates(Points))
+            return;
+
+        Recalculate();
+    }
+
+    private void SyncDocumentPointsFromEditor()
+    {
+        if (Document is null)
+            return;
+
+        Document.Points.Clear();
+        foreach (var p in Points)
+            Document.Points.Add(p);
+    }
+
+    private static bool HasCalculatedCoordinates(ObservableCollection<RecipePoint> points)
+    {
+        const double eps = 1e-6;
+        return points.Any(p =>
+            Math.Abs(p.Xr0) > eps ||
+            Math.Abs(p.Zr0) > eps ||
+            Math.Abs(p.DX) > eps ||
+            Math.Abs(p.DZ) > eps ||
+            Math.Abs(p.XPuls) > eps ||
+            Math.Abs(p.ZPuls) > eps);
     }
 
     public void Recalculate()
@@ -249,10 +284,7 @@ public sealed class EditorViewModel : ViewModelBase
         {
             _suppressRecalc = true;
 
-            Document.Points.Clear();
-            foreach (var p in Points)
-                Document.Points.Add(p);
-
+            SyncDocumentPointsFromEditor();
             RecipeCalculator.Recalculate(Document, _settings.Settings);
 
             // Refresh computed values in-place; also refresh recipe-level fields
@@ -325,7 +357,7 @@ public sealed class EditorViewModel : ViewModelBase
 
         HookPoints();
 
-        Recalculate();
+        RecalculateIfNeeded();
         return true;
     }
 

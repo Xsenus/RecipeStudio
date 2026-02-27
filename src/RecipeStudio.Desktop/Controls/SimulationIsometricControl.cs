@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using RecipeStudio.Desktop.Models;
+using RecipeStudio.Desktop.Services;
 
 namespace RecipeStudio.Desktop.Controls;
 
@@ -39,11 +40,13 @@ public sealed class SimulationIsometricControl : Control
         base.Render(context);
         context.FillRectangle(new SolidColorBrush(Color.FromRgb(10, 23, 45)), Bounds);
 
-        var points = Points?.ToList() ?? new List<RecipePoint>();
+        var allPoints = Points?.ToList() ?? new List<RecipePoint>();
+        var points = SelectRenderablePoints(allPoints);
         if (points.Count == 0)
             return;
 
-        var path = points.Select(p => new Point3(p.Xr0 + p.DX, p.Yx0 + p.DY, p.Zr0 + p.DZ)).ToList();
+        var absolute = RobotCoordinateResolver.BuildAbsolutePositions(points);
+        var path = absolute.Select(p => new Point3(p.X, p.Y, p.Z)).ToList();
         var projected = path.Select(Project).ToList();
 
         var minX = projected.Min(p => p.X);
@@ -158,4 +161,27 @@ public sealed class SimulationIsometricControl : Control
     }
 
     private readonly record struct Point3(double X, double Y, double Z);
+    private static List<RecipePoint> SelectRenderablePoints(List<RecipePoint> source)
+    {
+        var activeRenderable = source.Where(p => p.Act && !p.Hidden && HasRenderableGeometry(p)).ToList();
+        if (activeRenderable.Count > 0)
+            return activeRenderable;
+
+        var activeVisible = source.Where(p => p.Act && !p.Hidden).ToList();
+        if (activeVisible.Count > 0)
+            return activeVisible;
+
+        var active = source.Where(p => p.Act).ToList();
+        return active.Count > 0 ? active : source;
+    }
+
+    private static bool HasRenderableGeometry(RecipePoint p)
+    {
+        const double eps = 1e-6;
+        return Math.Abs(p.RCrd) > eps
+            || Math.Abs(p.ZCrd) > eps
+            || Math.Abs(p.Xr0 + p.DX) > eps
+            || Math.Abs(p.Zr0 + p.DZ) > eps;
+    }
+
 }
