@@ -49,4 +49,29 @@ public sealed class RecipeCalculatorTests
         Assert.Equal(a.Yx0, b.Yx0);
         Assert.Equal(a.Zr0, b.Zr0);
     }
+
+    [Fact]
+    public void Recalculate_InvertsAlfaSign_WhenComputingRobotZOffset()
+    {
+        var doc = new RecipeDocument { RecipeCode = "T2" };
+        doc.Points.Add(new RecipePoint
+        {
+            RecipeCode = "T2",
+            NPoint = 1,
+            RCrd = 300,
+            ZCrd = 200,
+            Place = 0,
+            ANozzle = 20,
+            Alfa = 30,
+            Betta = 0,
+            SpeedTable = 5,
+            IceRate = 10
+        });
+
+        RecipeCalculator.Recalculate(doc, new AppSettings { Lz = 100 });
+
+        var point = doc.Points[0];
+        Assert.True(point.DZ < 0, "Positive alfa should tilt nozzle toward negative Z in robot frame.");
+    }
+
 }
