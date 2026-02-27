@@ -373,8 +373,25 @@ public sealed class RecipePlotControl : Control
         if (src.Count == 0)
             return src;
 
+        var activeRenderable = src.Where(p => p.Act && !p.Hidden && HasRenderableGeometry(p)).ToList();
+        if (activeRenderable.Count > 0)
+            return activeRenderable;
+
+        var activeVisible = src.Where(p => p.Act && !p.Hidden).ToList();
+        if (activeVisible.Count > 0)
+            return activeVisible;
+
         var active = src.Where(p => p.Act).ToList();
         return active.Count > 0 ? active : src;
+    }
+
+    private static bool HasRenderableGeometry(RecipePoint p)
+    {
+        const double eps = 1e-6;
+        return Math.Abs(p.RCrd) > eps
+            || Math.Abs(p.ZCrd) > eps
+            || Math.Abs(p.Xr0 + p.DX) > eps
+            || Math.Abs(p.Zr0 + p.DZ) > eps;
     }
 
     private void DrawGrid(DrawingContext ctx)

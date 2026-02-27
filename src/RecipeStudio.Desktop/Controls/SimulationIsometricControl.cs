@@ -40,9 +40,7 @@ public sealed class SimulationIsometricControl : Control
         context.FillRectangle(new SolidColorBrush(Color.FromRgb(10, 23, 45)), Bounds);
 
         var allPoints = Points?.ToList() ?? new List<RecipePoint>();
-        var points = allPoints.Where(p => p.Act).ToList();
-        if (points.Count == 0)
-            points = allPoints;
+        var points = SelectRenderablePoints(allPoints);
         if (points.Count == 0)
             return;
 
@@ -161,4 +159,27 @@ public sealed class SimulationIsometricControl : Control
     }
 
     private readonly record struct Point3(double X, double Y, double Z);
+    private static List<RecipePoint> SelectRenderablePoints(List<RecipePoint> source)
+    {
+        var activeRenderable = source.Where(p => p.Act && !p.Hidden && HasRenderableGeometry(p)).ToList();
+        if (activeRenderable.Count > 0)
+            return activeRenderable;
+
+        var activeVisible = source.Where(p => p.Act && !p.Hidden).ToList();
+        if (activeVisible.Count > 0)
+            return activeVisible;
+
+        var active = source.Where(p => p.Act).ToList();
+        return active.Count > 0 ? active : source;
+    }
+
+    private static bool HasRenderableGeometry(RecipePoint p)
+    {
+        const double eps = 1e-6;
+        return Math.Abs(p.RCrd) > eps
+            || Math.Abs(p.ZCrd) > eps
+            || Math.Abs(p.Xr0 + p.DX) > eps
+            || Math.Abs(p.Zr0 + p.DZ) > eps;
+    }
+
 }

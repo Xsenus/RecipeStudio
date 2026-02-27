@@ -708,10 +708,26 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         if (all.Count == 0)
             return all;
 
-        // Excel-графики опираются на рабочие (Act=1) точки;
-        // fallback на полный набор нужен для старых рецептов, где флаг Act не заполнен.
+        // Для соответствия Excel исключаем служебные/пустые строки (Act=0/Hidden/нулевая геометрия).
+        var activeRenderable = all.Where(p => p.Act && !p.Hidden && HasRenderableGeometry(p)).ToList();
+        if (activeRenderable.Count > 0)
+            return activeRenderable;
+
+        var activeVisible = all.Where(p => p.Act && !p.Hidden).ToList();
+        if (activeVisible.Count > 0)
+            return activeVisible;
+
         var active = all.Where(p => p.Act).ToList();
         return active.Count > 0 ? active : all;
+    }
+
+    private static bool HasRenderableGeometry(RecipePoint p)
+    {
+        const double eps = 1e-6;
+        return Math.Abs(p.RCrd) > eps
+            || Math.Abs(p.ZCrd) > eps
+            || Math.Abs(p.Xr0 + p.DX) > eps
+            || Math.Abs(p.Zr0 + p.DZ) > eps;
     }
 
     private void RebuildPartMesh()
