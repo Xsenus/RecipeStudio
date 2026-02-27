@@ -51,7 +51,7 @@ public sealed class RecipeCalculatorTests
     }
 
     [Fact]
-    public void Recalculate_InvertsAlfaSign_WhenComputingRobotZOffset()
+    public void Recalculate_UsesExcelAlfaSign_WhenComputingRobotZOffset()
     {
         var doc = new RecipeDocument { RecipeCode = "T2" };
         doc.Points.Add(new RecipePoint
@@ -71,7 +71,7 @@ public sealed class RecipeCalculatorTests
         RecipeCalculator.Recalculate(doc, new AppSettings { Lz = 100 });
 
         var point = doc.Points[0];
-        Assert.True(point.DZ < 0, "Positive alfa should tilt nozzle toward negative Z in robot frame.");
+        Assert.True(point.DZ > 0, "Positive alfa should tilt nozzle toward positive Z to match Excel CALC/SAVE formulas.");
     }
 
 }

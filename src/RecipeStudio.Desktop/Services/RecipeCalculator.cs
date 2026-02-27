@@ -83,9 +83,9 @@ public static class RecipeCalculator
             var la = p.ANozzle;
             var ln1 = ln + la;
 
-            // В рабочих координатах знак альфы инвертируется относительно исходного угла рецепта.
-            // Так направление сопла в симуляции/графике совпадает с системой координат станка.
-            var alfaRad = -p.Alfa * Math.PI / 180.0;
+            // Совместимость с Excel CALC/SAVE: используем угол Alfa без инверсии знака.
+            // Иначе расчетные Xr/Zr и график будут расходиться с workbook.
+            var alfaRad = p.Alfa * Math.PI / 180.0;
             var bettaRad = p.Betta * Math.PI / 180.0;
 
             var sinA = Math.Sin(alfaRad);
