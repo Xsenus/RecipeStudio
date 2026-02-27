@@ -26,9 +26,9 @@ public sealed class SimulationViewModel : ViewModelBase
     private double _currentAlfa;
     private double _currentBetta;
     private bool _showGrid = true;
-    private bool _showPairLinks = true;
-    private bool _includeSafePoints = true;
-    private bool _smoothMotion = true;
+    private bool _showPairLinks = false;
+    private bool _includeSafePoints = false;
+    private bool _smoothMotion = false;
     private SimulationPath _timeline = new(new List<PathWaypoint>(), new List<PathSegment>(), 0);
 
     public SimulationViewModel(EditorViewModel editor)
