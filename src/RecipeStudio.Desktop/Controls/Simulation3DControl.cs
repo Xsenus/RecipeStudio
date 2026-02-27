@@ -65,6 +65,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     private bool _hasRenderedFrame;
     private string? _failureDetails;
     private bool _geometryDirty = true;
+    private readonly AppLogger _logger = new();
 
     private List<Vector3> _toolPath = new();
     private List<Vector3> _targetPath = new();
@@ -107,6 +108,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             _failed = false;
             _failureDetails = null;
             _gl = GL.GetApi(gl.GetProcAddress);
+            _logger.Info("Simulation3DControl: OpenGL init started");
             CreateShadersWithFallback();
 
             _nozzleMesh = NozzleMeshBuilder.Build();
@@ -136,6 +138,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         {
             _failed = true;
             _failureDetails = $"{ex.GetType().Name}: {ex.Message}";
+            _logger.Error("Simulation3DControl: OpenGL init failed", ex);
             Debug.WriteLine($"[Simulation3DControl] OpenGL init failed: {ex}");
         }
     }
@@ -165,7 +168,9 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             }
             catch (Exception ex)
             {
-                errors.Add($"{label}: {ex.Message}");
+                var msg = $"{label}: {ex.Message}";
+                errors.Add(msg);
+                _logger.Warn($"Simulation3DControl shader fallback failed: {msg}");
                 return false;
             }
         }
@@ -185,7 +190,9 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         if (TryCreate("LEGACY", MeshVertexShaderLegacy, MeshFragmentShaderLegacy, LineVertexShaderLegacy, LineFragmentShaderLegacy, TexVertexShaderLegacy, TexFragmentShaderLegacy, ("aPos", 0), ("aNormal", 1)))
             return;
 
-        throw new InvalidOperationException("Shader fallback failed: " + string.Join(" | ", errors));
+        var shaderError = "Shader fallback failed: " + string.Join(" | ", errors);
+        _logger.Error($"Simulation3DControl: {shaderError}");
+        throw new InvalidOperationException(shaderError);
     }
 
     protected override void OnOpenGlDeinit(GlInterface gl)
@@ -260,6 +267,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         {
             _failed = true;
             _failureDetails = $"{ex.GetType().Name}: {ex.Message}";
+            _logger.Error("Simulation3DControl: OpenGL render failed", ex);
             Debug.WriteLine($"[Simulation3DControl] OpenGL render failed: {ex}");
             _hasRenderedFrame = false;
         }
@@ -305,8 +313,26 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     {
         context.FillRectangle(new SolidColorBrush(Color.FromRgb(6, 20, 40)), Bounds);
 
-        var pts = Points?.Select(p => new Vector3((float)(p.Xr0 + p.DX), (float)(p.Yx0 + p.DY), (float)(p.Zr0 + p.DZ))).ToList();
-        if (pts is null || pts.Count < 2)
+        var points = Points?.Where(p => p.Act).ToList() ?? new List<RecipePoint>();
+        if (points.Count < 2)
+            return;
+
+        var hZone = Settings?.HZone ?? 0;
+        var tool = new List<Vector3>(points.Count);
+        var target = new List<Vector3>(points.Count);
+        foreach (var p in points)
+        {
+            var toolPos = new Vector3((float)(p.Xr0 + p.DX), (float)(p.Yx0 + p.DY), (float)(p.Zr0 + p.DZ));
+            var t = p.GetTargetPoint(hZone);
+            var radial = SafeNormalize(new Vector3(toolPos.X, toolPos.Y, 0f), Vector3.UnitX);
+            var targetPos = radial * MathF.Abs((float)t.Xp) + new Vector3(0, 0, (float)t.Zp);
+            if (!IsFinite(toolPos) || !IsFinite(targetPos))
+                continue;
+            tool.Add(toolPos);
+            target.Add(targetPos);
+        }
+
+        if (tool.Count < 2 || target.Count < 2)
             return;
 
         static Point Project(Vector3 p)
@@ -316,30 +342,43 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             return new Point(x, y);
         }
 
-        var projected = pts.Select(Project).ToList();
-        var minX = projected.Min(p => p.X);
-        var maxX = projected.Max(p => p.X);
-        var minY = projected.Min(p => p.Y);
-        var maxY = projected.Max(p => p.Y);
+        var projectedAll = tool.Select(Project).Concat(target.Select(Project)).ToList();
+        var minX = projectedAll.Min(p => p.X);
+        var maxX = projectedAll.Max(p => p.X);
+        var minY = projectedAll.Min(p => p.Y);
+        var maxY = projectedAll.Max(p => p.Y);
         var w = Math.Max(1, maxX - minX);
         var h = Math.Max(1, maxY - minY);
         var scale = Math.Min((Bounds.Width - 24) / w, (Bounds.Height - 24) / h);
 
         Point ToScreen(Point p) => new(12 + (p.X - minX) * scale, 12 + (p.Y - minY) * scale);
 
-        var geometry = new StreamGeometry();
-        using (var gc = geometry.Open())
+        void DrawPath(IReadOnlyList<Vector3> path, Color color, double thickness)
         {
-            gc.BeginFigure(ToScreen(projected[0]), false);
-            for (var i = 1; i < projected.Count; i++)
-                gc.LineTo(ToScreen(projected[i]));
+            if (path.Count < 2)
+                return;
+
+            var geometry = new StreamGeometry();
+            using var gc = geometry.Open();
+            gc.BeginFigure(ToScreen(Project(path[0])), false);
+            for (var i = 1; i < path.Count; i++)
+                gc.LineTo(ToScreen(Project(path[i])));
             gc.EndFigure(false);
+            context.DrawGeometry(null, new Pen(new SolidColorBrush(color), thickness), geometry);
         }
 
-        context.DrawGeometry(null, new Pen(new SolidColorBrush(Color.FromRgb(240, 170, 40)), 2), geometry);
+        DrawPath(target, Color.FromRgb(255, 186, 64), 1.8);
+        DrawPath(tool, Color.FromRgb(80, 190, 240), 2.2);
 
-        var nozzle = ToScreen(Project(new Vector3((float)ToolXRaw, (float)ToolYRaw, (float)ToolZRaw)));
+        var nozzleBase = new Vector3((float)ToolXRaw, (float)ToolYRaw, (float)ToolZRaw);
+        var currentTarget = GetCurrentTargetPoint(nozzleBase, out _, out _);
+
+        var nozzle = ToScreen(Project(nozzleBase));
+        var impact = ToScreen(Project(currentTarget));
+
+        context.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(255, 120, 80)), 1.8), nozzle, impact);
         context.DrawEllipse(new SolidColorBrush(Color.FromRgb(240, 80, 80)), new Pen(Brushes.White, 1), nozzle, 4, 4);
+        context.DrawEllipse(new SolidColorBrush(Color.FromRgb(100, 240, 255)), new Pen(new SolidColorBrush(Color.FromRgb(210, 255, 255)), 1), impact, 3.5, 3.5);
     }
 
     private void DrawMesh(Mesh mesh, Matrix4x4 model, Vector3 color, float alpha, Matrix4x4 view, Matrix4x4 proj)
@@ -535,10 +574,18 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         if (!_geometryDirty || _gl is null)
             return;
 
-        RebuildPartMesh();
-        RebuildTrajectory();
-        RebuildGrid();
-        _geometryDirty = false;
+        try
+        {
+            RebuildPartMesh();
+            RebuildTrajectory();
+            RebuildGrid();
+            _geometryDirty = false;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Simulation3DControl: geometry rebuild failed", ex);
+            throw;
+        }
     }
 
     private void RebuildPartMesh()
