@@ -239,16 +239,16 @@ public sealed class RecipePlotControl : Control
             target.Add(new Point(xp, zp));
         }
 
-        var toolPoints = SelectToolPoints(points);
+        var robotPoints = points;
         var tool = new List<Point>();
-        foreach (var p in toolPoints)
+        foreach (var p in robotPoints)
         {
             var toolPoint = GetToolPointForPlot(p, settings);
             tool.Add(toolPoint);
         }
 
         // Separate set for animation (usually working cleaning points only).
-        var animSrc = SelectToolPoints(FilterRenderablePoints(AnimationPoints, fallback: toolPoints));
+        var animSrc = SelectToolPoints(FilterRenderablePoints(AnimationPoints, fallback: robotPoints));
         var animTarget = new List<Point>();
         var animTool = new List<Point>();
         foreach (var p in animSrc)
@@ -336,7 +336,12 @@ public sealed class RecipePlotControl : Control
 
         if (settings.PlotShowPolyline)
         {
-            DrawPolyline(context, tool, penTool);
+            // Robot path is split by (Safe, Place) the same way as Excel series,
+            // so unrelated groups are not connected by artificial long segments.
+            DrawPolyline(context, SelectTool(robotPoints, safe: false, place: 0, settings), penTool);
+            DrawPolyline(context, SelectTool(robotPoints, safe: false, place: 1, settings), penTool);
+            DrawPolyline(context, SelectTool(robotPoints, safe: true, place: 0, settings), penTool);
+            DrawPolyline(context, SelectTool(robotPoints, safe: true, place: 1, settings), penTool);
 
             // Step 2: target polylines split by (Safe, Place) and pair links Xp/Zp <-> Xr/Zr for cleaning points.
             DrawPolyline(context, SelectTarget(points, settings.HZone, safe: false, place: 0), penTargetWork);
@@ -356,7 +361,7 @@ public sealed class RecipePlotControl : Control
 
         // Target points are always drawn to keep point markers visible in the editor.
         DrawPoints(context, points, settings, settings.HZone);
-        DrawRobotPoints(context, toolPoints, settings);
+        DrawRobotPoints(context, robotPoints, settings);
 
         // Tool marker rendered as a smooth nozzle link Target->Robot.
         var toolState = GetToolState(animTool, animTarget, Progress);
@@ -546,6 +551,12 @@ public sealed class RecipePlotControl : Control
                 var (xp, zp) = p.GetTargetPoint(hZone);
                 return new Point(xp, zp);
             })
+            .ToList();
+
+    private static List<Point> SelectTool(IList<RecipePoint> points, bool safe, int place, AppSettings settings)
+        => points
+            .Where(p => p.Safe == safe && p.Place == place)
+            .Select(p => GetToolPointForPlot(p, settings))
             .ToList();
 
     private void DrawTargetToToolLinks(DrawingContext ctx, IList<RecipePoint> points, double hZone, Pen pen)
