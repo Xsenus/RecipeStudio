@@ -40,10 +40,14 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
 
     private Mesh? _partMesh;
     private Mesh? _nozzleMesh;
+    private Mesh? _jetConeMesh;
     private Mesh? _quadMesh;
     private uint _trajectoryVao;
     private uint _trajectoryVbo;
     private int _trajectoryCount;
+    private uint _targetTrajectoryVao;
+    private uint _targetTrajectoryVbo;
+    private int _targetTrajectoryCount;
     private uint _gridVao;
     private uint _gridVbo;
     private int _gridCount;
@@ -60,6 +64,9 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     private bool _glInitialized;
     private bool _hasRenderedFrame;
     private string? _failureDetails;
+
+    private List<Vector3> _toolPath = new();
+    private List<Vector3> _targetPath = new();
 
     public IList<RecipePoint>? Points { get => GetValue(PointsProperty); set => SetValue(PointsProperty, value); }
     public AppSettings? Settings { get => GetValue(SettingsProperty); set => SetValue(SettingsProperty, value); }
@@ -103,6 +110,8 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
 
             _nozzleMesh = NozzleMeshBuilder.Build();
             _nozzleMesh.Upload(_gl);
+            _jetConeMesh = ConeMeshBuilder.Build();
+            _jetConeMesh.Upload(_gl);
             _quadMesh = BuildQuadMesh();
             _quadMesh.Upload(_gl);
 
@@ -188,6 +197,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
 
         _partMesh?.Dispose(_gl);
         _nozzleMesh?.Dispose(_gl);
+        _jetConeMesh?.Dispose(_gl);
         _quadMesh?.Dispose(_gl);
         _meshShader?.Dispose(_gl);
         _lineShader?.Dispose(_gl);
@@ -195,6 +205,8 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
 
         if (_trajectoryVbo != 0) _gl.DeleteBuffer(_trajectoryVbo);
         if (_trajectoryVao != 0) _gl.DeleteVertexArray(_trajectoryVao);
+        if (_targetTrajectoryVbo != 0) _gl.DeleteBuffer(_targetTrajectoryVbo);
+        if (_targetTrajectoryVao != 0) _gl.DeleteVertexArray(_targetTrajectoryVao);
         if (_gridVbo != 0) _gl.DeleteBuffer(_gridVbo);
         if (_gridVao != 0) _gl.DeleteVertexArray(_gridVao);
         if (_blueprintPartTex != 0) _gl.DeleteTexture(_blueprintPartTex);
@@ -232,15 +244,12 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             DrawMesh(_partMesh, Matrix4x4.Identity, new Vector3(0.75f, 0.78f, 0.83f), 0.5f, view, proj);
 
         var nozzleBase = new Vector3((float)ToolXRaw, (float)ToolYRaw, (float)ToolZRaw);
-        var target = FindNearestTargetPoint(nozzleBase);
-        var nozzleDir = Vector3.Normalize(target - nozzleBase);
+        var currentTarget = GetCurrentTargetPoint(nozzleBase, out _, out _);
+        var nozzleDir = Vector3.Normalize(currentTarget - nozzleBase);
         if (nozzleDir.LengthSquared() < 1e-6f)
             nozzleDir = AnglesToDirection(CurrentAlfa, CurrentBetta);
 
-        DrawNozzle(nozzleBase, nozzleDir, view, proj);
-
-        if (ShowPairLinks)
-            DrawLine(view, proj, nozzleBase, target, new Vector4(0.9f, 0.45f, 0.2f, 0.9f), 2f);
+        DrawNozzle(nozzleBase, nozzleDir, currentTarget, view, proj);
 
         RequestNextFrameRendering();
     }
@@ -350,13 +359,46 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         _lineShader.SetFloat(_gl, "uAlpha", 0.5f);
         _gl.DrawArrays(PrimitiveType.LineStrip, 0, (uint)_trajectoryCount);
 
-        var passed = CalculatePassedTrajectoryPointCount();
-        if (passed > 1)
+        if (_targetTrajectoryVao != 0 && _targetTrajectoryCount > 1)
         {
+            _gl.BindVertexArray(_targetTrajectoryVao);
+            _gl.LineWidth(2f);
+            _lineShader.SetVec3(_gl, "uColor", new Vector3(1f, 0.7f, 0.25f));
+            _lineShader.SetFloat(_gl, "uAlpha", 0.55f);
+            _gl.DrawArrays(PrimitiveType.LineStrip, 0, (uint)_targetTrajectoryCount);
+        }
+
+        var (passedCount, segmentIndex, segmentT) = CalculatePassedTrajectoryProgress();
+        if (passedCount > 1)
+        {
+            _gl.BindVertexArray(_trajectoryVao);
             _gl.LineWidth(3.5f);
             _lineShader.SetVec3(_gl, "uColor", new Vector3(0.25f, 0.95f, 0.45f));
             _lineShader.SetFloat(_gl, "uAlpha", 1f);
-            _gl.DrawArrays(PrimitiveType.LineStrip, 0, (uint)passed);
+            _gl.DrawArrays(PrimitiveType.LineStrip, 0, (uint)passedCount);
+
+            if (_targetTrajectoryVao != 0 && _targetTrajectoryCount > 1)
+            {
+                _gl.BindVertexArray(_targetTrajectoryVao);
+                _gl.LineWidth(3.5f);
+                _lineShader.SetVec3(_gl, "uColor", new Vector3(1f, 0.85f, 0.35f));
+                _lineShader.SetFloat(_gl, "uAlpha", 0.95f);
+                _gl.DrawArrays(PrimitiveType.LineStrip, 0, (uint)Math.Min(passedCount, _targetTrajectoryCount));
+            }
+        }
+
+        if (ShowPairLinks && _toolPath.Count > 1 && _targetPath.Count > 1)
+        {
+            var maxLines = 800;
+            var step = Math.Max(1, _toolPath.Count / maxLines);
+            for (var i = 0; i < _toolPath.Count && i < _targetPath.Count; i += step)
+                DrawLine(view, proj, _toolPath[i], _targetPath[i], new Vector4(0.78f, 0.56f, 0.18f, 0.28f), 1f);
+
+            if (segmentIndex >= 0)
+            {
+                var currentTarget = Vector3.Lerp(_targetPath[segmentIndex], _targetPath[Math.Min(segmentIndex + 1, _targetPath.Count - 1)], segmentT);
+                DrawLine(view, proj, new Vector3((float)ToolXRaw, (float)ToolYRaw, (float)ToolZRaw), currentTarget, new Vector4(0.95f, 0.55f, 0.2f, 0.9f), 2f);
+            }
         }
 
         _gl.BindVertexArray(0);
@@ -380,7 +422,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         _gl.BindVertexArray(0);
     }
 
-    private void DrawNozzle(Vector3 basePoint, Vector3 direction, Matrix4x4 view, Matrix4x4 proj)
+    private void DrawNozzle(Vector3 basePoint, Vector3 direction, Vector3 currentTarget, Matrix4x4 view, Matrix4x4 proj)
     {
         if (_nozzleMesh is null)
             return;
@@ -389,8 +431,34 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         var model = rot * Matrix4x4.CreateTranslation(basePoint);
         DrawMesh(_nozzleMesh, model, new Vector3(0.95f, 0.32f, 0.2f), 1f, view, proj);
 
-        var tip = basePoint + direction * 110f;
+        var nozzleLength = 110f;
+        var toTargetFromBase = currentTarget - basePoint;
+        var distFromBase = toTargetFromBase.Length();
+        var tipDistance = MathF.Min(nozzleLength, distFromBase);
+        var tip = basePoint + direction * tipDistance;
         DrawLine(view, proj, basePoint, tip, new Vector4(1f, 0.35f, 0.2f, 1f), 2f);
+
+        var toTarget = currentTarget - tip;
+        var jetLen = toTarget.Length();
+        if (_jetConeMesh is not null && jetLen > 1e-3f)
+        {
+            var jetDir = Vector3.Normalize(toTarget);
+            var jetRadius = Math.Clamp(jetLen * 0.12f, 8f, 60f);
+            var jetModel = Matrix4x4.CreateScale(jetRadius, jetRadius, jetLen)
+                * CreateRotationFromForward(jetDir, Vector3.UnitZ)
+                * Matrix4x4.CreateTranslation(tip);
+            DrawMesh(_jetConeMesh, jetModel, new Vector3(0.25f, 0.75f, 1f), 0.18f, view, proj);
+        }
+
+        DrawLine(view, proj, tip, currentTarget, new Vector4(0.35f, 0.8f, 1f, 0.95f), 2.25f);
+        DrawImpactMarker(view, proj, currentTarget, 6f, new Vector4(0.4f, 0.95f, 1f, 0.95f));
+    }
+
+    private void DrawImpactMarker(Matrix4x4 view, Matrix4x4 proj, Vector3 center, float size, Vector4 color)
+    {
+        DrawLine(view, proj, center + new Vector3(-size, 0, 0), center + new Vector3(size, 0, 0), color, 2f);
+        DrawLine(view, proj, center + new Vector3(0, -size, 0), center + new Vector3(0, size, 0), color, 2f);
+        DrawLine(view, proj, center + new Vector3(0, 0, -size), center + new Vector3(0, 0, size), color, 2f);
     }
 
     private void DrawBlueprints(Matrix4x4 view, Matrix4x4 proj)
@@ -485,25 +553,73 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     {
         if (_trajectoryVbo != 0) _gl!.DeleteBuffer(_trajectoryVbo);
         if (_trajectoryVao != 0) _gl!.DeleteVertexArray(_trajectoryVao);
+        if (_targetTrajectoryVbo != 0) _gl!.DeleteBuffer(_targetTrajectoryVbo);
+        if (_targetTrajectoryVao != 0) _gl!.DeleteVertexArray(_targetTrajectoryVao);
 
-        var path = Points?.Select(p => new Vector3((float)(p.Xr0 + p.DX), (float)(p.Yx0 + p.DY), (float)(p.Zr0 + p.DZ))).ToList() ?? new List<Vector3>();
-        _trajectoryCount = path.Count;
-        if (_trajectoryCount == 0)
-            return;
+        _toolPath = new List<Vector3>();
+        _targetPath = new List<Vector3>();
 
-        var data = LineStripBuilder.Build(path);
-        _trajectoryVao = _gl!.GenVertexArray();
-        _trajectoryVbo = _gl.GenBuffer();
-        _gl.BindVertexArray(_trajectoryVao);
-        _gl.BindBuffer(BufferTargetARB.ArrayBuffer, _trajectoryVbo);
-        unsafe
+        var points = Points;
+        if (points is null || points.Count == 0)
         {
-            fixed (float* ptr = data)
-                _gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(data.Length * sizeof(float)), ptr, BufferUsageARB.StaticDraw);
+            _trajectoryCount = 0;
+            _targetTrajectoryCount = 0;
+            return;
         }
 
-        _gl.EnableVertexAttribArray(0);
-        _gl.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), (void*)0);
+        var hZone = Settings?.HZone ?? 0;
+        foreach (var p in points)
+        {
+            var toolPos = new Vector3((float)(p.Xr0 + p.DX), (float)(p.Yx0 + p.DY), (float)(p.Zr0 + p.DZ));
+            var target = p.GetTargetPoint(hZone);
+            var radial = new Vector3(toolPos.X, toolPos.Y, 0f);
+            if (radial.LengthSquared() < 1e-8f)
+                radial = Vector3.UnitX;
+            else
+                radial = Vector3.Normalize(radial);
+
+            var targetPos = radial * MathF.Abs((float)target.Xp) + new Vector3(0, 0, (float)target.Zp);
+            _toolPath.Add(toolPos);
+            _targetPath.Add(targetPos);
+        }
+
+        _trajectoryCount = _toolPath.Count;
+        _targetTrajectoryCount = _targetPath.Count;
+
+        if (_trajectoryCount > 0)
+        {
+            var data = LineStripBuilder.Build(_toolPath);
+            _trajectoryVao = _gl!.GenVertexArray();
+            _trajectoryVbo = _gl.GenBuffer();
+            _gl.BindVertexArray(_trajectoryVao);
+            _gl.BindBuffer(BufferTargetARB.ArrayBuffer, _trajectoryVbo);
+            unsafe
+            {
+                fixed (float* ptr = data)
+                    _gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(data.Length * sizeof(float)), ptr, BufferUsageARB.StaticDraw);
+            }
+
+            _gl.EnableVertexAttribArray(0);
+            _gl.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), (void*)0);
+        }
+
+        if (_targetTrajectoryCount > 0)
+        {
+            var targetData = LineStripBuilder.Build(_targetPath);
+            _targetTrajectoryVao = _gl!.GenVertexArray();
+            _targetTrajectoryVbo = _gl.GenBuffer();
+            _gl.BindVertexArray(_targetTrajectoryVao);
+            _gl.BindBuffer(BufferTargetARB.ArrayBuffer, _targetTrajectoryVbo);
+            unsafe
+            {
+                fixed (float* ptr = targetData)
+                    _gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(targetData.Length * sizeof(float)), ptr, BufferUsageARB.StaticDraw);
+            }
+
+            _gl.EnableVertexAttribArray(0);
+            _gl.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), (void*)0);
+        }
+
         _gl.BindVertexArray(0);
     }
 
@@ -541,49 +657,78 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         _gl.BindVertexArray(0);
     }
 
-    private int CalculatePassedTrajectoryPointCount()
+    private (int PassedCount, int SegmentIndex, float SegmentT) CalculatePassedTrajectoryProgress()
     {
-        if (Points is null || Points.Count == 0)
-            return 0;
+        if (_toolPath.Count == 0)
+            return (0, -1, 0f);
+
+        if (_toolPath.Count == 1)
+            return (1, 0, 0f);
 
         var position = new Vector3((float)ToolXRaw, (float)ToolYRaw, (float)ToolZRaw);
-        var minDistance = float.MaxValue;
-        var nearest = 0;
-        for (var i = 0; i < Points.Count; i++)
+        var bestDistance = float.MaxValue;
+        var bestSegment = 0;
+        var bestT = 0f;
+
+        for (var i = 0; i < _toolPath.Count - 1; i++)
         {
-            var p = new Vector3((float)(Points[i].Xr0 + Points[i].DX), (float)(Points[i].Yx0 + Points[i].DY), (float)(Points[i].Zr0 + Points[i].DZ));
-            var d = Vector3.DistanceSquared(position, p);
-            if (d < minDistance)
+            var a = _toolPath[i];
+            var b = _toolPath[i + 1];
+            var ab = b - a;
+            var lenSq = ab.LengthSquared();
+            var t = lenSq < 1e-8f ? 0f : Math.Clamp(Vector3.Dot(position - a, ab) / lenSq, 0f, 1f);
+            var projected = a + ab * t;
+            var d = Vector3.DistanceSquared(position, projected);
+            if (d < bestDistance)
             {
-                minDistance = d;
-                nearest = i;
+                bestDistance = d;
+                bestSegment = i;
+                bestT = t;
             }
         }
 
-        return Math.Clamp(nearest + 1, 0, _trajectoryCount);
+        return (Math.Clamp(bestSegment + 1, 0, _trajectoryCount), bestSegment, bestT);
     }
 
-    private Vector3 FindNearestTargetPoint(Vector3 nozzleBase)
+    private Vector3 GetCurrentTargetPoint(Vector3 nozzleBase, out int segmentIndex, out float segmentT)
     {
-        if (Points is null || Points.Count == 0)
-            return nozzleBase + AnglesToDirection(CurrentAlfa, CurrentBetta) * 80f;
-
-        var settings = Settings;
-        var minDistance = double.MaxValue;
-        var nearest = new Vector3((float)ToolXRaw, 0, (float)ToolZRaw);
-        foreach (var p in Points)
+        if (_targetPath.Count == 0)
         {
-            var t = p.GetTargetPoint(settings?.HZone ?? 0);
-            var v = new Vector3((float)t.Xp, 0, (float)t.Zp);
-            var d = Vector3.DistanceSquared(v, nozzleBase);
-            if (d < minDistance)
+            segmentIndex = -1;
+            segmentT = 0f;
+            return nozzleBase + AnglesToDirection(CurrentAlfa, CurrentBetta) * 80f;
+        }
+
+        if (_targetPath.Count == 1 || _toolPath.Count < 2)
+        {
+            segmentIndex = 0;
+            segmentT = 0f;
+            return _targetPath[0];
+        }
+
+        var bestDistance = float.MaxValue;
+        segmentIndex = 0;
+        segmentT = 0f;
+
+        for (var i = 0; i < _toolPath.Count - 1; i++)
+        {
+            var a = _toolPath[i];
+            var b = _toolPath[i + 1];
+            var ab = b - a;
+            var lenSq = ab.LengthSquared();
+            var t = lenSq < 1e-8f ? 0f : Math.Clamp(Vector3.Dot(nozzleBase - a, ab) / lenSq, 0f, 1f);
+            var projected = a + ab * t;
+            var d = Vector3.DistanceSquared(nozzleBase, projected);
+            if (d < bestDistance)
             {
-                minDistance = d;
-                nearest = v;
+                bestDistance = d;
+                segmentIndex = i;
+                segmentT = t;
             }
         }
 
-        return nearest;
+        var i1 = Math.Min(segmentIndex + 1, _targetPath.Count - 1);
+        return Vector3.Lerp(_targetPath[segmentIndex], _targetPath[i1], segmentT);
     }
 
     private static Vector3 AnglesToDirection(double alfaDeg, double bettaDeg)
