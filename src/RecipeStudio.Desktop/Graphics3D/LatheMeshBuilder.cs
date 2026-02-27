@@ -17,8 +17,18 @@ public static class LatheMeshBuilder
 
         for (var i = 0; i < profile.Count; i++)
         {
-            var r = MathF.Abs(profile[i].X);
-            var z = profile[i].Y;
+            var current = profile[i];
+            var prev = profile[Math.Max(0, i - 1)];
+            var next = profile[Math.Min(profile.Count - 1, i + 1)];
+            var dr = MathF.Abs(next.X) - MathF.Abs(prev.X);
+            var dz = next.Y - prev.Y;
+            var meridianNormal = new Vector2(dz, -dr);
+            if (meridianNormal.LengthSquared() < 1e-8f)
+                meridianNormal = Vector2.UnitX;
+            meridianNormal = Vector2.Normalize(meridianNormal);
+
+            var r = MathF.Abs(current.X);
+            var z = current.Y;
             for (var s = 0; s <= segments; s++)
             {
                 var a = s / (float)segments * MathF.Tau;
@@ -27,9 +37,9 @@ public static class LatheMeshBuilder
                 vertices.Add(r * c);
                 vertices.Add(r * sn);
                 vertices.Add(z);
-                vertices.Add(c);
-                vertices.Add(sn);
-                vertices.Add(0);
+                vertices.Add(meridianNormal.X * c);
+                vertices.Add(meridianNormal.X * sn);
+                vertices.Add(meridianNormal.Y);
             }
         }
 
