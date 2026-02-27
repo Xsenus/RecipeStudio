@@ -69,6 +69,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     private readonly AppLogger _logger = new();
     private bool _loggedRenderSuccess;
     private bool _loggerConfigured;
+    private DateTime _lastGlErrorLogUtc = DateTime.MinValue;
 
     private List<Vector3> _toolPath = new();
     private List<Vector3> _targetPath = new();
@@ -268,7 +269,6 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             var nozzleDir = SafeNormalize(currentTarget - nozzleBase, AnglesToDirection(CurrentAlfa, CurrentBetta));
 
             DrawNozzle(nozzleBase, nozzleDir, currentTarget, view, proj);
-            LogGlErrors("OnOpenGlRender");
 
             if (!_loggedRenderSuccess)
             {
@@ -636,19 +636,26 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         if (_gl is null)
             return;
 
-        var hadErrors = false;
+        var errors = new List<GLEnum>();
         for (var i = 0; i < 16; i++)
         {
             var err = _gl.GetError();
             if (err == GLEnum.NoError)
                 break;
 
-            hadErrors = true;
-            LogWarn($"GL error at {stage}: {err}");
+            errors.Add(err);
         }
 
-        if (hadErrors)
-            Debug.WriteLine($"[Simulation3DControl] GL errors detected at {stage}");
+        if (errors.Count == 0)
+            return;
+
+        var now = DateTime.UtcNow;
+        if (now - _lastGlErrorLogUtc < TimeSpan.FromSeconds(2))
+            return;
+
+        _lastGlErrorLogUtc = now;
+        LogWarn($"GL errors at {stage}: {string.Join(", ", errors)}");
+        Debug.WriteLine($"[Simulation3DControl] GL errors detected at {stage}: {string.Join(", ", errors)}");
     }
 
     private void RebuildGeometry()
