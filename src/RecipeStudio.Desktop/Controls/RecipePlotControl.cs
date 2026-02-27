@@ -239,7 +239,9 @@ public sealed class RecipePlotControl : Control
             target.Add(new Point(xp, zp));
         }
 
-        var robotPoints = points;
+        var robotPoints = points.Where(p => !p.Safe).ToList();
+        if (robotPoints.Count == 0)
+            robotPoints = points;
         var absoluteRobot = RobotCoordinateResolver.BuildAbsolutePositions(robotPoints);
         var tool = absoluteRobot.Select(v => new Point(v.X, v.Z)).ToList();
         var robotToolMap = robotPoints.Select((p, i) => new { p, pt = tool[i] }).ToDictionary(x => x.p, x => x.pt);
@@ -343,8 +345,6 @@ public sealed class RecipePlotControl : Control
             // so unrelated groups are not connected by artificial long segments.
             DrawPolyline(context, SelectTool(robotPoints, robotToolMap, safe: false, place: 0), penTool);
             DrawPolyline(context, SelectTool(robotPoints, robotToolMap, safe: false, place: 1), penTool);
-            DrawPolyline(context, SelectTool(robotPoints, robotToolMap, safe: true, place: 0), penTool);
-            DrawPolyline(context, SelectTool(robotPoints, robotToolMap, safe: true, place: 1), penTool);
 
             // Step 2: target polylines split by (Safe, Place) and pair links Xp/Zp <-> Xr/Zr for cleaning points.
             DrawPolyline(context, SelectTarget(points, settings.HZone, safe: false, place: 0), penTargetWork);
