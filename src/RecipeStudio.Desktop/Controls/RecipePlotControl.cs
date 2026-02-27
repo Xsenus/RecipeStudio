@@ -339,6 +339,7 @@ public sealed class RecipePlotControl : Control
         var penTargetSafe = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), safetyColor.R, safetyColor.G, safetyColor.B)), thickness);
         var penTargetToTool = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), linksColor.R, linksColor.G, linksColor.B)), Math.Max(1, thickness - 1));
 
+        // Summary: keep series parity with Excel charts while avoiding artificial cross-group joins.
         if (settings.PlotShowPolyline)
         {
             // Robot path is split by (Safe, Place) the same way as Excel series,
@@ -377,6 +378,10 @@ public sealed class RecipePlotControl : Control
     }
 
 
+    /// <summary>
+    /// Selects rows that can be rendered on charts, preferring active + visible + geometric rows,
+    /// with graceful fallback to less strict subsets when source data is sparse.
+    /// </summary>
     private static List<RecipePoint> FilterRenderablePoints(IList<RecipePoint>? source, IList<RecipePoint>? fallback = null)
     {
         var src = source?.ToList() ?? new List<RecipePoint>();
@@ -398,12 +403,18 @@ public sealed class RecipePlotControl : Control
         return active.Count > 0 ? active : src;
     }
 
+    /// <summary>
+    /// Chooses animation points for the tool path: working rows first, otherwise the full source.
+    /// </summary>
     private static List<RecipePoint> SelectToolPoints(IList<RecipePoint> source)
     {
         var working = source.Where(p => !p.Safe).ToList();
         return working.Count > 0 ? working : source.ToList();
     }
 
+    /// <summary>
+    /// Returns true when a row contains non-zero geometry either in target or robot columns.
+    /// </summary>
     private static bool HasRenderableGeometry(RecipePoint p)
     {
         const double eps = 1e-6;
@@ -549,6 +560,9 @@ public sealed class RecipePlotControl : Control
         }
     }
 
+    /// <summary>
+    /// Builds target polyline points for a specific (Safe, Place) series.
+    /// </summary>
     private static List<Point> SelectTarget(IList<RecipePoint> points, double hZone, bool safe, int place)
         => points
             .Where(p => p.Safe == safe && p.Place == place)
@@ -559,6 +573,9 @@ public sealed class RecipePlotControl : Control
             })
             .ToList();
 
+    /// <summary>
+    /// Builds robot/tool polyline points for a specific (Safe, Place) series.
+    /// </summary>
     private static List<Point> SelectTool(IList<RecipePoint> points, Dictionary<RecipePoint, Point> robotToolMap, bool safe, int place)
         => points
             .Where(p => p.Safe == safe && p.Place == place)
@@ -566,6 +583,10 @@ public sealed class RecipePlotControl : Control
             .Select(p => robotToolMap[p])
             .ToList();
 
+    /// <summary>
+    /// Restores workbook-style green bridge segments between consecutive working points
+    /// when sequence transitions from one Place group to another.
+    /// </summary>
     private void DrawWorkTransitionLinks(DrawingContext ctx, IList<RecipePoint> points, double hZone, Pen pen)
     {
         for (var i = 1; i < points.Count; i++)
@@ -582,6 +603,9 @@ public sealed class RecipePlotControl : Control
         }
     }
 
+    /// <summary>
+    /// Draws pair links Xp/Zp -> Xr/Zr for working rows (Safe=0).
+    /// </summary>
     private void DrawTargetToToolLinks(DrawingContext ctx, IList<RecipePoint> points, Dictionary<RecipePoint, Point> robotToolMap, double hZone, Pen pen)
     {
         foreach (var p in points.Where(x => !x.Safe))
