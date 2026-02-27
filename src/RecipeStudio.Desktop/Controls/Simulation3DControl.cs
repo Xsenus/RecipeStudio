@@ -328,7 +328,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     {
         context.FillRectangle(new SolidColorBrush(Color.FromRgb(6, 20, 40)), Bounds);
 
-        var points = Points?.Where(p => p.Act).ToList() ?? new List<RecipePoint>();
+        var points = GetRenderablePoints();
         if (points.Count < 2)
             return;
 
@@ -671,6 +671,8 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             RebuildGrid();
             _geometryDirty = false;
             LogInfo($"geometry rebuilt. partMesh={(_partMesh is null ? 0 : _partMesh.Vertices.Length / 6)} verts, toolPath={_toolPath.Count}, targetPath={_targetPath.Count}, gridVertices={_gridCount}");
+            if (_toolPath.Count == 0)
+                LogWarn("geometry contains no trajectory points (check Act flags / Points binding)");
             LogGlErrors("EnsureGeometryBuilt");
         }
         catch (Exception ex)
@@ -680,10 +682,20 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         }
     }
 
+    private List<RecipePoint> GetRenderablePoints()
+    {
+        var all = Points?.ToList() ?? new List<RecipePoint>();
+        if (all.Count == 0)
+            return all;
+
+        var active = all.Where(p => p.Act).ToList();
+        return active.Count > 0 ? active : all;
+    }
+
     private void RebuildPartMesh()
     {
         _partMesh?.Dispose(_gl!);
-        var src = Points?.Where(p => p.Act).ToList() ?? new List<RecipePoint>();
+        var src = GetRenderablePoints();
         var settings = Settings;
 
         var profile = src.Select(p => p.GetTargetPoint(settings?.HZone ?? 0))
@@ -715,8 +727,8 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         _toolPath = new List<Vector3>();
         _targetPath = new List<Vector3>();
 
-        var points = Points?.Where(p => p.Act).ToList();
-        if (points is null || points.Count == 0)
+        var points = GetRenderablePoints();
+        if (points.Count == 0)
         {
             _trajectoryCount = 0;
             _targetTrajectoryCount = 0;
