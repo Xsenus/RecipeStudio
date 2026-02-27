@@ -142,7 +142,6 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
 
             _glInitialized = true;
             LogInfo("OpenGL init success.");
-            LogGlErrors("OnOpenGlInit");
             RebuildGeometry();
         }
         catch (Exception ex)
@@ -693,7 +692,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             _geometryDirty = false;
             LogInfo($"geometry rebuilt. partMesh={(_partMesh is null ? 0 : _partMesh.Vertices.Length / 6)} verts, toolPath={_toolPath.Count}, targetPath={_targetPath.Count}, gridVertices={_gridCount}");
             if (_toolPath.Count == 0)
-                LogWarn("geometry contains no trajectory points (check Act flags / Points binding)");
+                LogWarn("geometry contains no trajectory points (check Points binding/data)");
             LogGlErrors("EnsureGeometryBuilt");
         }
         catch (Exception ex)
@@ -709,8 +708,9 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         if (all.Count == 0)
             return all;
 
-        var active = all.Where(p => p.Act).ToList();
-        return active.Count > 0 ? active : all;
+        // Keep 3D geometry stable: use the full current recipe set.
+        // Some runtime modes toggle Act flags, which should not collapse/reshape the 3D mesh each tick.
+        return all;
     }
 
     private void RebuildPartMesh()
