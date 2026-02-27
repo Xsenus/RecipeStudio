@@ -349,6 +349,7 @@ public sealed class RecipePlotControl : Control
             // Step 2: target polylines split by (Safe, Place) and pair links Xp/Zp <-> Xr/Zr for cleaning points.
             DrawPolyline(context, SelectTarget(points, settings.HZone, safe: false, place: 0), penTargetWork);
             DrawPolyline(context, SelectTarget(points, settings.HZone, safe: false, place: 1), penTargetWork);
+            DrawWorkTransitionLinks(context, points, settings.HZone, penTargetWork);
             DrawPolyline(context, SelectTarget(points, settings.HZone, safe: true, place: 0), penTargetSafe);
             DrawPolyline(context, SelectTarget(points, settings.HZone, safe: true, place: 1), penTargetSafe);
 
@@ -564,6 +565,22 @@ public sealed class RecipePlotControl : Control
             .Where(robotToolMap.ContainsKey)
             .Select(p => robotToolMap[p])
             .ToList();
+
+    private void DrawWorkTransitionLinks(DrawingContext ctx, IList<RecipePoint> points, double hZone, Pen pen)
+    {
+        for (var i = 1; i < points.Count; i++)
+        {
+            var prev = points[i - 1];
+            var cur = points[i];
+
+            if (prev.Safe || cur.Safe || prev.Place == cur.Place)
+                continue;
+
+            var (x1, z1) = prev.GetTargetPoint(hZone);
+            var (x2, z2) = cur.GetTargetPoint(hZone);
+            ctx.DrawLine(pen, WorldToScreen(new Point(x1, z1)), WorldToScreen(new Point(x2, z2)));
+        }
+    }
 
     private void DrawTargetToToolLinks(DrawingContext ctx, IList<RecipePoint> points, Dictionary<RecipePoint, Point> robotToolMap, double hZone, Pen pen)
     {
