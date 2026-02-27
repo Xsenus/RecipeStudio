@@ -157,8 +157,8 @@ public sealed class RecipeCalculatorTests
         RecipeCalculator.Recalculate(doc, new AppSettings { Lz = 250 });
 
         var safe = doc.Points[1];
-        Assert.Equal(114, safe.Xr0);
-        Assert.Equal(374, safe.Zr0);
+        Assert.Equal(0, safe.Xr0);
+        Assert.Equal(0, safe.Zr0);
         Assert.Equal(0, safe.DX);
         Assert.Equal(0, safe.DY);
         Assert.Equal(0, safe.DZ);

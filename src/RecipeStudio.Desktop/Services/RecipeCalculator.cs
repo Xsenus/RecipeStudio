@@ -83,6 +83,14 @@ public static class RecipeCalculator
         var yx0Base = 0d;
         var zr0Base = Round1(originPoint.ZCrd);
 
+        // Excel stores increments between consecutive robot points;
+        // first working point is measured from the base origin.
+        var prevXr = xr0Base;
+        var prevYx = yx0Base;
+        var prevZr = zr0Base;
+        var prevAlfa = 0d;
+        var prevBetta = 0d;
+
         foreach (var p in doc.Points)
         {
             var ln = settings.Lz;
@@ -113,27 +121,44 @@ public static class RecipeCalculator
             var yx = Round1(-sinB * ln1);
             var zr = Round1(zp + cosB * sinA * ln1);
 
-            // Safe rows in Excel CALC are reference/clearance points:
-            // they keep their own base and do not apply robot deltas.
-            var useOwnBase = p.Safe;
-            var xr0 = useOwnBase ? Round1(r0 - ln1) : xr0Base;
-            var yx0 = useOwnBase ? 0d : yx0Base;
-            var zr0 = useOwnBase ? Round1(z0) : zr0Base;
+            var dx = 0d;
+            var dy = 0d;
+            var dz = 0d;
+            var dA = 0d;
+            var aB = 0d;
 
-            var dx = useOwnBase ? 0d : Round1(xr - xr0Base);
-            var dy = useOwnBase ? 0d : Round1(yx - yx0Base);
-            var dz = useOwnBase ? 0d : Round1(zr - zr0Base);
+            if (!p.Safe)
+            {
+                p.Xr0 = xr0Base;
+                p.Yx0 = yx0Base;
+                p.Zr0 = zr0Base;
 
-            p.Xr0 = xr0;
-            p.Yx0 = yx0;
-            p.Zr0 = zr0;
+                dx = Round1(xr - prevXr);
+                dy = Round1(yx - prevYx);
+                dz = Round1(zr - prevZr);
+                dA = Round1(p.Alfa - prevAlfa);
+                aB = Round1(p.Betta - prevBetta);
+
+                prevXr = xr;
+                prevYx = yx;
+                prevZr = zr;
+                prevAlfa = p.Alfa;
+                prevBetta = p.Betta;
+            }
+            else
+            {
+                // Safe reference rows stay zeroed in exported CALC/SAVE block.
+                p.Xr0 = 0;
+                p.Yx0 = 0;
+                p.Zr0 = 0;
+            }
 
             p.DX = dx;
             p.DY = dy;
             p.DZ = dz;
 
-            p.DA = p.Alfa;
-            p.AB = p.Betta;
+            p.DA = dA;
+            p.AB = aB;
 
             p.XPuls = dx * settings.PulseX;
             p.YPuls = dy * settings.PulseY;
