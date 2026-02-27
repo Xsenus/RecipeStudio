@@ -346,11 +346,13 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             return;
 
         var hZone = Settings?.HZone ?? 0;
+        var absolute = RobotCoordinateResolver.BuildAbsolutePositions(points);
         var tool = new List<Vector3>(points.Count);
         var target = new List<Vector3>(points.Count);
-        foreach (var p in points)
+        for (var idx = 0; idx < points.Count && idx < absolute.Count; idx++)
         {
-            var toolPos = new Vector3((float)(p.Xr0 + p.DX), (float)(p.Yx0 + p.DY), (float)(p.Zr0 + p.DZ));
+            var p = points[idx];
+            var toolPos = absolute[idx];
             var t = p.GetTargetPoint(hZone);
             var radial = SafeNormalize(new Vector3(toolPos.X, toolPos.Y, 0f), Vector3.UnitX);
             var targetPos = radial * MathF.Abs((float)t.Xp) + new Vector3(0, 0, (float)t.Zp);
@@ -774,9 +776,11 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         }
 
         var hZone = Settings?.HZone ?? 0;
-        foreach (var p in points)
+        var absolute = RobotCoordinateResolver.BuildAbsolutePositions(points);
+        for (var idx = 0; idx < points.Count && idx < absolute.Count; idx++)
         {
-            var toolPos = new Vector3((float)(p.Xr0 + p.DX), (float)(p.Yx0 + p.DY), (float)(p.Zr0 + p.DZ));
+            var p = points[idx];
+            var toolPos = absolute[idx];
             var target = p.GetTargetPoint(hZone);
             var radial = SafeNormalize(new Vector3(toolPos.X, toolPos.Y, 0f), Vector3.UnitX);
             var targetPos = radial * MathF.Abs((float)target.Xp) + new Vector3(0, 0, (float)target.Zp);

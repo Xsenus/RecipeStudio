@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using RecipeStudio.Desktop.Models;
+using RecipeStudio.Desktop.Services;
 
 namespace RecipeStudio.Desktop.Controls;
 
@@ -44,7 +45,8 @@ public sealed class SimulationIsometricControl : Control
         if (points.Count == 0)
             return;
 
-        var path = points.Select(p => new Point3(p.Xr0 + p.DX, p.Yx0 + p.DY, p.Zr0 + p.DZ)).ToList();
+        var absolute = RobotCoordinateResolver.BuildAbsolutePositions(points);
+        var path = absolute.Select(p => new Point3(p.X, p.Y, p.Z)).ToList();
         var projected = path.Select(Project).ToList();
 
         var minX = projected.Min(p => p.X);

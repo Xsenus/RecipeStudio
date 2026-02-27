@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using RecipeStudio.Desktop.Models;
+using RecipeStudio.Desktop.Services;
 
 namespace RecipeStudio.Desktop.Controls;
 
@@ -48,7 +49,8 @@ public sealed class SimulationTopViewControl : Control
         if (points.Count == 0)
             return;
 
-        var world = points.Select(p => new Point(p.Xr0 + p.DX, p.Yx0 + p.DY)).ToList();
+        var absolute = RobotCoordinateResolver.BuildAbsolutePositions(points);
+        var world = absolute.Select(p => new Point(p.X, p.Y)).ToList();
         Fit(world);
 
         var pathPen = new Pen(new SolidColorBrush(Color.FromRgb(76, 180, 255)), 1.6);
