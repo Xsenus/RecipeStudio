@@ -74,4 +74,51 @@ public sealed class RecipeCalculatorTests
         Assert.True(point.DZ > 0, "Positive alfa should tilt nozzle toward positive Z to match Excel CALC/SAVE formulas.");
     }
 
+    [Fact]
+    public void Recalculate_UsesFirstWorkingPoint_AsRobotOriginForAllRows()
+    {
+        var doc = new RecipeDocument { RecipeCode = "T3" };
+        doc.Points.Add(new RecipePoint
+        {
+            RecipeCode = "T3",
+            NPoint = 1,
+            Act = true,
+            Safe = false,
+            RCrd = 364,
+            ZCrd = 354,
+            ANozzle = 20,
+            Alfa = -30,
+            Betta = 12,
+            SpeedTable = 3,
+            IceRate = 100
+        });
+        doc.Points.Add(new RecipePoint
+        {
+            RecipeCode = "T3",
+            NPoint = 2,
+            Act = true,
+            Safe = false,
+            RCrd = 377,
+            ZCrd = 337,
+            ANozzle = 20,
+            Alfa = -15,
+            Betta = 13,
+            SpeedTable = 3,
+            IceRate = 103.6
+        });
+
+        RecipeCalculator.Recalculate(doc, new AppSettings { Lz = 250 });
+
+        var p1 = doc.Points[0];
+        var p2 = doc.Points[1];
+
+        Assert.Equal(94, p1.Xr0);
+        Assert.Equal(354, p1.Zr0);
+        Assert.Equal(p1.Xr0, p2.Xr0);
+        Assert.Equal(p1.Zr0, p2.Zr0);
+
+        Assert.Equal(-12.4, p2.DX);
+        Assert.Equal(46.9, p2.DZ);
+    }
+
 }

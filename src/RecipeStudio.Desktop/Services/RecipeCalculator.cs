@@ -77,6 +77,12 @@ public static class RecipeCalculator
         }
 
         // CALC/SAVE outputs
+        var originPoint = doc.Points.FirstOrDefault(pt => pt.Act && !pt.Safe) ?? doc.Points[0];
+        var originLn1 = settings.Lz + originPoint.ANozzle;
+        var xr0Base = Round1(originPoint.RCrd - originLn1);
+        var yx0Base = 0d;
+        var zr0Base = Round1(originPoint.ZCrd);
+
         foreach (var p in doc.Points)
         {
             var ln = settings.Lz;
@@ -103,21 +109,17 @@ public static class RecipeCalculator
             // Xr0/Yx0/Zr0 and (Xr,Yx,Zr) are expected in the same local frame as Excel CALC/SAVE.
             // Manipulator base constants (Xm/Ym/Zm) are station reference constants, but should not
             // shift these plotted/exported local coordinates.
-            var xr0 = Round1(r0 - ln1);
-            var yx0 = 0;
-            var zr0 = Round1(z0);
-
             var xr = Round1(xp - cosB * cosA * ln1);
             var yx = Round1(-sinB * ln1);
             var zr = Round1(zp + cosB * sinA * ln1);
 
-            var dx = Round1(xr - xr0);
-            var dy = Round1(yx - yx0);
-            var dz = Round1(zr - zr0);
+            var dx = Round1(xr - xr0Base);
+            var dy = Round1(yx - yx0Base);
+            var dz = Round1(zr - zr0Base);
 
-            p.Xr0 = xr0;
-            p.Yx0 = yx0;
-            p.Zr0 = zr0;
+            p.Xr0 = xr0Base;
+            p.Yx0 = yx0Base;
+            p.Zr0 = zr0Base;
 
             p.DX = dx;
             p.DY = dy;
