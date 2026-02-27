@@ -233,18 +233,22 @@ public sealed class RecipePlotControl : Control
 
         // Collect world points (full profile for drawing)
         var target = new List<Point>();
-        var tool = new List<Point>();
         foreach (var p in points)
         {
             var (xp, zp) = p.GetTargetPoint(settings.HZone);
             target.Add(new Point(xp, zp));
+        }
 
+        var toolPoints = SelectToolPoints(points);
+        var tool = new List<Point>();
+        foreach (var p in toolPoints)
+        {
             var toolPoint = GetToolPointForPlot(p, settings);
             tool.Add(toolPoint);
         }
 
         // Separate set for animation (usually working cleaning points only).
-        var animSrc = FilterRenderablePoints(AnimationPoints, fallback: points);
+        var animSrc = SelectToolPoints(FilterRenderablePoints(AnimationPoints, fallback: toolPoints));
         var animTarget = new List<Point>();
         var animTool = new List<Point>();
         foreach (var p in animSrc)
@@ -352,7 +356,7 @@ public sealed class RecipePlotControl : Control
 
         // Target points are always drawn to keep point markers visible in the editor.
         DrawPoints(context, points, settings, settings.HZone);
-        DrawRobotPoints(context, points, settings);
+        DrawRobotPoints(context, toolPoints, settings);
 
         // Tool marker rendered as a smooth nozzle link Target->Robot.
         var toolState = GetToolState(animTool, animTarget, Progress);
@@ -383,6 +387,12 @@ public sealed class RecipePlotControl : Control
 
         var active = src.Where(p => p.Act).ToList();
         return active.Count > 0 ? active : src;
+    }
+
+    private static List<RecipePoint> SelectToolPoints(IList<RecipePoint> source)
+    {
+        var working = source.Where(p => !p.Safe).ToList();
+        return working.Count > 0 ? working : source.ToList();
     }
 
     private static bool HasRenderableGeometry(RecipePoint p)
