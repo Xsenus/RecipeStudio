@@ -448,11 +448,30 @@
     <Setter Property="BorderThickness" Value="1" />
   </Style>
 
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(2) CheckBox:checked,
-                  DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(3) CheckBox:checked">
+  <Style Selector="CheckBox.editor-yellow-checkbox">
+    <Setter Property="BorderBrush" Value="#EAB308" />
+  </Style>
+
+  <Style Selector="CheckBox.editor-yellow-checkbox:checked">
     <Setter Property="Background" Value="#EAB308" />
     <Setter Property="BorderBrush" Value="#EAB308" />
     <Setter Property="Foreground" Value="#FFFFFF" />
+  </Style>
+
+
+  <Style Selector="CheckBox.editor-yellow-checkbox /template/ Border#NormalRectangle">
+    <Setter Property="BorderBrush" Value="#EAB308" />
+  </Style>
+
+  <Style Selector="CheckBox.editor-yellow-checkbox:checked /template/ Border#NormalRectangle">
+    <Setter Property="Background" Value="#EAB308" />
+    <Setter Property="BorderBrush" Value="#EAB308" />
+  </Style>
+
+  <Style Selector="CheckBox.editor-yellow-checkbox:checked /template/ Path#CheckGlyph,
+                  CheckBox.editor-yellow-checkbox:checked /template/ PathIcon#CheckGlyph">
+    <Setter Property="Foreground" Value="#FFFFFF" />
+    <Setter Property="Fill" Value="#FFFFFF" />
   </Style>
 
   <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(4)">

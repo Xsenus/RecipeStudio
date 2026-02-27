@@ -71,17 +71,27 @@
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
-              <DataGridCheckBoxColumn Binding="{Binding Act}" Width="40">
-                <DataGridCheckBoxColumn.Header>
+              <DataGridTemplateColumn Width="40">
+                <DataGridTemplateColumn.Header>
                   <TextBlock Text="A" Classes="grid-hdr" ToolTip.Tip="Активность точки: 1 — участвует, 0 — выключена" />
-                </DataGridCheckBoxColumn.Header>
-              </DataGridCheckBoxColumn>
+                </DataGridTemplateColumn.Header>
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <CheckBox Classes="editor-yellow-checkbox" IsChecked="{Binding Act}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
 
-              <DataGridCheckBoxColumn Binding="{Binding Safe}" Width="40">
-                <DataGridCheckBoxColumn.Header>
+              <DataGridTemplateColumn Width="40">
+                <DataGridTemplateColumn.Header>
                   <TextBlock Text="S" Classes="grid-hdr" ToolTip.Tip="Зона безопасности (Safe)" />
-                </DataGridCheckBoxColumn.Header>
-              </DataGridCheckBoxColumn>
+                </DataGridTemplateColumn.Header>
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <CheckBox Classes="editor-yellow-checkbox" IsChecked="{Binding Safe}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
 
               <DataGridTextColumn Binding="{Binding RCrd}" Width="52">
                 <DataGridTextColumn.Header>
