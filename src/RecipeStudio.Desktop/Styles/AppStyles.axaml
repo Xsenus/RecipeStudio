@@ -448,6 +448,13 @@
     <Setter Property="BorderThickness" Value="1" />
   </Style>
 
+  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(2) CheckBox:checked,
+                  DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(3) CheckBox:checked">
+    <Setter Property="Background" Value="#EAB308" />
+    <Setter Property="BorderBrush" Value="#EAB308" />
+    <Setter Property="Foreground" Value="#FFFFFF" />
+  </Style>
+
   <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(4)">
     <Setter Property="Foreground" Value="#42E885" />
   </Style>
