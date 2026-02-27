@@ -220,12 +220,12 @@ public sealed class RecipePlotControl : Control
         base.Render(context);
 
         var settings = Settings ?? new AppSettings();
-        var points = Points;
+        var points = FilterRenderablePoints(Points);
 
         // background
         context.FillRectangle(new SolidColorBrush(Color.FromRgb(11, 18, 32)), new Rect(Bounds.Size));
 
-        if (points is null || points.Count == 0)
+        if (points.Count == 0)
         {
             DrawCenteredText(context, "Нет точек", Bounds);
             return;
@@ -244,7 +244,7 @@ public sealed class RecipePlotControl : Control
         }
 
         // Separate set for animation (usually working cleaning points only).
-        var animSrc = AnimationPoints is { Count: > 0 } ? AnimationPoints : points;
+        var animSrc = FilterRenderablePoints(AnimationPoints, fallback: points);
         var animTarget = new List<Point>();
         var animTool = new List<Point>();
         foreach (var p in animSrc)
@@ -361,6 +361,20 @@ public sealed class RecipePlotControl : Control
         // Legend
         if (ShowLegend)
             DrawLegend(context);
+    }
+
+
+    private static List<RecipePoint> FilterRenderablePoints(IList<RecipePoint>? source, IList<RecipePoint>? fallback = null)
+    {
+        var src = source?.ToList() ?? new List<RecipePoint>();
+        if (src.Count == 0 && fallback is not null)
+            src = fallback.ToList();
+
+        if (src.Count == 0)
+            return src;
+
+        var active = src.Where(p => p.Act).ToList();
+        return active.Count > 0 ? active : src;
     }
 
     private void DrawGrid(DrawingContext ctx)

@@ -708,9 +708,10 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         if (all.Count == 0)
             return all;
 
-        // Keep 3D geometry stable: use the full current recipe set.
-        // Some runtime modes toggle Act flags, which should not collapse/reshape the 3D mesh each tick.
-        return all;
+        // Excel-графики опираются на рабочие (Act=1) точки;
+        // fallback на полный набор нужен для старых рецептов, где флаг Act не заполнен.
+        var active = all.Where(p => p.Act).ToList();
+        return active.Count > 0 ? active : all;
     }
 
     private void RebuildPartMesh()

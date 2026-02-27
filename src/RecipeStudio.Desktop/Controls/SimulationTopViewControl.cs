@@ -43,7 +43,10 @@ public sealed class SimulationTopViewControl : Control
         base.Render(context);
         context.FillRectangle(new SolidColorBrush(Color.FromRgb(3, 12, 34)), Bounds);
 
-        var points = Points?.ToList() ?? new List<RecipePoint>();
+        var allPoints = Points?.ToList() ?? new List<RecipePoint>();
+        var points = allPoints.Where(p => p.Act).ToList();
+        if (points.Count == 0)
+            points = allPoints;
         if (points.Count == 0)
             return;
 
