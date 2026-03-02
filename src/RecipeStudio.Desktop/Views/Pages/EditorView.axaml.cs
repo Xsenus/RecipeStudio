@@ -66,6 +66,9 @@ public sealed partial class EditorView : UserControl
         if (HasUsableCanvasSize())
             InitializePanelsLayout();
 
+        RecipePlot.ZoomChanged -= OnRecipePlotZoomChanged;
+        RecipePlot.ZoomChanged += OnRecipePlotZoomChanged;
+
         UpdateZoomText();
         UpdatePlotOverlayButtons();
     }
@@ -73,8 +76,16 @@ public sealed partial class EditorView : UserControl
     private void OnDetachedFromVisualTree(object? sender, Avalonia.VisualTreeAttachmentEventArgs e)
     {
         PanelsCanvas.SizeChanged -= OnPanelsCanvasSizeChanged;
+        RecipePlot.ZoomChanged -= OnRecipePlotZoomChanged;
         PersistPanelsLayout(force: false);
         _panelsInitialized = false;
+    }
+
+
+    private void OnRecipePlotZoomChanged(double _)
+    {
+        UpdateZoomText();
+        UpdatePlotOverlayButtons();
     }
 
     private void OnPanelsCanvasSizeChanged(object? sender, SizeChangedEventArgs e)

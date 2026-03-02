@@ -43,8 +43,6 @@ public sealed class RecipePlotControl : Control
     private INotifyCollectionChanged? _collectionChanged;
     private readonly Dictionary<RecipePoint, PropertyChangedEventHandler> _pointHandlers = new();
 
-    private bool _isDragging;
-    private RecipePoint? _dragPoint;
     private bool _isPanning;
     private Point _panStartScreen;
     private Point _panStartOffset;
@@ -136,6 +134,7 @@ public sealed class RecipePlotControl : Control
         _zoomFactor = Math.Clamp(_zoomFactor * 1.2, 1.0, 20.0);
         ClampPanOffset();
         InvalidateVisual();
+        NotifyZoomChanged();
     }
 
     public void ZoomOut()
@@ -143,6 +142,7 @@ public sealed class RecipePlotControl : Control
         _zoomFactor = Math.Clamp(_zoomFactor / 1.2, 1.0, 20.0);
         ClampPanOffset();
         InvalidateVisual();
+        NotifyZoomChanged();
     }
 
     public void ResetZoom()
@@ -150,9 +150,17 @@ public sealed class RecipePlotControl : Control
         _zoomFactor = 1.0;
         _panOffset = default;
         InvalidateVisual();
+        NotifyZoomChanged();
     }
 
     public double ZoomFactor => _zoomFactor;
+
+    public event Action<double>? ZoomChanged;
+
+    private void NotifyZoomChanged()
+    {
+        ZoomChanged?.Invoke(_zoomFactor);
+    }
 
     private void OnPointsChanged(IList<RecipePoint>? points)
     {
@@ -802,18 +810,9 @@ public sealed class RecipePlotControl : Control
 
         if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
         {
-            if (hit is not null)
-            {
-                _isDragging = true;
-                _dragPoint = hit;
-            }
-            else
-            {
-                _isPanning = true;
-                _panStartScreen = pos;
-                _panStartOffset = _panOffset;
-            }
-
+            _isPanning = true;
+            _panStartScreen = pos;
+            _panStartOffset = _panOffset;
             e.Pointer.Capture(this);
         }
     }
@@ -822,50 +821,31 @@ public sealed class RecipePlotControl : Control
     {
         base.OnPointerMoved(e);
 
-        var settings = Settings ?? new AppSettings();
-
         var pos = e.GetPosition(this);
         var isLeftButtonPressed = e.GetCurrentPoint(this).Properties.IsLeftButtonPressed;
 
-        if ((_isDragging || _isPanning) && !isLeftButtonPressed)
+        if (_isPanning && !isLeftButtonPressed)
         {
             StopPointerInteraction(e.Pointer);
             return;
         }
 
-        if (_isPanning)
-        {
-            var delta = pos - _panStartScreen;
-            var worldDx = -delta.X / _scale;
-            var worldDy = delta.Y / _scale;
-            _panOffset = new Point(_panStartOffset.X + worldDx, _panStartOffset.Y + worldDy);
-            ClampPanOffset();
-            InvalidateVisual();
+        if (!_isPanning)
             return;
-        }
 
-        if (!_isDragging || _dragPoint is null) return;
-
-        var w = ScreenToWorld(pos);
-
-        // Update underlying RCrd/ZCrd based on place.
-        if (_dragPoint.Place == 0)
-        {
-            _dragPoint.RCrd = w.X;
-            _dragPoint.ZCrd = w.Y;
-        }
-        else
-        {
-            _dragPoint.RCrd = -w.X;
-            _dragPoint.ZCrd = settings.HZone - w.Y;
-        }
+        var delta = pos - _panStartScreen;
+        var worldDx = -delta.X / _scale;
+        var worldDy = delta.Y / _scale;
+        _panOffset = new Point(_panStartOffset.X + worldDx, _panStartOffset.Y + worldDy);
+        ClampPanOffset();
+        InvalidateVisual();
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
 
-        if (_isDragging || _isPanning)
+        if (_isPanning)
             StopPointerInteraction(e.Pointer);
     }
 
@@ -877,8 +857,6 @@ public sealed class RecipePlotControl : Control
 
     private void StopPointerInteraction(IPointer pointer)
     {
-        _isDragging = false;
-        _dragPoint = null;
         _isPanning = false;
         pointer.Capture(null);
     }
