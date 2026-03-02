@@ -27,6 +27,7 @@ public sealed class SimulationTopViewControl : Control
     private bool _isPanning;
     private Point _panStartScreen;
     private Point _panStartOffset;
+    private bool _panWithRightButton;
 
     public IList<RecipePoint>? Points
     {
@@ -149,9 +150,11 @@ public sealed class SimulationTopViewControl : Control
     {
         base.OnPointerPressed(e);
 
-        if (!e.GetCurrentPoint(this).Properties.IsRightButtonPressed)
+        var props = e.GetCurrentPoint(this).Properties;
+        if (!props.IsLeftButtonPressed && !props.IsRightButtonPressed)
             return;
 
+        _panWithRightButton = props.IsRightButtonPressed && !props.IsLeftButtonPressed;
         _isPanning = true;
         _panStartScreen = e.GetPosition(this);
         _panStartOffset = _panOffset;
@@ -166,7 +169,9 @@ public sealed class SimulationTopViewControl : Control
         if (!_isPanning)
             return;
 
-        if (!e.GetCurrentPoint(this).Properties.IsRightButtonPressed)
+        var props = e.GetCurrentPoint(this).Properties;
+        var panPressed = _panWithRightButton ? props.IsRightButtonPressed : props.IsLeftButtonPressed;
+        if (!panPressed)
         {
             _isPanning = false;
             e.Pointer.Capture(null);
