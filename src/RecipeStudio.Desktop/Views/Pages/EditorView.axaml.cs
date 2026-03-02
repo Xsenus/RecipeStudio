@@ -279,9 +279,14 @@ public sealed partial class EditorView : UserControl
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
             return;
 
-        if (e.Source is Control source &&
-            (source is TextBox || source is CheckBox || source is Slider || source is Button))
-            return;
+        if (e.Source is Control source)
+        {
+            if (source is TextBox || source is CheckBox || source is Slider || source is Button)
+                return;
+
+            if (IsDescendantOf(source, RecipePlot))
+                return;
+        }
 
         var control = sender as Control;
         while (control is not null && control is not Border)
@@ -296,6 +301,21 @@ public sealed partial class EditorView : UserControl
         _dragOffset = new Point(pos.X - Canvas.GetLeft(panel), pos.Y - Canvas.GetTop(panel));
         panel.ZIndex = 10;
         e.Pointer.Capture(panel);
+    }
+
+
+    private static bool IsDescendantOf(Control source, Control ancestor)
+    {
+        Control? current = source;
+        while (current is not null)
+        {
+            if (ReferenceEquals(current, ancestor))
+                return true;
+
+            current = current.Parent as Control;
+        }
+
+        return false;
     }
 
     private void Panel_PointerMoved(object? sender, PointerEventArgs e)
