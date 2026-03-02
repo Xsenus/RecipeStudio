@@ -43,8 +43,6 @@ public sealed class RecipePlotControl : Control
     private INotifyCollectionChanged? _collectionChanged;
     private readonly Dictionary<RecipePoint, PropertyChangedEventHandler> _pointHandlers = new();
 
-    private bool _isDragging;
-    private RecipePoint? _dragPoint;
     private bool _isPanning;
     private Point _panStartScreen;
     private Point _panStartOffset;
@@ -133,16 +131,18 @@ public sealed class RecipePlotControl : Control
 
     public void ZoomIn()
     {
-        _zoomFactor = Math.Clamp(_zoomFactor * 1.2, 1.0, 20.0);
+        _zoomFactor = Math.Clamp(_zoomFactor * 1.2, 0.2, 20.0);
         ClampPanOffset();
         InvalidateVisual();
+        NotifyZoomChanged();
     }
 
     public void ZoomOut()
     {
-        _zoomFactor = Math.Clamp(_zoomFactor / 1.2, 1.0, 20.0);
+        _zoomFactor = Math.Clamp(_zoomFactor / 1.2, 0.2, 20.0);
         ClampPanOffset();
         InvalidateVisual();
+        NotifyZoomChanged();
     }
 
     public void ResetZoom()
@@ -150,9 +150,17 @@ public sealed class RecipePlotControl : Control
         _zoomFactor = 1.0;
         _panOffset = default;
         InvalidateVisual();
+        NotifyZoomChanged();
     }
 
     public double ZoomFactor => _zoomFactor;
+
+    public event Action<double>? ZoomChanged;
+
+    private void NotifyZoomChanged()
+    {
+        ZoomChanged?.Invoke(_zoomFactor);
+    }
 
     private void OnPointsChanged(IList<RecipePoint>? points)
     {
@@ -328,58 +336,62 @@ public sealed class RecipePlotControl : Control
         _worldBounds = new Rect(centerX - zoomedWidth / 2.0, centerY - zoomedHeight / 2.0, zoomedWidth, zoomedHeight);
         _scale *= _zoomFactor;
 
-        // Grid
-        if (ShowGrid)
-            DrawGrid(context);
-
-        // Clamp rectangles (visual reference)
-        DrawClamp(context, halfClamp, settings.HContMax, hFreeZ, settings.HZone);
-
-        // Paths
-        var opacity = Math.Clamp(settings.PlotOpacity, 0.05, 0.90);
-        var thickness = Math.Max(1, settings.PlotStrokeThickness);
-
-        var workColor = ParseColorOrDefault(settings.PlotColorWorkingZone, Color.FromRgb(34, 197, 94));
-        var safetyColor = ParseColorOrDefault(settings.PlotColorSafetyZone, Color.FromRgb(156, 163, 175));
-        var robotColor = ParseColorOrDefault(settings.PlotColorRobotPath, Color.FromRgb(245, 158, 11));
-        var linksColor = ParseColorOrDefault(settings.PlotColorPairLinks, Color.FromRgb(251, 146, 60));
-        var penTool = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), robotColor.R, robotColor.G, robotColor.B)), thickness);
-        var penTargetWork = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), workColor.R, workColor.G, workColor.B)), thickness);
-        var penTargetSafe = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), safetyColor.R, safetyColor.G, safetyColor.B)), thickness);
-        var penTargetToTool = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), linksColor.R, linksColor.G, linksColor.B)), Math.Max(1, thickness - 1));
-
-        // Summary: keep series parity with Excel charts while avoiding artificial cross-group joins.
-        if (settings.PlotShowPolyline)
+        var plotClip = new Rect(_pad, _pad, Math.Max(1, Bounds.Width - 2 * _pad), Math.Max(1, Bounds.Height - 2 * _pad));
+        using (context.PushClip(plotClip))
         {
-            // Robot path is split by (Safe, Place) the same way as Excel series,
-            // so unrelated groups are not connected by artificial long segments.
-            DrawPolyline(context, SelectTool(robotPoints, robotToolMap, safe: false, place: 0), penTool);
-            DrawPolyline(context, SelectTool(robotPoints, robotToolMap, safe: false, place: 1), penTool);
+            // Grid
+            if (ShowGrid)
+                DrawGrid(context);
 
-            // Step 2: target polylines split by (Safe, Place) and pair links Xp/Zp <-> Xr/Zr for cleaning points.
-            DrawPolyline(context, SelectTarget(points, settings.HZone, safe: false, place: 0), penTargetWork);
-            DrawPolyline(context, SelectTarget(points, settings.HZone, safe: false, place: 1), penTargetWork);
-            DrawWorkTransitionLinks(context, points, settings.HZone, penTargetWork);
-            DrawPolyline(context, SelectTarget(points, settings.HZone, safe: true, place: 0), penTargetSafe);
-            DrawPolyline(context, SelectTarget(points, settings.HZone, safe: true, place: 1), penTargetSafe);
+            // Clamp rectangles (visual reference)
+            DrawClamp(context, halfClamp, settings.HContMax, hFreeZ, settings.HZone);
 
-            if (ShowPairLinks)
-                DrawTargetToToolLinks(context, points, robotToolMap, settings.HZone, penTargetToTool);
+            // Paths
+            var opacity = Math.Clamp(settings.PlotOpacity, 0.05, 0.90);
+            var thickness = Math.Max(1, settings.PlotStrokeThickness);
+
+            var workColor = ParseColorOrDefault(settings.PlotColorWorkingZone, Color.FromRgb(34, 197, 94));
+            var safetyColor = ParseColorOrDefault(settings.PlotColorSafetyZone, Color.FromRgb(156, 163, 175));
+            var robotColor = ParseColorOrDefault(settings.PlotColorRobotPath, Color.FromRgb(245, 158, 11));
+            var linksColor = ParseColorOrDefault(settings.PlotColorPairLinks, Color.FromRgb(251, 146, 60));
+            var penTool = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), robotColor.R, robotColor.G, robotColor.B)), thickness);
+            var penTargetWork = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), workColor.R, workColor.G, workColor.B)), thickness);
+            var penTargetSafe = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), safetyColor.R, safetyColor.G, safetyColor.B)), thickness);
+            var penTargetToTool = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), linksColor.R, linksColor.G, linksColor.B)), Math.Max(1, thickness - 1));
+
+            // Summary: keep series parity with Excel charts while avoiding artificial cross-group joins.
+            if (settings.PlotShowPolyline)
+            {
+                // Robot path is split by (Safe, Place) the same way as Excel series,
+                // so unrelated groups are not connected by artificial long segments.
+                DrawPolyline(context, SelectTool(robotPoints, robotToolMap, safe: false, place: 0), penTool);
+                DrawPolyline(context, SelectTool(robotPoints, robotToolMap, safe: false, place: 1), penTool);
+
+                // Step 2: target polylines split by (Safe, Place) and pair links Xp/Zp <-> Xr/Zr for cleaning points.
+                DrawPolyline(context, SelectTarget(points, settings.HZone, safe: false, place: 0), penTargetWork);
+                DrawPolyline(context, SelectTarget(points, settings.HZone, safe: false, place: 1), penTargetWork);
+                DrawWorkTransitionLinks(context, points, settings.HZone, penTargetWork);
+                DrawPolyline(context, SelectTarget(points, settings.HZone, safe: true, place: 0), penTargetSafe);
+                DrawPolyline(context, SelectTarget(points, settings.HZone, safe: true, place: 1), penTargetSafe);
+
+                if (ShowPairLinks)
+                    DrawTargetToToolLinks(context, points, robotToolMap, settings.HZone, penTargetToTool);
+            }
+
+            if (settings.PlotShowSmooth)
+            {
+                var smooth = Spline.CatmullRom(tool, settings.SmoothSegmentsPerSpan);
+                DrawPolyline(context, smooth, penTool);
+            }
+
+            // Target points are always drawn to keep point markers visible in the editor.
+            DrawPoints(context, points, settings, settings.HZone);
+            DrawRobotPoints(context, robotPoints, robotToolMap, settings);
+
+            // Tool marker rendered as a smooth nozzle link Target->Robot.
+            var toolState = GetToolState(animTool, animTarget, Progress);
+            DrawToolMarker(context, toolState.ToolPosition, toolState.TargetPosition, toolState.Direction);
         }
-
-        if (settings.PlotShowSmooth)
-        {
-            var smooth = Spline.CatmullRom(tool, settings.SmoothSegmentsPerSpan);
-            DrawPolyline(context, smooth, penTool);
-        }
-
-        // Target points are always drawn to keep point markers visible in the editor.
-        DrawPoints(context, points, settings, settings.HZone);
-        DrawRobotPoints(context, robotPoints, robotToolMap, settings);
-
-        // Tool marker rendered as a smooth nozzle link Target->Robot.
-        var toolState = GetToolState(animTool, animTarget, Progress);
-        DrawToolMarker(context, toolState.ToolPosition, toolState.TargetPosition, toolState.Direction);
 
         // Legend
         if (ShowLegend)
@@ -798,18 +810,9 @@ public sealed class RecipePlotControl : Control
 
         if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
         {
-            if (hit is not null)
-            {
-                _isDragging = true;
-                _dragPoint = hit;
-            }
-            else
-            {
-                _isPanning = true;
-                _panStartScreen = pos;
-                _panStartOffset = _panOffset;
-            }
-
+            _isPanning = true;
+            _panStartScreen = pos;
+            _panStartOffset = _panOffset;
             e.Pointer.Capture(this);
         }
     }
@@ -818,49 +821,44 @@ public sealed class RecipePlotControl : Control
     {
         base.OnPointerMoved(e);
 
-        var settings = Settings ?? new AppSettings();
-
         var pos = e.GetPosition(this);
+        var isLeftButtonPressed = e.GetCurrentPoint(this).Properties.IsLeftButtonPressed;
 
-        if (_isPanning)
+        if (_isPanning && !isLeftButtonPressed)
         {
-            var delta = pos - _panStartScreen;
-            var worldDx = -delta.X / _scale;
-            var worldDy = delta.Y / _scale;
-            _panOffset = new Point(_panStartOffset.X + worldDx, _panStartOffset.Y + worldDy);
-            ClampPanOffset();
-            InvalidateVisual();
+            StopPointerInteraction(e.Pointer);
             return;
         }
 
-        if (!_isDragging || _dragPoint is null) return;
+        if (!_isPanning)
+            return;
 
-        var w = ScreenToWorld(pos);
-
-        // Update underlying RCrd/ZCrd based on place.
-        if (_dragPoint.Place == 0)
-        {
-            _dragPoint.RCrd = w.X;
-            _dragPoint.ZCrd = w.Y;
-        }
-        else
-        {
-            _dragPoint.RCrd = -w.X;
-            _dragPoint.ZCrd = settings.HZone - w.Y;
-        }
+        var delta = pos - _panStartScreen;
+        var worldDx = -delta.X / _scale;
+        var worldDy = delta.Y / _scale;
+        _panOffset = new Point(_panStartOffset.X + worldDx, _panStartOffset.Y + worldDy);
+        ClampPanOffset();
+        InvalidateVisual();
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
 
-        if (_isDragging || _isPanning)
-        {
-            _isDragging = false;
-            _dragPoint = null;
-            _isPanning = false;
-            e.Pointer.Capture(null);
-        }
+        if (_isPanning)
+            StopPointerInteraction(e.Pointer);
+    }
+
+    protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
+    {
+        base.OnPointerCaptureLost(e);
+        StopPointerInteraction(e.Pointer);
+    }
+
+    private void StopPointerInteraction(IPointer pointer)
+    {
+        _isPanning = false;
+        pointer.Capture(null);
     }
 
     private void ClampPanOffset()
@@ -871,11 +869,20 @@ public sealed class RecipePlotControl : Control
             return;
         }
 
-        var visibleWidth = _fitWorldBounds.Width / Math.Max(1.0, _zoomFactor);
-        var visibleHeight = _fitWorldBounds.Height / Math.Max(1.0, _zoomFactor);
+        var safeZoom = Math.Clamp(_zoomFactor, 0.2, 20.0);
+        var visibleWidth = _fitWorldBounds.Width / safeZoom;
+        var visibleHeight = _fitWorldBounds.Height / safeZoom;
 
-        var maxOffsetX = Math.Max(0, (_fitWorldBounds.Width - visibleWidth) / 2.0);
-        var maxOffsetY = Math.Max(0, (_fitWorldBounds.Height - visibleHeight) / 2.0);
+        var zoomPanX = Math.Max(0, (_fitWorldBounds.Width - visibleWidth) / 2.0);
+        var zoomPanY = Math.Max(0, (_fitWorldBounds.Height - visibleHeight) / 2.0);
+
+        // Allow panning even at fit zoom (x1.00): user can shift the profile with LMB
+        // while keeping movement bounded to a reasonable range.
+        var fitPanX = _fitWorldBounds.Width * 0.35;
+        var fitPanY = _fitWorldBounds.Height * 0.35;
+
+        var maxOffsetX = Math.Max(zoomPanX, fitPanX);
+        var maxOffsetY = Math.Max(zoomPanY, fitPanY);
 
         _panOffset = new Point(
             Math.Clamp(_panOffset.X, -maxOffsetX, maxOffsetX),
