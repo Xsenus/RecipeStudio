@@ -36,12 +36,11 @@
 
     <Grid Grid.Row="1">
       <Canvas x:Name="PanelsCanvas" ClipToBounds="True">
-        <Border x:Name="PlotPanel" Classes="card floating-panel"
-                Width="860" Height="520" MinWidth="520" MinHeight="340"
-                PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
-          <Grid RowDefinitions="Auto,*,Auto" RowSpacing="8">
-            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-              <TextBlock Text="PROFILE VIEWER (R-Z)" FontSize="16" FontWeight="SemiBold"/>
+        <Border x:Name="PlotPanel" Classes="card floating-panel" Width="860" Height="520" MinWidth="520" MinHeight="340">
+          <Grid RowDefinitions="Auto,*" RowSpacing="8">
+            <Grid x:Name="PlotPanelHeader" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8"
+                  PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+              <TextBlock Text="PROFILE VIEWER (R-Z)" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
               <Button Grid.Column="1" Classes="ghost" ToolTip.Tip="Приблизить график" Click="ZoomInPlot_Click">＋</Button>
               <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
                 <Button Classes="ghost" ToolTip.Tip="Отдалить график" Click="ZoomOutPlot_Click">－</Button>
@@ -58,47 +57,36 @@
                                         Settings="{Binding AppSettings}"
                                         ShowPairLinks="{Binding ShowPairLinks}"
                                         ShowGrid="{Binding ShowGrid}" />
-
-            <TextBlock Grid.Row="2" Text="Колесо мыши — zoom, перетаскивание — pan" Classes="muted"/>
           </Grid>
         </Border>
         <Border x:Name="PlotResizeHandle" Classes="panel-resize-handle"
                 PointerPressed="ResizeHandle_PointerPressed" PointerMoved="ResizeHandle_PointerMoved" PointerReleased="ResizeHandle_PointerReleased" />
 
-        <Border x:Name="TelemetryPanel" Classes="card floating-panel"
-                Width="300" Height="340" MinWidth="250" MinHeight="260"
-                PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+        <Border x:Name="TelemetryPanel" Classes="card floating-panel" Width="290" Height="325" MinWidth="250" MinHeight="250">
           <Grid RowDefinitions="Auto,*" RowSpacing="8">
-            <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Text="Телеметрия" FontSize="18" FontWeight="SemiBold"/>
+            <Grid x:Name="TelemetryPanelHeader" ColumnDefinitions="*,Auto"
+                  PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+              <TextBlock Text="Телеметрия" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
               <Button Grid.Column="1" Classes="ghost panel-close-btn" Click="HideTelemetryPanel_Click">✕</Button>
             </Grid>
 
             <Grid Grid.Row="1" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="3">
               <TextBlock Text="R:" Classes="muted"/>
               <TextBlock Grid.Column="1" Text="{Binding ToolR, StringFormat='{}{0:F1} мм'}" FontSize="18" />
-
               <TextBlock Grid.Row="1" Text="Z:" Classes="muted"/>
               <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ToolZ, StringFormat='{}{0:F1} мм'}" FontSize="18" />
-
               <TextBlock Grid.Row="2" Text="X:" Classes="muted"/>
               <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ToolX, StringFormat='{}{0:F1}'}" />
-
               <TextBlock Grid.Row="3" Text="Y:" Classes="muted"/>
               <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding ToolY, StringFormat='{}{0:F1}'}" />
-
               <TextBlock Grid.Row="4" Text="α:" Classes="muted"/>
               <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding CurrentAlfa, StringFormat='{}{0:F1}°'}" />
-
               <TextBlock Grid.Row="5" Text="β:" Classes="muted"/>
               <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding CurrentBetta, StringFormat='{}{0:F1}°'}" />
-
               <TextBlock Grid.Row="6" Text="Xp:" Classes="muted" />
               <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding CurrentXPuls}" />
-
               <TextBlock Grid.Row="7" Text="Yp:" Classes="muted" />
               <TextBlock Grid.Row="7" Grid.Column="1" Text="{Binding CurrentYPuls}" />
-
               <TextBlock Grid.Row="8" Text="Zp:" Classes="muted" />
               <TextBlock Grid.Row="8" Grid.Column="1" Text="{Binding CurrentZPuls}" />
             </Grid>
@@ -107,29 +95,42 @@
         <Border x:Name="TelemetryResizeHandle" Classes="panel-resize-handle"
                 PointerPressed="ResizeHandle_PointerPressed" PointerMoved="ResizeHandle_PointerMoved" PointerReleased="ResizeHandle_PointerReleased" />
 
-        <Border x:Name="TopViewPanel" Classes="card floating-panel"
-                Width="500" Height="290" MinWidth="380" MinHeight="220"
-                PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+        <Border x:Name="TopViewPanel" Classes="card floating-panel" Width="560" Height="320" MinWidth="420" MinHeight="240">
           <Grid RowDefinitions="Auto,*" RowSpacing="8">
-            <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Text="Вид сверху (X-Y)" Classes="muted" />
-              <Button Grid.Column="1" Classes="ghost panel-close-btn" Click="HideTopViewPanel_Click">✕</Button>
+            <Grid x:Name="TopViewPanelHeader" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8"
+                  PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+              <TextBlock Text="Вид сверху (X-Y)" Classes="muted" VerticalAlignment="Center" />
+              <Button Grid.Column="1" Classes="ghost" ToolTip.Tip="Приблизить" Click="ZoomInTopView_Click">＋</Button>
+              <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
+                <Button Classes="ghost" ToolTip.Tip="Отдалить" Click="ZoomOutTopView_Click">－</Button>
+                <Button Classes="ghost" ToolTip.Tip="Подогнать в окно" Click="FitTopView_Click">Fit</Button>
+                <TextBlock x:Name="TopViewZoomText" Text="x1.00" Classes="muted" VerticalAlignment="Center" />
+                <Button Classes="ghost panel-close-btn" Click="HideTopViewPanel_Click">✕</Button>
+              </StackPanel>
             </Grid>
-            <controls:SimulationTopViewControl Grid.Row="1" Points="{Binding PointsForAnimation}" Progress="{Binding Progress}" />
+            <controls:SimulationTopViewControl Grid.Row="1" x:Name="TopViewPlot" Points="{Binding PointsForAnimation}" Progress="{Binding Progress}" />
           </Grid>
         </Border>
         <Border x:Name="TopViewResizeHandle" Classes="panel-resize-handle"
                 PointerPressed="ResizeHandle_PointerPressed" PointerMoved="ResizeHandle_PointerMoved" PointerReleased="ResizeHandle_PointerReleased" />
 
-        <Border x:Name="View3DPanel" Classes="card floating-panel"
-                Width="500" Height="290" MinWidth="380" MinHeight="220"
-                PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+        <Border x:Name="View3DPanel" Classes="card floating-panel" Width="560" Height="320" MinWidth="420" MinHeight="240">
           <Grid RowDefinitions="Auto,*" RowSpacing="8">
-            <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Text="3D визуализация" Classes="muted" />
+            <Grid x:Name="View3DPanelHeader" ColumnDefinitions="*,Auto"
+                  PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+              <TextBlock Text="3D визуализация" Classes="muted" VerticalAlignment="Center" />
               <Button Grid.Column="1" Classes="ghost panel-close-btn" Click="HideView3DPanel_Click">✕</Button>
             </Grid>
-            <controls:Simulation3DControl Grid.Row="1" Points="{Binding PointsForAnimation}" Settings="{Binding AppSettings}" ShowGrid="{Binding ShowGrid}" ShowPairLinks="{Binding ShowPairLinks}" ToolXRaw="{Binding ToolXRaw}" ToolYRaw="{Binding ToolYRaw}" ToolZRaw="{Binding ToolZRaw}" CurrentAlfa="{Binding CurrentAlfa}" CurrentBetta="{Binding CurrentBetta}" />
+            <controls:Simulation3DControl Grid.Row="1" x:Name="Simulation3D"
+                                          Points="{Binding PointsForAnimation}"
+                                          Settings="{Binding AppSettings}"
+                                          ShowGrid="{Binding ShowGrid}"
+                                          ShowPairLinks="{Binding ShowPairLinks}"
+                                          ToolXRaw="{Binding ToolXRaw}"
+                                          ToolYRaw="{Binding ToolYRaw}"
+                                          ToolZRaw="{Binding ToolZRaw}"
+                                          CurrentAlfa="{Binding CurrentAlfa}"
+                                          CurrentBetta="{Binding CurrentBetta}" />
           </Grid>
         </Border>
         <Border x:Name="View3DResizeHandle" Classes="panel-resize-handle"

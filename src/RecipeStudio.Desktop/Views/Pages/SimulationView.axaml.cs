@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using RecipeStudio.Desktop.Services;
 using RecipeStudio.Desktop.ViewModels;
@@ -13,6 +12,7 @@ namespace RecipeStudio.Desktop.Views.Pages;
 public sealed partial class SimulationView : UserControl
 {
     private const double PanelMargin = 20;
+    private const double TopUiReserve = 52;
 
     private SimulationViewModel? _vm;
     private Border? _dragPanel;
@@ -58,14 +58,18 @@ public sealed partial class SimulationView : UserControl
 
         RecipePlot.ZoomChanged -= OnRecipePlotZoomChanged;
         RecipePlot.ZoomChanged += OnRecipePlotZoomChanged;
+        TopViewPlot.ZoomChanged -= OnTopViewZoomChanged;
+        TopViewPlot.ZoomChanged += OnTopViewZoomChanged;
 
         UpdateZoomText();
+        UpdateTopViewZoomText();
     }
 
     private void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
     {
         PanelsCanvas.SizeChanged -= OnPanelsCanvasSizeChanged;
         RecipePlot.ZoomChanged -= OnRecipePlotZoomChanged;
+        TopViewPlot.ZoomChanged -= OnTopViewZoomChanged;
         PersistPanelsLayout(force: false);
         _panelsInitialized = false;
     }
@@ -76,10 +80,8 @@ public sealed partial class SimulationView : UserControl
             PersistPanelsLayout(force: false);
     }
 
-    private void OnRecipePlotZoomChanged(double _)
-    {
-        UpdateZoomText();
-    }
+    private void OnRecipePlotZoomChanged(double _) => UpdateZoomText();
+    private void OnTopViewZoomChanged(double _) => UpdateTopViewZoomText();
 
     private void OnPanelsCanvasSizeChanged(object? sender, SizeChangedEventArgs e)
     {
@@ -132,44 +134,44 @@ public sealed partial class SimulationView : UserControl
         ClampPanelToCanvas(panel);
     }
 
-    private Point PlotPanelDefaultPosition(Border panel)
-    {
-        var canvasWidth = GetCanvasWidth();
-        return new(PanelMargin, Math.Max(PanelMargin, canvasWidth * 0.02));
-    }
+    private Point PlotPanelDefaultPosition(Border _) => new(PanelMargin, TopUiReserve);
 
     private Point TelemetryPanelDefaultPosition(Border panel)
     {
         var canvasWidth = GetCanvasWidth();
-        return new(Math.Max(PanelMargin, canvasWidth - panel.Width - PanelMargin), PanelMargin);
+        return new(Math.Max(PanelMargin, canvasWidth - panel.Width - PanelMargin), TopUiReserve);
     }
 
     private Point TopViewPanelDefaultPosition(Border panel)
     {
         var canvasHeight = GetCanvasHeight();
-        return new(PanelMargin, Math.Max(PanelMargin, canvasHeight - panel.Height - PanelMargin));
+        return new(PanelMargin, Math.Max(TopUiReserve, canvasHeight - panel.Height - PanelMargin));
     }
 
     private Point View3DPanelDefaultPosition(Border panel)
     {
         var canvasWidth = GetCanvasWidth();
         var canvasHeight = GetCanvasHeight();
-        return new(Math.Max(PanelMargin, canvasWidth - panel.Width - PanelMargin), Math.Max(PanelMargin, canvasHeight - panel.Height - PanelMargin));
+        return new(Math.Max(PanelMargin, canvasWidth - panel.Width - PanelMargin), Math.Max(TopUiReserve, canvasHeight - panel.Height - PanelMargin));
     }
 
     private void ApplyDefaultPanelsLayout()
     {
-        Canvas.SetLeft(PlotPanel, PlotPanelDefaultPosition(PlotPanel).X);
-        Canvas.SetTop(PlotPanel, PlotPanelDefaultPosition(PlotPanel).Y);
+        var plotPos = PlotPanelDefaultPosition(PlotPanel);
+        Canvas.SetLeft(PlotPanel, plotPos.X);
+        Canvas.SetTop(PlotPanel, plotPos.Y);
 
-        Canvas.SetLeft(TelemetryPanel, TelemetryPanelDefaultPosition(TelemetryPanel).X);
-        Canvas.SetTop(TelemetryPanel, TelemetryPanelDefaultPosition(TelemetryPanel).Y);
+        var telemetryPos = TelemetryPanelDefaultPosition(TelemetryPanel);
+        Canvas.SetLeft(TelemetryPanel, telemetryPos.X);
+        Canvas.SetTop(TelemetryPanel, telemetryPos.Y);
 
-        Canvas.SetLeft(TopViewPanel, TopViewPanelDefaultPosition(TopViewPanel).X);
-        Canvas.SetTop(TopViewPanel, TopViewPanelDefaultPosition(TopViewPanel).Y);
+        var topPos = TopViewPanelDefaultPosition(TopViewPanel);
+        Canvas.SetLeft(TopViewPanel, topPos.X);
+        Canvas.SetTop(TopViewPanel, topPos.Y);
 
-        Canvas.SetLeft(View3DPanel, View3DPanelDefaultPosition(View3DPanel).X);
-        Canvas.SetTop(View3DPanel, View3DPanelDefaultPosition(View3DPanel).Y);
+        var view3DPos = View3DPanelDefaultPosition(View3DPanel);
+        Canvas.SetLeft(View3DPanel, view3DPos.X);
+        Canvas.SetTop(View3DPanel, view3DPos.Y);
 
         ClampPanelToCanvas(PlotPanel);
         ClampPanelToCanvas(TelemetryPanel);
@@ -198,36 +200,24 @@ public sealed partial class SimulationView : UserControl
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
             return;
 
-        if (e.Source is Control source)
+        var panel = sender switch
         {
-            if (source is TextBox || source is CheckBox || source is Slider || source is Button || source is ToggleButton)
-                return;
+            Control c when ReferenceEquals(c, PlotPanelHeader) => PlotPanel,
+            Control c when ReferenceEquals(c, TelemetryPanelHeader) => TelemetryPanel,
+            Control c when ReferenceEquals(c, TopViewPanelHeader) => TopViewPanel,
+            Control c when ReferenceEquals(c, View3DPanelHeader) => View3DPanel,
+            _ => null
+        };
 
-            if (IsDescendantOf(source, RecipePlot))
-                return;
-        }
-
-        if (sender is not Border panel)
+        if (panel is null)
             return;
 
         _dragPanel = panel;
         BringPanelToFront(panel);
         var pos = e.GetPosition(PanelsCanvas);
         _dragOffset = new Point(pos.X - Canvas.GetLeft(panel), pos.Y - Canvas.GetTop(panel));
-        e.Pointer.Capture(panel);
-    }
-
-    private static bool IsDescendantOf(Control source, Control ancestor)
-    {
-        Control? current = source;
-        while (current is not null)
-        {
-            if (ReferenceEquals(current, ancestor))
-                return true;
-            current = current.Parent as Control;
-        }
-
-        return false;
+        e.Pointer.Capture(sender as IInputElement);
+        e.Handled = true;
     }
 
     private void Panel_PointerMoved(object? sender, PointerEventArgs e)
@@ -237,9 +227,9 @@ public sealed partial class SimulationView : UserControl
 
         var pos = e.GetPosition(PanelsCanvas);
         var newLeft = Math.Max(0, pos.X - _dragOffset.X);
-        var newTop = Math.Max(0, pos.Y - _dragOffset.Y);
+        var newTop = Math.Max(TopUiReserve, pos.Y - _dragOffset.Y);
         var maxLeft = Math.Max(0, PanelsCanvas.Bounds.Width - _dragPanel.Bounds.Width);
-        var maxTop = Math.Max(0, PanelsCanvas.Bounds.Height - _dragPanel.Bounds.Height);
+        var maxTop = Math.Max(TopUiReserve, PanelsCanvas.Bounds.Height - _dragPanel.Bounds.Height);
 
         Canvas.SetLeft(_dragPanel, Math.Min(newLeft, maxLeft));
         Canvas.SetTop(_dragPanel, Math.Min(newTop, maxTop));
@@ -275,7 +265,8 @@ public sealed partial class SimulationView : UserControl
 
         BringPanelToFront(_resizePanel);
         _resizeStart = e.GetPosition(PanelsCanvas);
-        _resizeStartSize = new Size(_resizePanel.Width, _resizePanel.Height);
+        _resizeStartSize = new Size(_resizePanel.Bounds.Width > 0 ? _resizePanel.Bounds.Width : _resizePanel.Width,
+                                    _resizePanel.Bounds.Height > 0 ? _resizePanel.Bounds.Height : _resizePanel.Height);
         e.Pointer.Capture(sender as IInputElement);
         e.Handled = true;
     }
@@ -358,39 +349,34 @@ public sealed partial class SimulationView : UserControl
         PersistPanelsLayout();
     }
 
-    private void ZoomInPlot_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        RecipePlot.ZoomIn();
-        UpdateZoomText();
-    }
+    private void ZoomInPlot_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => RecipePlot.ZoomIn();
+    private void ZoomOutPlot_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => RecipePlot.ZoomOut();
+    private void FitPlot_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => RecipePlot.ResetZoom();
 
-    private void ZoomOutPlot_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        RecipePlot.ZoomOut();
-        UpdateZoomText();
-    }
-
-    private void FitPlot_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        RecipePlot.ResetZoom();
-        UpdateZoomText();
-    }
+    private void ZoomInTopView_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => TopViewPlot.ZoomIn();
+    private void ZoomOutTopView_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => TopViewPlot.ZoomOut();
+    private void FitTopView_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => TopViewPlot.ResetZoom();
 
     private void UpdateZoomText()
     {
         ZoomText.Text = $"x{RecipePlot.ZoomFactor.ToString("0.00", CultureInfo.InvariantCulture)}";
     }
 
+    private void UpdateTopViewZoomText()
+    {
+        TopViewZoomText.Text = $"x{TopViewPlot.ZoomFactor.ToString("0.00", CultureInfo.InvariantCulture)}";
+    }
+
     private void ResetPanels_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         PlotPanel.Width = 860;
         PlotPanel.Height = 520;
-        TelemetryPanel.Width = 300;
-        TelemetryPanel.Height = 340;
-        TopViewPanel.Width = 500;
-        TopViewPanel.Height = 290;
-        View3DPanel.Width = 500;
-        View3DPanel.Height = 290;
+        TelemetryPanel.Width = 290;
+        TelemetryPanel.Height = 325;
+        TopViewPanel.Width = 560;
+        TopViewPanel.Height = 320;
+        View3DPanel.Width = 560;
+        View3DPanel.Height = 320;
 
         PlotPanel.IsVisible = true;
         TelemetryPanel.IsVisible = true;
@@ -403,7 +389,7 @@ public sealed partial class SimulationView : UserControl
         View3DResizeHandle.IsVisible = true;
 
         RecipePlot.ResetZoom();
-        UpdateZoomText();
+        TopViewPlot.ResetZoom();
 
         ApplyDefaultPanelsLayout();
         InitializePanelZOrder();
@@ -464,13 +450,13 @@ public sealed partial class SimulationView : UserControl
             return;
 
         var maxLeft = Math.Max(0, GetCanvasWidth() - panel.Width);
-        var maxTop = Math.Max(0, GetCanvasHeight() - panel.Height);
+        var maxTop = Math.Max(TopUiReserve, GetCanvasHeight() - panel.Height);
 
         var left = Canvas.GetLeft(panel);
         var top = Canvas.GetTop(panel);
 
         Canvas.SetLeft(panel, Math.Clamp(IsFinite(left) ? left : 0, 0, maxLeft));
-        Canvas.SetTop(panel, Math.Clamp(IsFinite(top) ? top : 0, 0, maxTop));
+        Canvas.SetTop(panel, Math.Clamp(IsFinite(top) ? top : TopUiReserve, TopUiReserve, maxTop));
     }
 
     private void UpdateResizeHandlePositions()
@@ -497,9 +483,12 @@ public sealed partial class SimulationView : UserControl
             return;
         }
 
+        var width = panel.Bounds.Width > 0 ? panel.Bounds.Width : panel.Width;
+        var height = panel.Bounds.Height > 0 ? panel.Bounds.Height : panel.Height;
+
         handle.IsVisible = true;
         handle.ZIndex = panel.ZIndex + 1;
-        Canvas.SetLeft(handle, Canvas.GetLeft(panel) + panel.Bounds.Width - handle.Width / 2);
-        Canvas.SetTop(handle, Canvas.GetTop(panel) + panel.Bounds.Height - handle.Height / 2);
+        Canvas.SetLeft(handle, Canvas.GetLeft(panel) + width - handle.Width / 2);
+        Canvas.SetTop(handle, Canvas.GetTop(panel) + height - handle.Height / 2);
     }
 }
