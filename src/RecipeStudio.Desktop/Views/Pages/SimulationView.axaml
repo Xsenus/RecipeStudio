@@ -36,10 +36,10 @@
 
     <Grid Grid.Row="1">
       <Canvas x:Name="PanelsCanvas" ClipToBounds="True">
-        <Border x:Name="PlotPanel" Classes="card floating-panel" Width="860" Height="520" MinWidth="520" MinHeight="340">
+        <Border x:Name="PlotPanel" Classes="card floating-panel" Width="860" Height="520" MinWidth="520" MinHeight="340"
+                PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
           <Grid RowDefinitions="Auto,*" RowSpacing="8">
-            <Grid x:Name="PlotPanelHeader" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8"
-                  PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+            <Grid x:Name="PlotPanelHeader" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
               <TextBlock Text="PROFILE VIEWER (R-Z)" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
               <Button Grid.Column="1" Classes="ghost" ToolTip.Tip="Приблизить график" Click="ZoomInPlot_Click">＋</Button>
               <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
@@ -62,10 +62,10 @@
         <Border x:Name="PlotResizeHandle" Classes="panel-resize-handle"
                 PointerPressed="ResizeHandle_PointerPressed" PointerMoved="ResizeHandle_PointerMoved" PointerReleased="ResizeHandle_PointerReleased" />
 
-        <Border x:Name="TelemetryPanel" Classes="card floating-panel" Width="290" Height="325" MinWidth="250" MinHeight="250">
+        <Border x:Name="TelemetryPanel" Classes="card floating-panel" Width="290" Height="325" MinWidth="250" MinHeight="250"
+                PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
           <Grid RowDefinitions="Auto,*" RowSpacing="8">
-            <Grid x:Name="TelemetryPanelHeader" ColumnDefinitions="*,Auto"
-                  PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+            <Grid x:Name="TelemetryPanelHeader" ColumnDefinitions="*,Auto">
               <TextBlock Text="Телеметрия" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
               <Button Grid.Column="1" Classes="ghost panel-close-btn" Click="HideTelemetryPanel_Click">✕</Button>
             </Grid>
@@ -95,10 +95,10 @@
         <Border x:Name="TelemetryResizeHandle" Classes="panel-resize-handle"
                 PointerPressed="ResizeHandle_PointerPressed" PointerMoved="ResizeHandle_PointerMoved" PointerReleased="ResizeHandle_PointerReleased" />
 
-        <Border x:Name="TopViewPanel" Classes="card floating-panel" Width="560" Height="320" MinWidth="420" MinHeight="240">
+        <Border x:Name="TopViewPanel" Classes="card floating-panel" Width="560" Height="320" MinWidth="420" MinHeight="240"
+                PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
           <Grid RowDefinitions="Auto,*" RowSpacing="8">
-            <Grid x:Name="TopViewPanelHeader" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8"
-                  PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+            <Grid x:Name="TopViewPanelHeader" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
               <TextBlock Text="Вид сверху (X-Y)" Classes="muted" VerticalAlignment="Center" />
               <Button Grid.Column="1" Classes="ghost" ToolTip.Tip="Приблизить" Click="ZoomInTopView_Click">＋</Button>
               <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
@@ -114,10 +114,10 @@
         <Border x:Name="TopViewResizeHandle" Classes="panel-resize-handle"
                 PointerPressed="ResizeHandle_PointerPressed" PointerMoved="ResizeHandle_PointerMoved" PointerReleased="ResizeHandle_PointerReleased" />
 
-        <Border x:Name="View3DPanel" Classes="card floating-panel" Width="560" Height="320" MinWidth="420" MinHeight="240">
+        <Border x:Name="View3DPanel" Classes="card floating-panel" Width="560" Height="320" MinWidth="420" MinHeight="240"
+                PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
           <Grid RowDefinitions="Auto,*" RowSpacing="8">
-            <Grid x:Name="View3DPanelHeader" ColumnDefinitions="*,Auto"
-                  PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+            <Grid x:Name="View3DPanelHeader" ColumnDefinitions="*,Auto">
               <TextBlock Text="3D визуализация" Classes="muted" VerticalAlignment="Center" />
               <Button Grid.Column="1" Classes="ghost panel-close-btn" Click="HideView3DPanel_Click">✕</Button>
             </Grid>

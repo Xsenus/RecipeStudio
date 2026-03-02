@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using RecipeStudio.Desktop.Services;
 using RecipeStudio.Desktop.ViewModels;
@@ -200,24 +201,38 @@ public sealed partial class SimulationView : UserControl
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
             return;
 
-        var panel = sender switch
+        if (e.Source is Control source)
         {
-            Control c when ReferenceEquals(c, PlotPanelHeader) => PlotPanel,
-            Control c when ReferenceEquals(c, TelemetryPanelHeader) => TelemetryPanel,
-            Control c when ReferenceEquals(c, TopViewPanelHeader) => TopViewPanel,
-            Control c when ReferenceEquals(c, View3DPanelHeader) => View3DPanel,
-            _ => null
-        };
+            if (source is TextBox || source is CheckBox || source is Slider || source is Button || source is ToggleButton)
+                return;
 
-        if (panel is null)
+            if (IsDescendantOf(source, RecipePlot) || IsDescendantOf(source, TopViewPlot) || IsDescendantOf(source, Simulation3D))
+                return;
+        }
+
+        if (sender is not Border panel)
             return;
 
         _dragPanel = panel;
         BringPanelToFront(panel);
         var pos = e.GetPosition(PanelsCanvas);
         _dragOffset = new Point(pos.X - Canvas.GetLeft(panel), pos.Y - Canvas.GetTop(panel));
-        e.Pointer.Capture(sender as IInputElement);
+        e.Pointer.Capture(panel);
         e.Handled = true;
+    }
+
+    private static bool IsDescendantOf(Control source, Control ancestor)
+    {
+        Control? current = source;
+        while (current is not null)
+        {
+            if (ReferenceEquals(current, ancestor))
+                return true;
+
+            current = current.Parent as Control;
+        }
+
+        return false;
     }
 
     private void Panel_PointerMoved(object? sender, PointerEventArgs e)
@@ -414,8 +429,8 @@ public sealed partial class SimulationView : UserControl
 
     private static PanelPlacementSettings ToLayout(Border panel, PanelPlacementSettings previous)
     {
-        var width = panel.Bounds.Width > 0 ? panel.Bounds.Width : panel.Width;
-        var height = panel.Bounds.Height > 0 ? panel.Bounds.Height : panel.Height;
+        var width = IsFinite(panel.Width) && panel.Width > 0 ? panel.Width : panel.Bounds.Width;
+        var height = IsFinite(panel.Height) && panel.Height > 0 ? panel.Height : panel.Bounds.Height;
 
         var left = Canvas.GetLeft(panel);
         var top = Canvas.GetTop(panel);
@@ -483,12 +498,14 @@ public sealed partial class SimulationView : UserControl
             return;
         }
 
-        var width = panel.Bounds.Width > 0 ? panel.Bounds.Width : panel.Width;
-        var height = panel.Bounds.Height > 0 ? panel.Bounds.Height : panel.Height;
+        var width = IsFinite(panel.Width) && panel.Width > 0 ? panel.Width : panel.Bounds.Width;
+        var height = IsFinite(panel.Height) && panel.Height > 0 ? panel.Height : panel.Bounds.Height;
 
         handle.IsVisible = true;
         handle.ZIndex = panel.ZIndex + 1;
-        Canvas.SetLeft(handle, Canvas.GetLeft(panel) + width - handle.Width / 2);
-        Canvas.SetTop(handle, Canvas.GetTop(panel) + height - handle.Height / 2);
+        var safeWidth = width > 0 ? width : panel.MinWidth;
+        var safeHeight = height > 0 ? height : panel.MinHeight;
+        Canvas.SetLeft(handle, Canvas.GetLeft(panel) + safeWidth - handle.Width / 2);
+        Canvas.SetTop(handle, Canvas.GetTop(panel) + safeHeight - handle.Height / 2);
     }
 }
