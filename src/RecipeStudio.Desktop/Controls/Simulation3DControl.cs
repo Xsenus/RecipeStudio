@@ -112,7 +112,6 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         {
             _failed = false;
             _loggedRenderSuccess = false;
-        _loggedFramebufferInfo = false;
             _loggedFramebufferInfo = false;
             _failureDetails = null;
             _gl = GL.GetApi(gl.GetProcAddress);

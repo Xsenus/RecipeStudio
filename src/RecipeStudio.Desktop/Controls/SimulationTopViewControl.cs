@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Media;
 using RecipeStudio.Desktop.Models;
 using RecipeStudio.Desktop.Services;
@@ -17,9 +18,16 @@ public sealed class SimulationTopViewControl : Control
     public static readonly StyledProperty<double> ProgressProperty =
         AvaloniaProperty.Register<SimulationTopViewControl, double>(nameof(Progress));
 
+    private Rect _fitWorldBounds;
     private Rect _worldBounds;
     private double _scale;
     private const double Pad = 20;
+    private double _zoomFactor = 1.0;
+    private Point _panOffset;
+    private bool _isPanning;
+    private Point _panStartScreen;
+    private Point _panStartOffset;
+    private bool _panWithRightButton;
 
     public IList<RecipePoint>? Points
     {
@@ -33,10 +41,42 @@ public sealed class SimulationTopViewControl : Control
         set => SetValue(ProgressProperty, value);
     }
 
+    public double ZoomFactor => _zoomFactor;
+    public event Action<double>? ZoomChanged;
+
     static SimulationTopViewControl()
     {
         PointsProperty.Changed.AddClassHandler<SimulationTopViewControl>((c, _) => c.InvalidateVisual());
         ProgressProperty.Changed.AddClassHandler<SimulationTopViewControl>((c, _) => c.InvalidateVisual());
+    }
+
+    public SimulationTopViewControl()
+    {
+        ClipToBounds = true;
+    }
+
+    public void ZoomIn()
+    {
+        _zoomFactor = Math.Clamp(_zoomFactor * 1.2, 0.2, 20.0);
+        ClampPanOffset();
+        InvalidateVisual();
+        ZoomChanged?.Invoke(_zoomFactor);
+    }
+
+    public void ZoomOut()
+    {
+        _zoomFactor = Math.Clamp(_zoomFactor / 1.2, 0.2, 20.0);
+        ClampPanOffset();
+        InvalidateVisual();
+        ZoomChanged?.Invoke(_zoomFactor);
+    }
+
+    public void ResetZoom()
+    {
+        _zoomFactor = 1.0;
+        _panOffset = default;
+        InvalidateVisual();
+        ZoomChanged?.Invoke(_zoomFactor);
     }
 
     public override void Render(DrawingContext context)
@@ -53,20 +93,23 @@ public sealed class SimulationTopViewControl : Control
         var world = absolute.Select(p => new Point(p.X, p.Y)).ToList();
         Fit(world);
 
-        var pathPen = new Pen(new SolidColorBrush(Color.FromRgb(76, 180, 255)), 1.6);
-        DrawPolyline(context, world, pathPen);
+        var plotClip = new Rect(Pad, Pad, Math.Max(1, Bounds.Width - 2 * Pad), Math.Max(1, Bounds.Height - 2 * Pad));
+        using (context.PushClip(plotClip))
+        {
+            var pathPen = new Pen(new SolidColorBrush(Color.FromRgb(76, 180, 255)), 1.6);
+            DrawPolyline(context, world, pathPen);
 
-        foreach (var wp in world)
-            context.DrawEllipse(new SolidColorBrush(Color.FromRgb(34, 197, 94)), null, WorldToScreen(wp), 2.5, 2.5);
+            foreach (var wp in world)
+                context.DrawEllipse(new SolidColorBrush(Color.FromRgb(34, 197, 94)), null, WorldToScreen(wp), 2.5, 2.5);
 
-        var state = Interpolate(world, Progress);
+            var state = Interpolate(world, Progress);
 
-        // passed trajectory highlight for readability
-        var passed = world.Take(state.SegmentIndex + 1).ToList();
-        passed.Add(state.Position);
-        DrawPolyline(context, passed, new Pen(new SolidColorBrush(Color.FromRgb(34, 197, 94)), 2.2));
+            var passed = world.Take(state.SegmentIndex + 1).ToList();
+            passed.Add(state.Position);
+            DrawPolyline(context, passed, new Pen(new SolidColorBrush(Color.FromRgb(34, 197, 94)), 2.2));
 
-        DrawNozzle(context, state.Position, state.Direction);
+            DrawNozzle(context, state.Position, state.Direction);
+        }
     }
 
     private void Fit(IList<Point> points)
@@ -75,13 +118,107 @@ public sealed class SimulationTopViewControl : Control
         var maxX = points.Max(p => p.X);
         var minY = points.Min(p => p.Y);
         var maxY = points.Max(p => p.Y);
-        _worldBounds = new Rect(new Point(minX, minY), new Point(maxX, maxY)).Normalize();
-        if (_worldBounds.Width < 1) _worldBounds = _worldBounds.WithWidth(1);
-        if (_worldBounds.Height < 1) _worldBounds = _worldBounds.WithHeight(1);
+        var fitBounds = new Rect(new Point(minX, minY), new Point(maxX, maxY)).Normalize();
+        if (fitBounds.Width < 1) fitBounds = fitBounds.WithWidth(1);
+        if (fitBounds.Height < 1) fitBounds = fitBounds.WithHeight(1);
 
-        var sx = Math.Max(1, (Bounds.Width - Pad * 2) / _worldBounds.Width);
-        var sy = Math.Max(1, (Bounds.Height - Pad * 2) / _worldBounds.Height);
+        var sx = Math.Max(1, (Bounds.Width - Pad * 2) / fitBounds.Width);
+        var sy = Math.Max(1, (Bounds.Height - Pad * 2) / fitBounds.Height);
         _scale = Math.Min(sx, sy);
+        _fitWorldBounds = fitBounds;
+
+        ClampPanOffset();
+        var centerX = _fitWorldBounds.Center.X + _panOffset.X;
+        var centerY = _fitWorldBounds.Center.Y + _panOffset.Y;
+        var zoomedWidth = _fitWorldBounds.Width / _zoomFactor;
+        var zoomedHeight = _fitWorldBounds.Height / _zoomFactor;
+        _worldBounds = new Rect(centerX - zoomedWidth / 2.0, centerY - zoomedHeight / 2.0, zoomedWidth, zoomedHeight);
+        _scale *= _zoomFactor;
+    }
+
+    private void ClampPanOffset()
+    {
+        if (_fitWorldBounds.Width <= 0 || _fitWorldBounds.Height <= 0)
+            return;
+
+        // Keep panning available even at x1.00 so the top-view interaction feels responsive,
+        // while still preventing the user from losing the trajectory completely.
+        var zoomLimitedX = Math.Max(0, (_fitWorldBounds.Width - _fitWorldBounds.Width / _zoomFactor) / 2.0);
+        var zoomLimitedY = Math.Max(0, (_fitWorldBounds.Height - _fitWorldBounds.Height / _zoomFactor) / 2.0);
+
+        var basePanX = _fitWorldBounds.Width * 0.15;
+        var basePanY = _fitWorldBounds.Height * 0.15;
+
+        var maxX = Math.Max(zoomLimitedX, basePanX);
+        var maxY = Math.Max(zoomLimitedY, basePanY);
+
+        _panOffset = new Point(Math.Clamp(_panOffset.X, -maxX, maxX), Math.Clamp(_panOffset.Y, -maxY, maxY));
+    }
+
+    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    {
+        base.OnPointerPressed(e);
+
+        var props = e.GetCurrentPoint(this).Properties;
+        if (!props.IsLeftButtonPressed && !props.IsRightButtonPressed)
+            return;
+
+        _panWithRightButton = props.IsRightButtonPressed && !props.IsLeftButtonPressed;
+        _isPanning = true;
+        _panStartScreen = e.GetPosition(this);
+        _panStartOffset = _panOffset;
+        e.Pointer.Capture(this);
+        e.Handled = true;
+    }
+
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        base.OnPointerMoved(e);
+
+        if (!_isPanning)
+            return;
+
+        var props = e.GetCurrentPoint(this).Properties;
+        var panPressed = _panWithRightButton ? props.IsRightButtonPressed : props.IsLeftButtonPressed;
+        if (!panPressed)
+        {
+            _isPanning = false;
+            e.Pointer.Capture(null);
+            return;
+        }
+
+        var p = e.GetPosition(this);
+        var dx = p.X - _panStartScreen.X;
+        var dy = p.Y - _panStartScreen.Y;
+        var worldDx = _scale <= 1e-6 ? 0 : dx / _scale;
+        var worldDy = _scale <= 1e-6 ? 0 : -dy / _scale;
+
+        _panOffset = new Point(_panStartOffset.X - worldDx, _panStartOffset.Y - worldDy);
+        ClampPanOffset();
+        InvalidateVisual();
+    }
+
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        base.OnPointerReleased(e);
+
+        if (!_isPanning)
+            return;
+
+        _isPanning = false;
+        e.Pointer.Capture(null);
+    }
+
+    protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
+    {
+        base.OnPointerWheelChanged(e);
+
+        if (e.Delta.Y > 0)
+            ZoomIn();
+        else if (e.Delta.Y < 0)
+            ZoomOut();
+
+        e.Handled = true;
     }
 
     private Point WorldToScreen(Point p)
@@ -162,6 +299,7 @@ public sealed class SimulationTopViewControl : Control
         ctx.DrawGeometry(new SolidColorBrush(Color.FromRgb(248, 113, 113)), new Pen(Brushes.White, 1), g);
         ctx.DrawEllipse(new SolidColorBrush(Color.FromRgb(239, 68, 68)), new Pen(Brushes.White, 1), p, 4.5, 4.5);
     }
+
     private static List<RecipePoint> SelectRenderablePoints(List<RecipePoint> source)
     {
         var activeRenderable = source.Where(p => p.Act && !p.Hidden && HasRenderableGeometry(p)).ToList();
@@ -184,5 +322,4 @@ public sealed class SimulationTopViewControl : Control
             || Math.Abs(p.Xr0 + p.DX) > eps
             || Math.Abs(p.Zr0 + p.DZ) > eps;
     }
-
 }
