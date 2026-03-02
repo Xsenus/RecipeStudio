@@ -53,6 +53,8 @@ public sealed class SimulationViewModel : ViewModelBase
     public AppSettings AppSettings => _editor.AppSettings;
     public string RecipePath => _editor.FilePath;
 
+    public void SaveAppSettings() => _editor.SaveAppSettings();
+
     public RelayCommand PlayPauseCommand { get; }
     public RelayCommand StopCommand { get; }
     public RelayCommand StepPreviousCommand { get; }

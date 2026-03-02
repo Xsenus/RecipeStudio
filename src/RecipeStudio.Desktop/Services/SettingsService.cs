@@ -121,6 +121,12 @@ public sealed class SettingsService
         Settings.EditorPanels.Visualization ??= new PanelPlacementSettings();
         Settings.EditorPanels.SelectedPoint ??= new PanelPlacementSettings();
 
+        Settings.SimulationPanels ??= new SimulationPanelsSettings();
+        Settings.SimulationPanels.Plot ??= new PanelPlacementSettings();
+        Settings.SimulationPanels.Telemetry ??= new PanelPlacementSettings();
+        Settings.SimulationPanels.TopView ??= new PanelPlacementSettings { IsVisible = false };
+        Settings.SimulationPanels.View3D ??= new PanelPlacementSettings();
+
         try
         {
             Directory.CreateDirectory(Settings.RecipesFolder);
@@ -199,6 +205,16 @@ public sealed class SettingsService
             if (!ValidatePanel(panels.Parameters) || !ValidatePanel(panels.Visualization) || !ValidatePanel(panels.SelectedPoint))
             {
                 error = "EditorPanels содержит недопустимые значения.";
+                return false;
+            }
+        }
+
+        var simulationPanels = s.SimulationPanels;
+        if (simulationPanels is not null)
+        {
+            if (!ValidatePanel(simulationPanels.Plot) || !ValidatePanel(simulationPanels.Telemetry) || !ValidatePanel(simulationPanels.TopView) || !ValidatePanel(simulationPanels.View3D))
+            {
+                error = "SimulationPanels содержит недопустимые значения.";
                 return false;
             }
         }

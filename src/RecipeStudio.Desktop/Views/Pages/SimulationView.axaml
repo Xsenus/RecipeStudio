@@ -5,7 +5,7 @@
 
   <Grid Margin="18" RowDefinitions="Auto,*" RowSpacing="12">
     <Border Classes="card" Padding="14">
-      <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8">
         <StackPanel>
           <TextBlock Text="Симуляция процесса" Classes="h1"/>
           <TextBlock Text="{Binding RecipePath}" Classes="muted" />
@@ -24,64 +24,81 @@
 
         <StackPanel Grid.Column="9" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
           <TextBlock Text="Скорость" Classes="muted" VerticalAlignment="Center"/>
-          <Slider Minimum="0.2" Maximum="12" Width="140" Value="{Binding SpeedMultiplier}" />
+          <Slider Minimum="0.2" Maximum="12" Width="120" Value="{Binding SpeedMultiplier}" />
         </StackPanel>
 
-        <StackPanel Grid.Column="10" VerticalAlignment="Center" Spacing="2">
+        <Button Grid.Column="10" Classes="ghost panel-icon-btn" ToolTip.Tip="Показать/скрыть график" Click="ShowPlotPanel_Click">RZ</Button>
+        <Button Grid.Column="11" Classes="ghost panel-icon-btn" ToolTip.Tip="Показать/скрыть телеметрию" Click="ShowTelemetryPanel_Click">T</Button>
+        <Button Grid.Column="12" Classes="ghost panel-icon-btn" ToolTip.Tip="Показать/скрыть вид сверху" Click="ShowTopViewPanel_Click">Top</Button>
+        <Button Grid.Column="13" Classes="ghost panel-icon-btn" ToolTip.Tip="Показать/скрыть 3D" Click="ShowView3DPanel_Click">3D</Button>
+        <Button Grid.Column="14" Classes="ghost panel-icon-btn" ToolTip.Tip="Сбросить панели" Click="ResetPanels_Click">↺</Button>
+
+        <StackPanel Grid.Column="15" VerticalAlignment="Center" Spacing="2">
           <TextBlock Text="{Binding ProgressPercent, StringFormat='Прогресс: {0}%'}" />
           <TextBlock Text="{Binding CurrentStepIndex, StringFormat='Шаг: {0}'}" Classes="muted" />
         </StackPanel>
       </Grid>
     </Border>
 
-    <Grid Grid.Row="1" ColumnDefinitions="1.2*,1*" ColumnSpacing="12" RowDefinitions="1*,0.65*" RowSpacing="12">
-      <Border Classes="card" Padding="10">
-        <controls:RecipePlotControl Points="{Binding PointsForPlot}" AnimationPoints="{Binding PointsForAnimation}" Progress="{Binding Progress}" Settings="{Binding AppSettings}" ShowPairLinks="{Binding ShowPairLinks}" ShowGrid="{Binding ShowGrid}"/>
-      </Border>
+    <Grid Grid.Row="1">
+      <Canvas x:Name="PanelsCanvas" ClipToBounds="True">
+        <Border x:Name="PlotPanel" Classes="card floating-panel"
+                Width="980" Height="560" MinWidth="640" MinHeight="360"
+                PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+          <controls:RecipePlotControl Points="{Binding PointsForPlot}" AnimationPoints="{Binding PointsForAnimation}" Progress="{Binding Progress}" Settings="{Binding AppSettings}" ShowPairLinks="{Binding ShowPairLinks}" ShowGrid="{Binding ShowGrid}"/>
+        </Border>
+        <Border x:Name="PlotResizeHandle" Classes="panel-resize-handle"
+                PointerPressed="ResizeHandle_PointerPressed" PointerMoved="ResizeHandle_PointerMoved" PointerReleased="ResizeHandle_PointerReleased" />
 
-      <Border Grid.Column="1" Classes="card" Padding="16">
-        <StackPanel Spacing="10">
-          <TextBlock Text="Телеметрия" FontSize="26" FontWeight="SemiBold" />
-          <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="4">
-            <TextBlock Text="R:" Classes="muted"/>
-            <TextBlock Grid.Column="1" Text="{Binding ToolR, StringFormat='{}{0:F1} мм'}" FontSize="24" />
+        <Border x:Name="TelemetryPanel" Classes="card floating-panel"
+                Width="300" Height="360" MinWidth="260" MinHeight="280"
+                PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+          <StackPanel Spacing="8">
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="4">
+              <TextBlock Text="R:" Classes="muted"/>
+              <TextBlock Grid.Column="1" Text="{Binding ToolR, StringFormat='{}{0:F1} мм'}" FontSize="22" />
+              <TextBlock Grid.Row="1" Text="Z:" Classes="muted"/>
+              <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ToolZ, StringFormat='{}{0:F1} мм'}" FontSize="22" />
+              <TextBlock Grid.Row="2" Text="X:" Classes="muted"/>
+              <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ToolX, StringFormat='{}{0:F1}'}" />
+              <TextBlock Grid.Row="3" Text="Y:" Classes="muted"/>
+              <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding ToolY, StringFormat='{}{0:F1}'}" />
+              <TextBlock Grid.Row="4" Text="α / β:" Classes="muted"/>
+              <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding CurrentAlfa, StringFormat='{}{0:F1}°'}" />
+              <TextBlock Grid.Row="5" Text="" />
+              <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding CurrentBetta, StringFormat='{}{0:F1}°'}" />
+              <TextBlock Grid.Row="6" Text="Пульсы XYZ:" Classes="muted" />
+              <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding CurrentXPuls, StringFormat='X {0}'}" />
+            </Grid>
+            <TextBlock Text="{Binding CurrentYPuls, StringFormat='Y {0}'}" />
+            <TextBlock Text="{Binding CurrentZPuls, StringFormat='Z {0}'}" />
+          </StackPanel>
+        </Border>
+        <Border x:Name="TelemetryResizeHandle" Classes="panel-resize-handle"
+                PointerPressed="ResizeHandle_PointerPressed" PointerMoved="ResizeHandle_PointerMoved" PointerReleased="ResizeHandle_PointerReleased" />
 
-            <TextBlock Grid.Row="1" Text="Z:" Classes="muted"/>
-            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ToolZ, StringFormat='{}{0:F1} мм'}" FontSize="24" />
+        <Border x:Name="TopViewPanel" Classes="card floating-panel"
+                Width="420" Height="280" MinWidth="320" MinHeight="220"
+                PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+          <StackPanel>
+            <TextBlock Text="Вид сверху (X-Y)" Classes="muted" Margin="0,0,0,8" />
+            <controls:SimulationTopViewControl Points="{Binding PointsForAnimation}" Progress="{Binding Progress}" MinHeight="210" />
+          </StackPanel>
+        </Border>
+        <Border x:Name="TopViewResizeHandle" Classes="panel-resize-handle"
+                PointerPressed="ResizeHandle_PointerPressed" PointerMoved="ResizeHandle_PointerMoved" PointerReleased="ResizeHandle_PointerReleased" />
 
-            <TextBlock Grid.Row="2" Text="X:" Classes="muted"/>
-            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ToolX, StringFormat='{}{0:F1}'}" />
-
-            <TextBlock Grid.Row="3" Text="Y:" Classes="muted"/>
-            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding ToolY, StringFormat='{}{0:F1}'}" />
-
-            <TextBlock Grid.Row="4" Text="α / β:" Classes="muted"/>
-            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding CurrentAlfa, StringFormat='{}{0:F1}°'}" />
-
-            <TextBlock Grid.Row="5" Text="" />
-            <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding CurrentBetta, StringFormat='{}{0:F1}°'}" />
-
-            <TextBlock Grid.Row="6" Text="Пульсы XYZ:" Classes="muted" />
-            <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding CurrentXPuls, StringFormat='X {0}'}" />
-          </Grid>
-          <TextBlock Text="{Binding CurrentYPuls, StringFormat='Y {0}'}" />
-          <TextBlock Text="{Binding CurrentZPuls, StringFormat='Z {0}'}" />
-        </StackPanel>
-      </Border>
-
-      <Border Grid.Row="1" Classes="card" Padding="8">
-        <StackPanel>
-          <TextBlock Text="Вид сверху (X-Y)" Classes="muted" Margin="0,0,0,8" />
-          <controls:SimulationTopViewControl Points="{Binding PointsForAnimation}" Progress="{Binding Progress}" MinHeight="210" />
-        </StackPanel>
-      </Border>
-
-      <Border Grid.Row="1" Grid.Column="1" Classes="card" Padding="8">
-        <StackPanel>
-          <TextBlock Text="3D визуализация" Classes="muted" Margin="0,0,0,8" />
-          <controls:Simulation3DControl Points="{Binding PointsForAnimation}" Settings="{Binding AppSettings}" ShowGrid="{Binding ShowGrid}" ShowPairLinks="{Binding ShowPairLinks}" ToolXRaw="{Binding ToolXRaw}" ToolYRaw="{Binding ToolYRaw}" ToolZRaw="{Binding ToolZRaw}" CurrentAlfa="{Binding CurrentAlfa}" CurrentBetta="{Binding CurrentBetta}" MinHeight="210" />
-        </StackPanel>
-      </Border>
+        <Border x:Name="View3DPanel" Classes="card floating-panel"
+                Width="460" Height="320" MinWidth="340" MinHeight="240"
+                PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+          <StackPanel>
+            <TextBlock Text="3D визуализация" Classes="muted" Margin="0,0,0,8" />
+            <controls:Simulation3DControl Points="{Binding PointsForAnimation}" Settings="{Binding AppSettings}" ShowGrid="{Binding ShowGrid}" ShowPairLinks="{Binding ShowPairLinks}" ToolXRaw="{Binding ToolXRaw}" ToolYRaw="{Binding ToolYRaw}" ToolZRaw="{Binding ToolZRaw}" CurrentAlfa="{Binding CurrentAlfa}" CurrentBetta="{Binding CurrentBetta}" MinHeight="210" />
+          </StackPanel>
+        </Border>
+        <Border x:Name="View3DResizeHandle" Classes="panel-resize-handle"
+                PointerPressed="ResizeHandle_PointerPressed" PointerMoved="ResizeHandle_PointerMoved" PointerReleased="ResizeHandle_PointerReleased" />
+      </Canvas>
     </Grid>
   </Grid>
 </UserControl>
