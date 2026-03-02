@@ -141,8 +141,17 @@ public sealed class SimulationTopViewControl : Control
         if (_fitWorldBounds.Width <= 0 || _fitWorldBounds.Height <= 0)
             return;
 
-        var maxX = Math.Max(0, (_fitWorldBounds.Width - _fitWorldBounds.Width / _zoomFactor) / 2.0);
-        var maxY = Math.Max(0, (_fitWorldBounds.Height - _fitWorldBounds.Height / _zoomFactor) / 2.0);
+        // Keep panning available even at x1.00 so the top-view interaction feels responsive,
+        // while still preventing the user from losing the trajectory completely.
+        var zoomLimitedX = Math.Max(0, (_fitWorldBounds.Width - _fitWorldBounds.Width / _zoomFactor) / 2.0);
+        var zoomLimitedY = Math.Max(0, (_fitWorldBounds.Height - _fitWorldBounds.Height / _zoomFactor) / 2.0);
+
+        var basePanX = _fitWorldBounds.Width * 0.15;
+        var basePanY = _fitWorldBounds.Height * 0.15;
+
+        var maxX = Math.Max(zoomLimitedX, basePanX);
+        var maxY = Math.Max(zoomLimitedY, basePanY);
+
         _panOffset = new Point(Math.Clamp(_panOffset.X, -maxX, maxX), Math.Clamp(_panOffset.Y, -maxY, maxY));
     }
 
