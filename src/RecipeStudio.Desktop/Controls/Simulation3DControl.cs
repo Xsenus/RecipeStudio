@@ -89,11 +89,6 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     public Vector3 BlueprintOffset { get => GetValue(BlueprintOffsetProperty); set => SetValue(BlueprintOffsetProperty, value); }
     public double BlueprintScale { get => GetValue(BlueprintScaleProperty); set => SetValue(BlueprintScaleProperty, value); }
 
-    public Simulation3DControl()
-    {
-        ClipToBounds = true;
-    }
-
     static Simulation3DControl()
     {
         PointsProperty.Changed.AddClassHandler<Simulation3DControl>((c, _) => c.RebuildGeometry());

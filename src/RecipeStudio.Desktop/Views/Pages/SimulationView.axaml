@@ -121,7 +121,7 @@
               <TextBlock Text="3D визуализация" Classes="muted" VerticalAlignment="Center" />
               <Button Grid.Column="1" Classes="ghost panel-close-btn" Click="HideView3DPanel_Click">✕</Button>
             </Grid>
-            <controls:Simulation3DControl Grid.Row="1" x:Name="Simulation3D" ClipToBounds="True"
+            <controls:Simulation3DControl Grid.Row="1" x:Name="Simulation3D"
                                           Points="{Binding PointsForAnimation}"
                                           Settings="{Binding AppSettings}"
                                           ShowGrid="{Binding ShowGrid}"
