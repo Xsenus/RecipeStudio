@@ -131,7 +131,7 @@ public sealed class RecipePlotControl : Control
 
     public void ZoomIn()
     {
-        _zoomFactor = Math.Clamp(_zoomFactor * 1.2, 1.0, 20.0);
+        _zoomFactor = Math.Clamp(_zoomFactor * 1.2, 0.2, 20.0);
         ClampPanOffset();
         InvalidateVisual();
         NotifyZoomChanged();
@@ -139,7 +139,7 @@ public sealed class RecipePlotControl : Control
 
     public void ZoomOut()
     {
-        _zoomFactor = Math.Clamp(_zoomFactor / 1.2, 1.0, 20.0);
+        _zoomFactor = Math.Clamp(_zoomFactor / 1.2, 0.2, 20.0);
         ClampPanOffset();
         InvalidateVisual();
         NotifyZoomChanged();
@@ -869,8 +869,9 @@ public sealed class RecipePlotControl : Control
             return;
         }
 
-        var visibleWidth = _fitWorldBounds.Width / Math.Max(1.0, _zoomFactor);
-        var visibleHeight = _fitWorldBounds.Height / Math.Max(1.0, _zoomFactor);
+        var safeZoom = Math.Clamp(_zoomFactor, 0.2, 20.0);
+        var visibleWidth = _fitWorldBounds.Width / safeZoom;
+        var visibleHeight = _fitWorldBounds.Height / safeZoom;
 
         var zoomPanX = Math.Max(0, (_fitWorldBounds.Width - visibleWidth) / 2.0);
         var zoomPanY = Math.Max(0, (_fitWorldBounds.Height - visibleHeight) / 2.0);
