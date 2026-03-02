@@ -46,6 +46,7 @@ public sealed class AppSettings
 
     public WindowPlacementSettings WindowPlacement { get; set; } = new();
     public EditorPanelsSettings EditorPanels { get; set; } = new();
+    public SimulationPanelsSettings SimulationPanels { get; set; } = new();
 
     // Logging
     public bool LoggingEnabled { get; set; } = true;
@@ -84,4 +85,12 @@ public sealed class PanelPlacementSettings
     public double Width { get; set; }
     public double Height { get; set; }
     public bool IsVisible { get; set; } = true;
+}
+
+public sealed class SimulationPanelsSettings
+{
+    public PanelPlacementSettings Plot { get; set; } = new();
+    public PanelPlacementSettings Telemetry { get; set; } = new();
+    public PanelPlacementSettings TopView { get; set; } = new() { IsVisible = false };
+    public PanelPlacementSettings View3D { get; set; } = new();
 }

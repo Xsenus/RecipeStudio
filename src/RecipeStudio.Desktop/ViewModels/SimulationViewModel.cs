@@ -97,6 +97,8 @@ public sealed class SimulationViewModel : ViewModelBase
     public int CurrentZPuls => (int)Math.Round(ToolZ * AppSettings.PulseZ, 0, MidpointRounding.AwayFromZero);
     public int ProgressPercent => (int)Math.Round(Progress * 100, 0, MidpointRounding.AwayFromZero);
 
+    public void SaveAppSettings() => _editor.SaveAppSettings();
+
     private void TogglePlay()
     {
         if (GetAnimationPoints().Count < 2) return;
