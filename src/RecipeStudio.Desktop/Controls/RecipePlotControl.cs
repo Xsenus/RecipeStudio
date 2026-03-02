@@ -872,8 +872,16 @@ public sealed class RecipePlotControl : Control
         var visibleWidth = _fitWorldBounds.Width / Math.Max(1.0, _zoomFactor);
         var visibleHeight = _fitWorldBounds.Height / Math.Max(1.0, _zoomFactor);
 
-        var maxOffsetX = Math.Max(0, (_fitWorldBounds.Width - visibleWidth) / 2.0);
-        var maxOffsetY = Math.Max(0, (_fitWorldBounds.Height - visibleHeight) / 2.0);
+        var zoomPanX = Math.Max(0, (_fitWorldBounds.Width - visibleWidth) / 2.0);
+        var zoomPanY = Math.Max(0, (_fitWorldBounds.Height - visibleHeight) / 2.0);
+
+        // Allow panning even at fit zoom (x1.00): user can shift the profile with LMB
+        // while keeping movement bounded to a reasonable range.
+        var fitPanX = _fitWorldBounds.Width * 0.35;
+        var fitPanY = _fitWorldBounds.Height * 0.35;
+
+        var maxOffsetX = Math.Max(zoomPanX, fitPanX);
+        var maxOffsetY = Math.Max(zoomPanY, fitPanY);
 
         _panOffset = new Point(
             Math.Clamp(_panOffset.X, -maxOffsetX, maxOffsetX),
