@@ -135,7 +135,14 @@ public sealed partial class SimulationView : UserControl
         ClampPanelToCanvas(panel);
     }
 
-    private Point PlotPanelDefaultPosition(Border _) => new(PanelMargin, TopUiReserve);
+    private Point PlotPanelDefaultPosition(Border panel)
+    {
+        var canvasWidth = GetCanvasWidth();
+        var canvasHeight = GetCanvasHeight();
+        return new(
+            Math.Max(PanelMargin, canvasWidth - panel.Width - PanelMargin),
+            Math.Max(TopUiReserve, canvasHeight - panel.Height - PanelMargin));
+    }
 
     private Point TelemetryPanelDefaultPosition(Border panel)
     {
@@ -149,12 +156,7 @@ public sealed partial class SimulationView : UserControl
         return new(PanelMargin, Math.Max(TopUiReserve, canvasHeight - panel.Height - PanelMargin));
     }
 
-    private Point View3DPanelDefaultPosition(Border panel)
-    {
-        var canvasWidth = GetCanvasWidth();
-        var canvasHeight = GetCanvasHeight();
-        return new(Math.Max(PanelMargin, canvasWidth - panel.Width - PanelMargin), Math.Max(TopUiReserve, canvasHeight - panel.Height - PanelMargin));
-    }
+    private Point View3DPanelDefaultPosition(Border _) => new(PanelMargin, TopUiReserve);
 
     private void ApplyDefaultPanelsLayout()
     {
@@ -183,10 +185,10 @@ public sealed partial class SimulationView : UserControl
     private void InitializePanelZOrder()
     {
         _zOrderCounter = 0;
-        if (PlotPanel.IsVisible) BringPanelToFront(PlotPanel);
-        if (TelemetryPanel.IsVisible) BringPanelToFront(TelemetryPanel);
-        if (TopViewPanel.IsVisible) BringPanelToFront(TopViewPanel);
         if (View3DPanel.IsVisible) BringPanelToFront(View3DPanel);
+        if (TelemetryPanel.IsVisible) BringPanelToFront(TelemetryPanel);
+        if (PlotPanel.IsVisible) BringPanelToFront(PlotPanel);
+        if (TopViewPanel.IsVisible) BringPanelToFront(TopViewPanel);
     }
 
     private void BringPanelToFront(Border panel)
@@ -384,14 +386,14 @@ public sealed partial class SimulationView : UserControl
 
     private void ResetPanels_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        PlotPanel.Width = 860;
-        PlotPanel.Height = 520;
+        PlotPanel.Width = 460;
+        PlotPanel.Height = 390;
         TelemetryPanel.Width = 290;
         TelemetryPanel.Height = 325;
         TopViewPanel.Width = 560;
         TopViewPanel.Height = 320;
-        View3DPanel.Width = 560;
-        View3DPanel.Height = 320;
+        View3DPanel.Width = 1160;
+        View3DPanel.Height = 640;
 
         PlotPanel.IsVisible = true;
         TelemetryPanel.IsVisible = true;

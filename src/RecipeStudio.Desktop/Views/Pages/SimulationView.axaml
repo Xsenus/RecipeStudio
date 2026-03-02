@@ -36,7 +36,7 @@
 
     <Grid Grid.Row="1">
       <Canvas x:Name="PanelsCanvas" ClipToBounds="True">
-        <Border x:Name="PlotPanel" Classes="card floating-panel" Width="860" Height="520" MinWidth="520" MinHeight="340"
+        <Border x:Name="PlotPanel" Classes="card floating-panel" Width="460" Height="390" MinWidth="520" MinHeight="340"
                 PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
           <Grid RowDefinitions="Auto,*" RowSpacing="8" ClipToBounds="True">
             <Grid x:Name="PlotPanelHeader" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
@@ -114,7 +114,7 @@
         <Border x:Name="TopViewResizeHandle" Classes="panel-resize-handle"
                 PointerPressed="ResizeHandle_PointerPressed" PointerMoved="ResizeHandle_PointerMoved" PointerReleased="ResizeHandle_PointerReleased" />
 
-        <Border x:Name="View3DPanel" Classes="card floating-panel" Width="560" Height="320" MinWidth="420" MinHeight="240" ClipToBounds="True"
+        <Border x:Name="View3DPanel" Classes="card floating-panel" Width="1160" Height="640" MinWidth="420" MinHeight="240" ClipToBounds="True"
                 PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
           <Grid RowDefinitions="Auto,*" RowSpacing="8">
             <Grid x:Name="View3DPanelHeader" ColumnDefinitions="*,Auto">
