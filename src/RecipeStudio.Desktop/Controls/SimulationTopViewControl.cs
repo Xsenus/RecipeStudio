@@ -149,7 +149,7 @@ public sealed class SimulationTopViewControl : Control
     {
         base.OnPointerPressed(e);
 
-        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        if (!e.GetCurrentPoint(this).Properties.IsRightButtonPressed)
             return;
 
         _isPanning = true;
@@ -165,6 +165,13 @@ public sealed class SimulationTopViewControl : Control
 
         if (!_isPanning)
             return;
+
+        if (!e.GetCurrentPoint(this).Properties.IsRightButtonPressed)
+        {
+            _isPanning = false;
+            e.Pointer.Capture(null);
+            return;
+        }
 
         var p = e.GetPosition(this);
         var dx = p.X - _panStartScreen.X;
