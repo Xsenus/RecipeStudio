@@ -38,7 +38,7 @@
       <Canvas x:Name="PanelsCanvas" ClipToBounds="True">
         <Border x:Name="PlotPanel" Classes="card floating-panel" Width="860" Height="520" MinWidth="520" MinHeight="340"
                 PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
-          <Grid RowDefinitions="Auto,*" RowSpacing="8">
+          <Grid RowDefinitions="Auto,*" RowSpacing="8" ClipToBounds="True">
             <Grid x:Name="PlotPanelHeader" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
               <TextBlock Text="PROFILE VIEWER (R-Z)" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
               <Button Grid.Column="1" Classes="ghost" ToolTip.Tip="Приблизить график" Click="ZoomInPlot_Click">＋</Button>
@@ -114,14 +114,14 @@
         <Border x:Name="TopViewResizeHandle" Classes="panel-resize-handle"
                 PointerPressed="ResizeHandle_PointerPressed" PointerMoved="ResizeHandle_PointerMoved" PointerReleased="ResizeHandle_PointerReleased" />
 
-        <Border x:Name="View3DPanel" Classes="card floating-panel" Width="560" Height="320" MinWidth="420" MinHeight="240"
+        <Border x:Name="View3DPanel" Classes="card floating-panel" Width="560" Height="320" MinWidth="420" MinHeight="240" ClipToBounds="True"
                 PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
           <Grid RowDefinitions="Auto,*" RowSpacing="8">
             <Grid x:Name="View3DPanelHeader" ColumnDefinitions="*,Auto">
               <TextBlock Text="3D визуализация" Classes="muted" VerticalAlignment="Center" />
               <Button Grid.Column="1" Classes="ghost panel-close-btn" Click="HideView3DPanel_Click">✕</Button>
             </Grid>
-            <controls:Simulation3DControl Grid.Row="1" x:Name="Simulation3D"
+            <controls:Simulation3DControl Grid.Row="1" x:Name="Simulation3D" ClipToBounds="True"
                                           Points="{Binding PointsForAnimation}"
                                           Settings="{Binding AppSettings}"
                                           ShowGrid="{Binding ShowGrid}"
