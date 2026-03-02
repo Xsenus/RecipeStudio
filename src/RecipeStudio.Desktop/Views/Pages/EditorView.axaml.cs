@@ -33,6 +33,7 @@ public sealed partial class EditorView : UserControl
     private Border? _resizePanel;
     private Point _resizeStart;
     private Size _resizeStartSize;
+    private int _zOrderCounter;
 
     private void HookVm()
     {
@@ -65,6 +66,8 @@ public sealed partial class EditorView : UserControl
 
         if (HasUsableCanvasSize())
             InitializePanelsLayout();
+
+        InitializePanelZOrder();
 
         RecipePlot.ZoomChanged -= OnRecipePlotZoomChanged;
         RecipePlot.ZoomChanged += OnRecipePlotZoomChanged;
@@ -274,6 +277,25 @@ public sealed partial class EditorView : UserControl
         ClampPanelToCanvas(SelectedPointPanel);
     }
 
+
+    private void BringPanelToFront(Border panel)
+    {
+        _zOrderCounter = Math.Max(_zOrderCounter + 1, 1);
+        panel.ZIndex = _zOrderCounter * 10;
+        UpdateResizeHandleFor(panel);
+    }
+
+    private void InitializePanelZOrder()
+    {
+        _zOrderCounter = 0;
+        if (ParametersPanel.IsVisible)
+            BringPanelToFront(ParametersPanel);
+        if (VisualizationPanel.IsVisible)
+            BringPanelToFront(VisualizationPanel);
+        if (SelectedPointPanel.IsVisible)
+            BringPanelToFront(SelectedPointPanel);
+    }
+
     private void Panel_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
@@ -297,9 +319,9 @@ public sealed partial class EditorView : UserControl
         if (control is not Border panel) return;
 
         _dragPanel = panel;
+        BringPanelToFront(panel);
         var pos = e.GetPosition(PanelsCanvas);
         _dragOffset = new Point(pos.X - Canvas.GetLeft(panel), pos.Y - Canvas.GetTop(panel));
-        panel.ZIndex = 10;
         e.Pointer.Capture(panel);
     }
 
@@ -338,7 +360,6 @@ public sealed partial class EditorView : UserControl
     {
         if (_dragPanel is null) return;
 
-        _dragPanel.ZIndex = 0;
         e.Pointer.Capture(null);
         _dragPanel = null;
         PersistPanelsLayout();
@@ -360,9 +381,10 @@ public sealed partial class EditorView : UserControl
         if (_resizePanel is null)
             return;
 
+        BringPanelToFront(_resizePanel);
+
         _resizeStart = e.GetPosition(PanelsCanvas);
         _resizeStartSize = new Size(_resizePanel.Width, _resizePanel.Height);
-        _resizePanel.ZIndex = 10;
         e.Pointer.Capture(sender as IInputElement);
         e.Handled = true;
     }
@@ -398,7 +420,6 @@ public sealed partial class EditorView : UserControl
         if (_resizePanel is null)
             return;
 
-        _resizePanel.ZIndex = 0;
         _resizePanel = null;
         e.Pointer.Capture(null);
         PersistPanelsLayout();
@@ -430,7 +451,10 @@ public sealed partial class EditorView : UserControl
         ParametersPanel.IsVisible = !ParametersPanel.IsVisible;
         ParametersResizeHandle.IsVisible = ParametersPanel.IsVisible;
         if (ParametersPanel.IsVisible)
+        {
+            BringPanelToFront(ParametersPanel);
             UpdateResizeHandleFor(ParametersPanel);
+        }
         PersistPanelsLayout();
     }
 
@@ -439,7 +463,10 @@ public sealed partial class EditorView : UserControl
         VisualizationPanel.IsVisible = !VisualizationPanel.IsVisible;
         VisualizationResizeHandle.IsVisible = VisualizationPanel.IsVisible;
         if (VisualizationPanel.IsVisible)
+        {
+            BringPanelToFront(VisualizationPanel);
             UpdateResizeHandleFor(VisualizationPanel);
+        }
         PersistPanelsLayout();
     }
 
@@ -448,7 +475,10 @@ public sealed partial class EditorView : UserControl
         SelectedPointPanel.IsVisible = !SelectedPointPanel.IsVisible;
         SelectedPointResizeHandle.IsVisible = SelectedPointPanel.IsVisible;
         if (SelectedPointPanel.IsVisible)
+        {
+            BringPanelToFront(SelectedPointPanel);
             UpdateResizeHandleFor(SelectedPointPanel);
+        }
         PersistPanelsLayout();
     }
 
@@ -518,6 +548,7 @@ public sealed partial class EditorView : UserControl
         SelectedPointResizeHandle.IsVisible = true;
 
         ApplyDefaultPanelsLayout();
+        InitializePanelZOrder();
         UpdateResizeHandlePositions();
         PersistPanelsLayout();
     }
