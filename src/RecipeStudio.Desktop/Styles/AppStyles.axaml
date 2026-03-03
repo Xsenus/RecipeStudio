@@ -330,6 +330,11 @@
     <Setter Property="Foreground" Value="#FF9C37" />
   </Style>
 
+
+  <Style Selector="TextBlock.hdr-yellow">
+    <Setter Property="Foreground" Value="#FACC15" />
+  </Style>
+
   <Style Selector="TextBlock.hdr-red">
     <Setter Property="Foreground" Value="#81232B" />
   </Style>
@@ -394,7 +399,7 @@
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="RowBackground" Value="#171B22" />
     <Setter Property="FontSize" Value="13" />
-    <Setter Property="RowHeight" Value="34" />
+    <Setter Property="RowHeight" Value="28" />
     <Setter Property="HorizontalGridLinesBrush" Value="#2A3140" />
     <Setter Property="VerticalGridLinesBrush" Value="#2A3140" />
   </Style>
@@ -427,15 +432,6 @@
     <Setter Property="Background" Value="#264E78" />
   </Style>
 
-  <Style Selector="DataGrid.editor-grid DataGridCell">
-    <Setter Property="Foreground" Value="#8FA6C9" />
-    <Setter Property="BorderBrush" Value="#252D3B" />
-    <Setter Property="BorderThickness" Value="0,0,1,1" />
-    <Setter Property="Padding" Value="4,1" />
-    <Setter Property="HorizontalContentAlignment" Value="Center" />
-    <Setter Property="VerticalContentAlignment" Value="Center" />
-  </Style>
-
   <Style Selector="DataGrid.editor-grid DataGridCell:readonly">
     <Setter Property="Background" Value="#1D2432" />
     <Setter Property="Foreground" Value="#5E6D89" />
@@ -446,6 +442,46 @@
     <Setter Property="Foreground" Value="#E8F0FF" />
     <Setter Property="BorderBrush" Value="#5EA2ED" />
     <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridCell">
+    <Setter Property="Foreground" Value="#8FA6C9" />
+    <Setter Property="BorderBrush" Value="#252D3B" />
+    <Setter Property="BorderThickness" Value="0,0,1,1" />
+    <Setter Property="Padding" Value="1,0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid CheckBox">
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="0" />
+    <Setter Property="MinWidth" Value="18" />
+    <Setter Property="MinHeight" Value="18" />
+  </Style>
+
+  <Style Selector="CheckBox.s-yellow">
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
+  </Style>
+
+  <Style Selector="CheckBox.s-yellow /template/ Border#NormalRectangle">
+    <Setter Property="Background" Value="#1A1F2B" />
+    <Setter Property="BorderBrush" Value="#FACC15" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="4" />
+  </Style>
+
+  <Style Selector="CheckBox.s-yellow:checked /template/ Border#NormalRectangle">
+    <Setter Property="Background" Value="#FACC15" />
+    <Setter Property="BorderBrush" Value="#FACC15" />
+  </Style>
+
+  <Style Selector="CheckBox.s-yellow /template/ PathIcon#CheckGlyph">
+    <Setter Property="Foreground" Value="#171207" />
   </Style>
 
   <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(4)">
