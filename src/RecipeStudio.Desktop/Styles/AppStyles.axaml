@@ -39,8 +39,8 @@
     <Setter Property="Width" Value="36" />
     <Setter Property="Height" Value="26" />
     <Setter Property="Padding" Value="0" />
-    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-    <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="CornerRadius" Value="5" />
@@ -414,23 +414,16 @@
     <Setter Property="BorderBrush" Value="#2A3142" />
     <Setter Property="BorderThickness" Value="0,0,1,1" />
     <Setter Property="Padding" Value="0" />
-    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-    <Setter Property="VerticalContentAlignment" Value="Stretch" />
-  </Style>
-
-  <Style Selector="DataGrid.editor-grid DataGridColumnHeader /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="HorizontalAlignment" Value="Stretch" />
-    <Setter Property="VerticalAlignment" Value="Stretch" />
     <Setter Property="HorizontalContentAlignment" Value="Center" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
 
-  <Style Selector="DataGrid.editor-grid DataGridColumnHeader .grid-hdr">
-    <Setter Property="HorizontalAlignment" Value="Center" />
+
+  <Style Selector="DataGrid.editor-grid DataGridColumnHeader > TextBlock.grid-hdr">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="TextAlignment" Value="Center" />
   </Style>
-
 
   <Style Selector="DataGrid.editor-grid DataGridColumnHeader:pointerover">
     <Setter Property="Background" Value="#242A36" />
