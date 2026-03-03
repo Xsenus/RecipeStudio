@@ -312,6 +312,8 @@
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="FontSize" Value="12" />
     <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="TextAlignment" Value="Center" />
   </Style>
 
   <Style Selector="TextBlock.hdr-green">
