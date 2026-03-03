@@ -119,7 +119,11 @@ public static class RecipeCalculator
             // shift these plotted/exported local coordinates.
             var xr = Round1(xp - cosB * cosA * ln1);
             var yx = Round1(-sinB * ln1);
-            var zr = Round1(zp + cosB * sinA * ln1);
+            // For mirrored (top) rows Excel flips the angular Z contribution sign.
+            var zrOffset = cosB * sinA * ln1;
+            var zr = p.Place == 0
+                ? Round1(zp + zrOffset)
+                : Round1(zp - zrOffset);
 
             var dx = 0d;
             var dy = 0d;
