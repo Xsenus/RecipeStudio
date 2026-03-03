@@ -71,11 +71,19 @@
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
-              <DataGridCheckBoxColumn Binding="{Binding Act}" Width="40">
-                <DataGridCheckBoxColumn.Header>
+              <DataGridTemplateColumn Width="40">
+                <DataGridTemplateColumn.Header>
                   <TextBlock Text="A" Classes="grid-hdr" ToolTip.Tip="Активность точки: 1 — участвует, 0 — выключена" />
-                </DataGridCheckBoxColumn.Header>
-              </DataGridCheckBoxColumn>
+                </DataGridTemplateColumn.Header>
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <CheckBox Classes="a-green"
+                              IsChecked="{Binding Act, Mode=TwoWay}"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
 
               <DataGridTemplateColumn Width="40">
                 <DataGridTemplateColumn.Header>
@@ -91,17 +99,45 @@
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
 
-              <DataGridTextColumn Binding="{Binding RCrd}" Width="52">
-                <DataGridTextColumn.Header>
+              <DataGridTemplateColumn Width="52">
+                <DataGridTemplateColumn.Header>
                   <TextBlock Text="R" Classes="grid-hdr hdr-green" ToolTip.Tip="Радиальная координата, мм" />
-                </DataGridTextColumn.Header>
-              </DataGridTextColumn>
+                </DataGridTemplateColumn.Header>
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <TextBlock Classes="rz-value"
+                               Text="{Binding RCrd}"
+                               Width="{Binding $parent[DataGridCell].Bounds.Width}" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+                <DataGridTemplateColumn.CellEditingTemplate>
+                  <DataTemplate>
+                    <TextBox Classes="rz-edit"
+                             Text="{Binding RCrd, Mode=TwoWay}"
+                             Width="{Binding $parent[DataGridCell].Bounds.Width}" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellEditingTemplate>
+              </DataGridTemplateColumn>
 
-              <DataGridTextColumn Binding="{Binding ZCrd}" Width="52">
-                <DataGridTextColumn.Header>
+              <DataGridTemplateColumn Width="52">
+                <DataGridTemplateColumn.Header>
                   <TextBlock Text="Z" Classes="grid-hdr hdr-green" ToolTip.Tip="Высота Z, мм" />
-                </DataGridTextColumn.Header>
-              </DataGridTextColumn>
+                </DataGridTemplateColumn.Header>
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <TextBlock Classes="rz-value"
+                               Text="{Binding ZCrd}"
+                               Width="{Binding $parent[DataGridCell].Bounds.Width}" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+                <DataGridTemplateColumn.CellEditingTemplate>
+                  <DataTemplate>
+                    <TextBox Classes="rz-edit"
+                             Text="{Binding ZCrd, Mode=TwoWay}"
+                             Width="{Binding $parent[DataGridCell].Bounds.Width}" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellEditingTemplate>
+              </DataGridTemplateColumn>
 
               <DataGridTextColumn Binding="{Binding ANozzle}" Width="48">
                 <DataGridTextColumn.Header>

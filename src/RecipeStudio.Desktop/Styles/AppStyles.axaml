@@ -477,29 +477,69 @@
 
   <Style Selector="CheckBox.s-yellow">
     <Setter Property="FocusAdorner" Value="{x:Null}" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border x:Name="Dot"
+                Width="12"
+                Height="12"
+                CornerRadius="999"
+                Background="#1A1F2B"
+                BorderBrush="#FACC15"
+                BorderThickness="1" />
+      </ControlTemplate>
+    </Setter>
   </Style>
 
-  <Style Selector="CheckBox.s-yellow /template/ Border#NormalRectangle">
-    <Setter Property="Background" Value="#1A1F2B" />
-    <Setter Property="BorderBrush" Value="#FACC15" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="4" />
-  </Style>
-
-  <Style Selector="CheckBox.s-yellow:checked /template/ Border#NormalRectangle">
+  <Style Selector="CheckBox.s-yellow:checked /template/ Border#Dot">
     <Setter Property="Background" Value="#FACC15" />
     <Setter Property="BorderBrush" Value="#FACC15" />
   </Style>
 
-  <Style Selector="CheckBox.s-yellow /template/ PathIcon#CheckGlyph">
-    <Setter Property="Foreground" Value="#171207" />
+  <Style Selector="CheckBox.a-green">
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border x:Name="Dot"
+                Width="12"
+                Height="12"
+                CornerRadius="999"
+                Background="#12241C"
+                BorderBrush="#2E7A57"
+                BorderThickness="1" />
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="CheckBox.a-green:checked /template/ Border#Dot">
+    <Setter Property="Background" Value="#42E885" />
+    <Setter Property="BorderBrush" Value="#42E885" />
   </Style>
 
   <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(4)">
-    <Setter Property="Foreground" Value="#42E885" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Padding" Value="0,0,6,0" />
   </Style>
+
   <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(5)">
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Padding" Value="0,0,6,0" />
+  </Style>
+
+  <Style Selector="TextBlock.rz-value">
     <Setter Property="Foreground" Value="#42E885" />
+    <Setter Property="TextAlignment" Value="Right" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="0,0,10,0" />
+  </Style>
+
+  <Style Selector="TextBox.rz-edit">
+    <Setter Property="Foreground" Value="#42E885" />
+    <Setter Property="TextAlignment" Value="Right" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="Padding" Value="0,0,10,0" />
   </Style>
   <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(13)">
     <Setter Property="Foreground" Value="#D8BBFF" />
