@@ -459,50 +459,24 @@
     <Setter Property="MinHeight" Value="18" />
   </Style>
 
-  <Style Selector="CheckBox.s-yellow /template/ Border">
+  <Style Selector="CheckBox.s-yellow">
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
+  </Style>
+
+  <Style Selector="CheckBox.s-yellow /template/ Border#NormalRectangle">
     <Setter Property="Background" Value="#1A1F2B" />
     <Setter Property="BorderBrush" Value="#5B667A" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="4" />
   </Style>
 
-  <Style Selector="CheckBox.s-yellow:checked /template/ Border">
+  <Style Selector="CheckBox.s-yellow:checked /template/ Border#NormalRectangle">
     <Setter Property="Background" Value="#FACC15" />
     <Setter Property="BorderBrush" Value="#FACC15" />
   </Style>
 
-  <Style Selector="CheckBox.s-yellow /template/ PathIcon">
+  <Style Selector="CheckBox.s-yellow /template/ PathIcon#CheckGlyph">
     <Setter Property="Foreground" Value="#171207" />
-  </Style>
-
-  <Style Selector="CheckBox.s-yellow:pointerover /template/ Border">
-    <Setter Property="Background" Value="#1A1F2B" />
-    <Setter Property="BorderBrush" Value="#5B667A" />
-  </Style>
-
-  <Style Selector="CheckBox.s-yellow:focus /template/ Border">
-    <Setter Property="Background" Value="#1A1F2B" />
-    <Setter Property="BorderBrush" Value="#5B667A" />
-  </Style>
-
-  <Style Selector="CheckBox.s-yellow:focus-visible /template/ Border">
-    <Setter Property="Background" Value="#1A1F2B" />
-    <Setter Property="BorderBrush" Value="#5B667A" />
-  </Style>
-
-  <Style Selector="CheckBox.s-yellow:checked:pointerover /template/ Border">
-    <Setter Property="Background" Value="#FACC15" />
-    <Setter Property="BorderBrush" Value="#FACC15" />
-  </Style>
-
-  <Style Selector="CheckBox.s-yellow:checked:focus /template/ Border">
-    <Setter Property="Background" Value="#FACC15" />
-    <Setter Property="BorderBrush" Value="#FACC15" />
-  </Style>
-
-  <Style Selector="CheckBox.s-yellow:checked:focus-visible /template/ Border">
-    <Setter Property="Background" Value="#FACC15" />
-    <Setter Property="BorderBrush" Value="#FACC15" />
   </Style>
 
   <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(4)">
