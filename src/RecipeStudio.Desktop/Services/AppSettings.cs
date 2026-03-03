@@ -19,6 +19,11 @@ public sealed class AppSettings
     public double Zm { get; set; } = 423;
 
     public double Lz { get; set; } = 250;
+    public string NozzleOrientationMode { get; set; } = NozzleOrientationModes.PhysicalAngles;
+    public double AlfaMinDeg { get; set; } = -90;
+    public double AlfaMaxDeg { get; set; } = 90;
+    public double BettaMinDeg { get; set; } = -15;
+    public double BettaMaxDeg { get; set; } = 15;
 
     public double PulseX { get; set; } = 50;
     public double PulseY { get; set; } = 50;

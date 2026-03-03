@@ -28,6 +28,30 @@ public sealed class RecipePlotControl : Control
     public static readonly StyledProperty<double> ProgressProperty =
         AvaloniaProperty.Register<RecipePlotControl, double>(nameof(Progress));
 
+    public static readonly StyledProperty<double> CurrentAlfaProperty =
+        AvaloniaProperty.Register<RecipePlotControl, double>(nameof(CurrentAlfa));
+
+    public static readonly StyledProperty<double> CurrentBettaProperty =
+        AvaloniaProperty.Register<RecipePlotControl, double>(nameof(CurrentBetta));
+
+    public static readonly StyledProperty<int> CurrentSegmentIndexProperty =
+        AvaloniaProperty.Register<RecipePlotControl, int>(nameof(CurrentSegmentIndex), -1);
+
+    public static readonly StyledProperty<double> CurrentSegmentTProperty =
+        AvaloniaProperty.Register<RecipePlotControl, double>(nameof(CurrentSegmentT), 0d);
+
+    public static readonly StyledProperty<double> ToolXRawProperty =
+        AvaloniaProperty.Register<RecipePlotControl, double>(nameof(ToolXRaw), double.NaN);
+
+    public static readonly StyledProperty<double> ToolZRawProperty =
+        AvaloniaProperty.Register<RecipePlotControl, double>(nameof(ToolZRaw), double.NaN);
+
+    public static readonly StyledProperty<double> TargetXRawProperty =
+        AvaloniaProperty.Register<RecipePlotControl, double>(nameof(TargetXRaw), double.NaN);
+
+    public static readonly StyledProperty<double> TargetZRawProperty =
+        AvaloniaProperty.Register<RecipePlotControl, double>(nameof(TargetZRaw), double.NaN);
+
     public static readonly StyledProperty<AppSettings?> SettingsProperty =
         AvaloniaProperty.Register<RecipePlotControl, AppSettings?>(nameof(Settings));
 
@@ -88,6 +112,54 @@ public sealed class RecipePlotControl : Control
         set => SetValue(SettingsProperty, value);
     }
 
+    public double CurrentAlfa
+    {
+        get => GetValue(CurrentAlfaProperty);
+        set => SetValue(CurrentAlfaProperty, value);
+    }
+
+    public double CurrentBetta
+    {
+        get => GetValue(CurrentBettaProperty);
+        set => SetValue(CurrentBettaProperty, value);
+    }
+
+    public int CurrentSegmentIndex
+    {
+        get => GetValue(CurrentSegmentIndexProperty);
+        set => SetValue(CurrentSegmentIndexProperty, value);
+    }
+
+    public double CurrentSegmentT
+    {
+        get => GetValue(CurrentSegmentTProperty);
+        set => SetValue(CurrentSegmentTProperty, value);
+    }
+
+    public double ToolXRaw
+    {
+        get => GetValue(ToolXRawProperty);
+        set => SetValue(ToolXRawProperty, value);
+    }
+
+    public double ToolZRaw
+    {
+        get => GetValue(ToolZRawProperty);
+        set => SetValue(ToolZRawProperty, value);
+    }
+
+    public double TargetXRaw
+    {
+        get => GetValue(TargetXRawProperty);
+        set => SetValue(TargetXRawProperty, value);
+    }
+
+    public double TargetZRaw
+    {
+        get => GetValue(TargetZRawProperty);
+        set => SetValue(TargetZRawProperty, value);
+    }
+
     public bool ShowLegend
     {
         get => GetValue(ShowLegendProperty);
@@ -116,6 +188,14 @@ public sealed class RecipePlotControl : Control
         SelectedPointProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         AnimationPointsProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         ProgressProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
+        CurrentAlfaProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
+        CurrentBettaProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
+        CurrentSegmentIndexProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
+        CurrentSegmentTProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
+        ToolXRawProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
+        ToolZRawProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
+        TargetXRawProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
+        TargetZRawProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         SettingsProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         ShowLegendProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         ShowPairLinksProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
@@ -263,18 +343,21 @@ public sealed class RecipePlotControl : Control
         var tool = absoluteRobot.Select(v => new Point(v.X, v.Z)).ToList();
         var robotToolMap = robotPoints.Select((p, i) => new { p, pt = tool[i] }).ToDictionary(x => x.p, x => x.pt);
 
-        // Separate set for animation (usually working cleaning points only).
-        var animSrc = SelectToolPoints(FilterRenderablePoints(AnimationPoints, fallback: robotPoints));
+        // Separate set for animation: must match the timeline source (including Safe points when enabled).
+        var animSrc = FilterRenderablePoints(AnimationPoints, fallback: points);
+        var animAbsolute = RobotCoordinateResolver.BuildAbsolutePositions(animSrc);
         var animTarget = new List<Point>();
         var animTool = new List<Point>();
-        foreach (var p in animSrc)
+        for (var idx = 0; idx < animSrc.Count; idx++)
         {
+            var p = animSrc[idx];
             var (xp, zp) = p.GetTargetPoint(settings.HZone);
             animTarget.Add(new Point(xp, zp));
 
-            if (robotToolMap.TryGetValue(p, out var absPoint))
+            if (idx < animAbsolute.Count)
             {
-                animTool.Add(absPoint);
+                var abs = animAbsolute[idx];
+                animTool.Add(new Point(abs.X, abs.Z));
             }
             else
             {
@@ -389,8 +472,25 @@ public sealed class RecipePlotControl : Control
             DrawRobotPoints(context, robotPoints, robotToolMap, settings);
 
             // Tool marker rendered as a smooth nozzle link Target->Robot.
-            var toolState = GetToolState(animTool, animTarget, Progress);
-            DrawToolMarker(context, toolState.ToolPosition, toolState.TargetPosition, toolState.Direction);
+            var toolState = GetToolState(animTool, animTarget, Progress, CurrentSegmentIndex, CurrentSegmentT);
+            var markerTool = toolState.ToolPosition;
+            if (double.IsFinite(ToolXRaw) && double.IsFinite(ToolZRaw))
+                markerTool = new Point(ToolXRaw, ToolZRaw);
+
+            var markerTarget = toolState.TargetPosition;
+            if (double.IsFinite(TargetXRaw) && double.IsFinite(TargetZRaw))
+                markerTarget = new Point(TargetXRaw, TargetZRaw);
+
+            var markerDirection = new Point(markerTarget.X - markerTool.X, markerTarget.Y - markerTool.Y);
+            if (NozzleOrientationPolicy.UsePhysicalOrientation(settings.NozzleOrientationMode))
+            {
+                markerDirection = ApplyTransitionLiftOrientation(animSrc, animTool, toolState, settings);
+                var nozzleLength = Math.Clamp(Math.Abs(settings.Lz), 20, 600);
+                markerTarget = new Point(
+                    markerTool.X + markerDirection.X * nozzleLength,
+                    markerTool.Y + markerDirection.Y * nozzleLength);
+            }
+            DrawToolMarker(context, markerTool, markerTarget, markerDirection);
         }
 
         // Legend
@@ -422,15 +522,6 @@ public sealed class RecipePlotControl : Control
 
         var active = src.Where(p => p.Act).ToList();
         return active.Count > 0 ? active : src;
-    }
-
-    /// <summary>
-    /// Chooses animation points for the tool path: working rows first, otherwise the full source.
-    /// </summary>
-    private static List<RecipePoint> SelectToolPoints(IList<RecipePoint> source)
-    {
-        var working = source.Where(p => !p.Safe).ToList();
-        return working.Count > 0 ? working : source.ToList();
     }
 
     /// <summary>
@@ -663,7 +754,8 @@ public sealed class RecipePlotControl : Control
 
         // Tiny direction arrow to emphasize smooth rotation
         var len = Math.Sqrt(direction.X * direction.X + direction.Y * direction.Y);
-        var dir = len <= 1e-6 ? new Point(1, 0) : new Point(direction.X / len, direction.Y / len);
+        var dirWorld = len <= 1e-6 ? new Point(1, 0) : new Point(direction.X / len, direction.Y / len);
+        var dir = new Point(dirWorld.X, -dirWorld.Y);
         var perp = new Point(-dir.Y, dir.X);
         var tip = new Point(targetSp.X + dir.X * 10, targetSp.Y + dir.Y * 10);
         var left = new Point(targetSp.X - dir.X * 3 + perp.X * 3, targetSp.Y - dir.Y * 3 + perp.Y * 3);
@@ -732,49 +824,179 @@ public sealed class RecipePlotControl : Control
         return new Point(x, y);
     }
 
-    private static (Point ToolPosition, Point TargetPosition, Point Direction) GetToolState(IList<Point> tool, IList<Point> targetPts, double progress)
+    private static (Point ToolPosition, Point TargetPosition, Point Direction, Point ToolSegmentDirection, int SegmentIndex, double SegmentT) GetToolState(
+        IList<Point> tool,
+        IList<Point> targetPts,
+        double progress,
+        int segmentIndexHint,
+        double segmentTHint)
     {
-        if (tool.Count == 0 || targetPts.Count == 0) return (default, default, new Point(1, 0));
-        if (tool.Count == 1 || targetPts.Count == 1) return (tool[0], targetPts[0], new Point(1, 0));
+        var pairCount = Math.Min(tool.Count, targetPts.Count);
+        if (pairCount == 0)
+            return (default, default, new Point(1, 0), new Point(1, 0), 0, 0);
+
+        if (pairCount == 1)
+            return (tool[0], targetPts[0], new Point(1, 0), new Point(1, 0), 0, 0);
+
+        var maxSeg = pairCount - 2;
+        if (segmentIndexHint >= 0 && maxSeg >= 0)
+        {
+            var seg = Math.Clamp(segmentIndexHint, 0, maxSeg);
+            var t = Math.Clamp(segmentTHint, 0, 1);
+            var x = tool[seg].X + (tool[seg + 1].X - tool[seg].X) * t;
+            var y = tool[seg].Y + (tool[seg + 1].Y - tool[seg].Y) * t;
+            var tx = targetPts[seg].X + (targetPts[seg + 1].X - targetPts[seg].X) * t;
+            var ty = targetPts[seg].Y + (targetPts[seg + 1].Y - targetPts[seg].Y) * t;
+            var dir = new Point(tx - x, ty - y);
+            var travel = new Point(tool[seg + 1].X - tool[seg].X, tool[seg + 1].Y - tool[seg].Y);
+            return (new Point(x, y), new Point(tx, ty), dir, travel, seg, t);
+        }
 
         progress = Math.Clamp(progress, 0, 1);
 
         // length along polyline
         double total = 0;
-        var seg = new double[tool.Count - 1];
-        for (var i = 0; i < tool.Count - 1; i++)
+        var segLengths = new double[pairCount - 1];
+        for (var i = 0; i < pairCount - 1; i++)
         {
             var dx = tool[i + 1].X - tool[i].X;
             var dy = tool[i + 1].Y - tool[i].Y;
             var d = Math.Sqrt(dx * dx + dy * dy);
-            seg[i] = d;
+            segLengths[i] = d;
             total += d;
         }
 
         if (total <= 1e-9)
-            return (tool[0], targetPts[0], new Point(tool[^1].X - tool[0].X, tool[^1].Y - tool[0].Y));
+        {
+            var tail = pairCount - 1;
+            var fallbackTravel = new Point(tool[tail].X - tool[0].X, tool[tail].Y - tool[0].Y);
+            return (tool[0], targetPts[0], fallbackTravel, fallbackTravel, 0, 0);
+        }
 
         var targetLen = total * progress;
         double acc = 0;
-        for (var i = 0; i < seg.Length; i++)
+        for (var i = 0; i < segLengths.Length; i++)
         {
-            var next = acc + seg[i];
+            var next = acc + segLengths[i];
             if (targetLen <= next)
             {
-                var t = (targetLen - acc) / Math.Max(1e-9, seg[i]);
+                var t = (targetLen - acc) / Math.Max(1e-9, segLengths[i]);
                 var x = tool[i].X + (tool[i + 1].X - tool[i].X) * t;
                 var y = tool[i].Y + (tool[i + 1].Y - tool[i].Y) * t;
                 var tx = targetPts[i].X + (targetPts[i + 1].X - targetPts[i].X) * t;
                 var ty = targetPts[i].Y + (targetPts[i + 1].Y - targetPts[i].Y) * t;
                 var dir = new Point(tx - x, ty - y);
-                return (new Point(x, y), new Point(tx, ty), dir);
+                var travel = new Point(tool[i + 1].X - tool[i].X, tool[i + 1].Y - tool[i].Y);
+                return (new Point(x, y), new Point(tx, ty), dir, travel, i, t);
             }
             acc = next;
         }
 
-        var fallbackDir = new Point(targetPts[^1].X - tool[^1].X, targetPts[^1].Y - tool[^1].Y);
-        return (tool[^1], targetPts[^1], fallbackDir);
+        var last = pairCount - 1;
+        var fallbackDir = new Point(targetPts[last].X - tool[last].X, targetPts[last].Y - tool[last].Y);
+        var fallbackTravelDir = new Point(tool[last].X - tool[last - 1].X, tool[last].Y - tool[last - 1].Y);
+        return (tool[last], targetPts[last], fallbackDir, fallbackTravelDir, Math.Max(0, pairCount - 2), 1);
     }
+
+    private Point ApplyTransitionLiftOrientation(
+        IList<RecipePoint> animSrc,
+        IList<Point> animTool,
+        (Point ToolPosition, Point TargetPosition, Point Direction, Point ToolSegmentDirection, int SegmentIndex, double SegmentT) toolState,
+        AppSettings settings)
+    {
+        var currentPlace = ResolveCurrentPlace(animSrc, toolState.SegmentIndex, toolState.SegmentT);
+        var alphaDir = GetPhysicalAlphaDirection(settings, CurrentAlfa, CurrentBetta, currentPlace);
+        var transition = IsTransitionSegment(animSrc, animTool, toolState.SegmentIndex);
+        if (!transition)
+            return alphaDir;
+
+        if (toolState.SegmentIndex < 0 || toolState.SegmentIndex >= animSrc.Count - 1)
+            return alphaDir;
+
+        var a = animSrc[toolState.SegmentIndex];
+        var b = animSrc[toolState.SegmentIndex + 1];
+        var startDir = GetPhysicalAlphaDirection(settings, a.Alfa, a.Betta, a.Place);
+        var endDir = GetPhysicalAlphaDirection(settings, b.Alfa, b.Betta, b.Place);
+
+        var t = SmoothStep(Math.Clamp(toolState.SegmentT, 0, 1));
+        var blended = InterpolateDirectionByAngle(startDir, endDir, t);
+        return NormalizeDirection(blended, alphaDir);
+    }
+
+    private static int ResolveCurrentPlace(IList<RecipePoint> animSrc, int segmentIndex, double segmentT)
+    {
+        if (animSrc.Count == 0)
+            return 0;
+
+        var seg = Math.Clamp(segmentIndex, 0, Math.Max(0, animSrc.Count - 2));
+        if (seg >= animSrc.Count - 1)
+            return animSrc[^1].Place;
+
+        return segmentT >= 0.5 ? animSrc[seg + 1].Place : animSrc[seg].Place;
+    }
+
+    private static Point GetPhysicalAlphaDirection(AppSettings settings, double alfaDeg, double bettaDeg, int place)
+    {
+        var limits = NozzleOrientationPolicy.GetLimits(settings);
+        var (alfa, betta) = limits.Clamp(alfaDeg, bettaDeg);
+        var a = alfa * Math.PI / 180.0;
+        var b = betta * Math.PI / 180.0;
+        var x = Math.Cos(b) * Math.Cos(a);
+        // Excel CALC/SAVE uses mirrored sign of angular Z component for Place=1.
+        var zSign = place == 0 ? -1.0 : 1.0;
+        var z = zSign * Math.Cos(b) * Math.Sin(a);
+        return NormalizeDirection(new Point(x, z), new Point(1, 0));
+    }
+
+    private static bool IsTransitionSegment(IList<RecipePoint> animSrc, IList<Point> animTool, int segmentIndex)
+    {
+        if (segmentIndex < 0)
+            return false;
+
+        if (segmentIndex >= animSrc.Count - 1 || segmentIndex >= animTool.Count - 1)
+            return false;
+
+        var a = animSrc[segmentIndex];
+        var b = animSrc[segmentIndex + 1];
+        if (a.Place != b.Place || a.Safe != b.Safe)
+            return true;
+
+        var dx = animTool[segmentIndex + 1].X - animTool[segmentIndex].X;
+        var dz = animTool[segmentIndex + 1].Y - animTool[segmentIndex].Y;
+        return Math.Sqrt(dx * dx + dz * dz) >= 180;
+    }
+
+    private static Point NormalizeDirection(Point dir, Point fallback)
+    {
+        var len = Math.Sqrt(dir.X * dir.X + dir.Y * dir.Y);
+        if (len <= 1e-6)
+            return fallback;
+
+        return new Point(dir.X / len, dir.Y / len);
+    }
+
+    private static Point InterpolateDirectionByAngle(Point from, Point to, double t)
+    {
+        var a = NormalizeDirection(from, new Point(1, 0));
+        var b = NormalizeDirection(to, a);
+        var a0 = Math.Atan2(a.Y, a.X);
+        var a1 = Math.Atan2(b.Y, b.X);
+        var d = NormalizeRadiansPi(a1 - a0);
+        var angle = a0 + d * t;
+        return new Point(Math.Cos(angle), Math.Sin(angle));
+    }
+
+    private static double NormalizeRadiansPi(double angle)
+    {
+        while (angle > Math.PI)
+            angle -= Math.PI * 2;
+        while (angle < -Math.PI)
+            angle += Math.PI * 2;
+        return angle;
+    }
+
+    private static double SmoothStep(double x)
+        => x * x * (3 - 2 * x);
 
     private void DrawCenteredText(DrawingContext ctx, string text, Rect bounds)
     {

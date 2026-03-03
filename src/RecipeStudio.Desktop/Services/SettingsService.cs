@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Text.Json;
 
@@ -162,11 +162,24 @@ public sealed class SettingsService
     {
         if (!IsFinite(s.HZone) || !IsFinite(s.HContMax) || !IsFinite(s.HBokMax) || !IsFinite(s.HFreeZ) ||
             !IsFinite(s.Xm) || !IsFinite(s.Ym) || !IsFinite(s.Zm) || !IsFinite(s.Lz) ||
+            !IsFinite(s.AlfaMinDeg) || !IsFinite(s.AlfaMaxDeg) || !IsFinite(s.BettaMinDeg) || !IsFinite(s.BettaMaxDeg) ||
             !IsFinite(s.PulseX) || !IsFinite(s.PulseY) || !IsFinite(s.PulseZ) || !IsFinite(s.PulseA) ||
             !IsFinite(s.PulseB) || !IsFinite(s.PulseTop) || !IsFinite(s.PulseLow) || !IsFinite(s.PulseClamp) ||
             !IsFinite(s.PlotOpacity) || !IsFinite(s.PlotStrokeThickness) || !IsFinite(s.PlotPointRadius))
         {
             error = "Обнаружены нечисловые значения (NaN/Infinity).";
+            return false;
+        }
+
+        if (s.AlfaMinDeg >= s.AlfaMaxDeg)
+        {
+            error = "Диапазон A (alpha) задан некорректно: min должен быть меньше max.";
+            return false;
+        }
+
+        if (s.BettaMinDeg >= s.BettaMaxDeg)
+        {
+            error = "Диапазон B (betta) задан некорректно: min должен быть меньше max.";
             return false;
         }
 

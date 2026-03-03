@@ -102,6 +102,37 @@ public sealed class SettingsViewModel : ViewModelBase
     public double Ym { get => _settings.Settings.Ym; set { _settings.Settings.Ym = value; RaisePropertyChanged(); } }
     public double Zm { get => _settings.Settings.Zm; set { _settings.Settings.Zm = value; RaisePropertyChanged(); } }
     public double Lz { get => _settings.Settings.Lz; set { _settings.Settings.Lz = value; RaisePropertyChanged(); } }
+    public IReadOnlyList<NozzleOrientationModeOption> NozzleOrientationModeOptions { get; } = new[]
+    {
+        new NozzleOrientationModeOption(
+            NozzleOrientationModes.PhysicalAngles,
+            "Физика (A/B)",
+            "Сопло ориентируется строго по углам A/B с учетом заданных диапазонов."),
+        new NozzleOrientationModeOption(
+            NozzleOrientationModes.TargetTracking,
+            "Наведение на цель (legacy)",
+            "Сопло автоматически доворачивается к текущей целевой точке траектории.")
+    };
+
+    public string NozzleOrientationMode
+    {
+        get => NozzleOrientationModes.Normalize(_settings.Settings.NozzleOrientationMode);
+        set
+        {
+            _settings.Settings.NozzleOrientationMode = NozzleOrientationModes.Normalize(value);
+            RaisePropertyChanged();
+            RaisePropertyChanged(nameof(NozzleOrientationModeDescription));
+        }
+    }
+
+    public string NozzleOrientationModeDescription
+        => NozzleOrientationModeOptions.FirstOrDefault(x => x.Value == NozzleOrientationMode)?.Description
+           ?? "Сопло ориентируется строго по углам A/B.";
+
+    public double AlfaMinDeg { get => _settings.Settings.AlfaMinDeg; set { _settings.Settings.AlfaMinDeg = value; RaisePropertyChanged(); } }
+    public double AlfaMaxDeg { get => _settings.Settings.AlfaMaxDeg; set { _settings.Settings.AlfaMaxDeg = value; RaisePropertyChanged(); } }
+    public double BettaMinDeg { get => _settings.Settings.BettaMinDeg; set { _settings.Settings.BettaMinDeg = value; RaisePropertyChanged(); } }
+    public double BettaMaxDeg { get => _settings.Settings.BettaMaxDeg; set { _settings.Settings.BettaMaxDeg = value; RaisePropertyChanged(); } }
 
     public double PulseX { get => _settings.Settings.PulseX; set { _settings.Settings.PulseX = value; RaisePropertyChanged(); } }
     public double PulseY { get => _settings.Settings.PulseY; set { _settings.Settings.PulseY = value; RaisePropertyChanged(); } }
@@ -241,6 +272,12 @@ public sealed class SettingsViewModel : ViewModelBase
         RaisePropertyChanged(nameof(Ym));
         RaisePropertyChanged(nameof(Zm));
         RaisePropertyChanged(nameof(Lz));
+        RaisePropertyChanged(nameof(NozzleOrientationMode));
+        RaisePropertyChanged(nameof(NozzleOrientationModeDescription));
+        RaisePropertyChanged(nameof(AlfaMinDeg));
+        RaisePropertyChanged(nameof(AlfaMaxDeg));
+        RaisePropertyChanged(nameof(BettaMinDeg));
+        RaisePropertyChanged(nameof(BettaMaxDeg));
 
         RaisePropertyChanged(nameof(PulseX));
         RaisePropertyChanged(nameof(PulseY));
@@ -274,4 +311,6 @@ public sealed class SettingsViewModel : ViewModelBase
         RaisePropertyChanged(nameof(LogFilePath));
         RaisePropertyChanged(nameof(SettingsFilePath));
     }
+
+    public sealed record NozzleOrientationModeOption(string Value, string Label, string Description);
 }

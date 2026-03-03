@@ -43,7 +43,7 @@ public sealed class SimulationPathService
         if (path.Waypoints.Count == 1 || path.Segments.Count == 0 || path.TotalDurationSec <= 1e-9)
         {
             var wp = path.Waypoints[0];
-            return new PathSample(wp.BasePosition, Vector3.UnitX, wp.Point.Alfa, wp.Point.Betta, 0, 0);
+            return new PathSample(wp.BasePosition, Vector3.UnitX, wp.Point.Alfa, wp.Point.Betta, 0, 0, 0f);
         }
 
         var clamped = Math.Clamp(elapsedSec, 0, path.TotalDurationSec);
@@ -76,7 +76,7 @@ public sealed class SimulationPathService
         var alfa = Lerp(a.Point.Alfa, b.Point.Alfa, u);
         var betta = Lerp(a.Point.Betta, b.Point.Betta, u);
 
-        return new PathSample(position, direction, alfa, betta, segment.Index, clamped / path.TotalDurationSec);
+        return new PathSample(position, direction, alfa, betta, segment.Index, clamped / path.TotalDurationSec, t);
     }
 
     private static ArcSample[] BuildArcMap(IReadOnlyList<PathWaypoint> waypoints, int segment)
@@ -151,7 +151,7 @@ public sealed record PathSegment(int Index, double StartSec, double EndSec, doub
 
 public sealed record SimulationPath(IReadOnlyList<PathWaypoint> Waypoints, IReadOnlyList<PathSegment> Segments, double TotalDurationSec);
 
-public readonly record struct PathSample(Vector3 Position, Vector3 Direction, double Alfa, double Betta, int SegmentIndex, double Progress)
+public readonly record struct PathSample(Vector3 Position, Vector3 Direction, double Alfa, double Betta, int SegmentIndex, double Progress, float SegmentT)
 {
-    public static PathSample Empty => new(Vector3.Zero, Vector3.UnitX, 0, 0, 0, 0);
+    public static PathSample Empty => new(Vector3.Zero, Vector3.UnitX, 0, 0, 0, 0, 0f);
 }

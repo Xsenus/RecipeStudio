@@ -28,6 +28,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     public static readonly StyledProperty<double> ToolZRawProperty = AvaloniaProperty.Register<Simulation3DControl, double>(nameof(ToolZRaw));
     public static readonly StyledProperty<double> CurrentAlfaProperty = AvaloniaProperty.Register<Simulation3DControl, double>(nameof(CurrentAlfa));
     public static readonly StyledProperty<double> CurrentBettaProperty = AvaloniaProperty.Register<Simulation3DControl, double>(nameof(CurrentBetta));
+    public static readonly StyledProperty<string> NozzleOrientationModeProperty = AvaloniaProperty.Register<Simulation3DControl, string>(nameof(NozzleOrientationMode), NozzleOrientationModes.PhysicalAngles);
     public static readonly StyledProperty<bool> ShowBlueprintsProperty = AvaloniaProperty.Register<Simulation3DControl, bool>(nameof(ShowBlueprints), true);
     public static readonly StyledProperty<double> BlueprintOpacityProperty = AvaloniaProperty.Register<Simulation3DControl, double>(nameof(BlueprintOpacity), 0.3);
     public static readonly StyledProperty<Vector3> BlueprintOffsetProperty = AvaloniaProperty.Register<Simulation3DControl, Vector3>(nameof(BlueprintOffset), new Vector3(0, -120, 0));
@@ -84,6 +85,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     public double ToolZRaw { get => GetValue(ToolZRawProperty); set => SetValue(ToolZRawProperty, value); }
     public double CurrentAlfa { get => GetValue(CurrentAlfaProperty); set => SetValue(CurrentAlfaProperty, value); }
     public double CurrentBetta { get => GetValue(CurrentBettaProperty); set => SetValue(CurrentBettaProperty, value); }
+    public string NozzleOrientationMode { get => GetValue(NozzleOrientationModeProperty); set => SetValue(NozzleOrientationModeProperty, value); }
     public bool ShowBlueprints { get => GetValue(ShowBlueprintsProperty); set => SetValue(ShowBlueprintsProperty, value); }
     public double BlueprintOpacity { get => GetValue(BlueprintOpacityProperty); set => SetValue(BlueprintOpacityProperty, value); }
     public Vector3 BlueprintOffset { get => GetValue(BlueprintOffsetProperty); set => SetValue(BlueprintOffsetProperty, value); }
@@ -100,6 +102,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         ToolZRawProperty.Changed.AddClassHandler<Simulation3DControl>((c, _) => c.RequestNextFrameRendering());
         CurrentAlfaProperty.Changed.AddClassHandler<Simulation3DControl>((c, _) => c.RequestNextFrameRendering());
         CurrentBettaProperty.Changed.AddClassHandler<Simulation3DControl>((c, _) => c.RequestNextFrameRendering());
+        NozzleOrientationModeProperty.Changed.AddClassHandler<Simulation3DControl>((c, _) => c.RequestNextFrameRendering());
         ShowBlueprintsProperty.Changed.AddClassHandler<Simulation3DControl>((c, _) => c.RequestNextFrameRendering());
         BlueprintOpacityProperty.Changed.AddClassHandler<Simulation3DControl>((c, _) => c.RequestNextFrameRendering());
         BlueprintOffsetProperty.Changed.AddClassHandler<Simulation3DControl>((c, _) => c.RequestNextFrameRendering());
@@ -278,9 +281,12 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
 
             var nozzleBase = new Vector3((float)ToolXRaw, (float)ToolYRaw, (float)ToolZRaw);
             var currentTarget = GetCurrentTargetPoint(nozzleBase, out _, out _);
-            var nozzleDir = SafeNormalize(currentTarget - nozzleBase, AnglesToDirection(CurrentAlfa, CurrentBetta));
+            var usePhysicalOrientation = NozzleOrientationPolicy.UsePhysicalOrientation(NozzleOrientationMode);
+            var angleDir = GetClampedAnglesDirection(CurrentAlfa, CurrentBetta, Settings);
+            var targetDir = SafeNormalize(currentTarget - nozzleBase, angleDir);
+            var nozzleDir = usePhysicalOrientation ? angleDir : targetDir;
 
-            DrawNozzle(nozzleBase, nozzleDir, currentTarget, view, proj);
+            DrawNozzle(nozzleBase, nozzleDir, currentTarget, usePhysicalOrientation, view, proj);
 
             if (!_loggedRenderSuccess)
             {
@@ -401,9 +407,16 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
 
         var nozzleBase = new Vector3((float)ToolXRaw, (float)ToolYRaw, (float)ToolZRaw);
         var currentTarget = GetCurrentTargetPoint(nozzleBase, out _, out _);
+        var usePhysicalOrientation = NozzleOrientationPolicy.UsePhysicalOrientation(NozzleOrientationMode);
+        var angleDir = GetClampedAnglesDirection(CurrentAlfa, CurrentBetta, Settings);
+        var targetDir = SafeNormalize(currentTarget - nozzleBase, angleDir);
+        var nozzleDir = usePhysicalOrientation ? angleDir : targetDir;
+        var impactPoint = usePhysicalOrientation
+            ? nozzleBase + nozzleDir * 120f
+            : currentTarget;
 
         var nozzle = ToScreen(Project(nozzleBase));
-        var impact = ToScreen(Project(currentTarget));
+        var impact = ToScreen(Project(impactPoint));
 
         context.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(255, 120, 80)), 1.8), nozzle, impact);
         context.DrawEllipse(new SolidColorBrush(Color.FromRgb(240, 80, 80)), new Pen(Brushes.White, 1), nozzle, 4, 4);
@@ -501,7 +514,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         _gl.BindVertexArray(0);
     }
 
-    private void DrawNozzle(Vector3 basePoint, Vector3 direction, Vector3 currentTarget, Matrix4x4 view, Matrix4x4 proj)
+    private void DrawNozzle(Vector3 basePoint, Vector3 direction, Vector3 currentTarget, bool usePhysicalOrientation, Matrix4x4 view, Matrix4x4 proj)
     {
         if (_nozzleMesh is null)
             return;
@@ -513,11 +526,15 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         var nozzleLength = 110f;
         var toTargetFromBase = currentTarget - basePoint;
         var distFromBase = toTargetFromBase.Length();
-        var tipDistance = MathF.Min(nozzleLength, distFromBase);
+        var tipDistance = usePhysicalOrientation ? nozzleLength : MathF.Min(nozzleLength, distFromBase);
         var tip = basePoint + direction * tipDistance;
         DrawLine(view, proj, basePoint, tip, new Vector4(1f, 0.35f, 0.2f, 1f), 2f);
 
-        var toTarget = currentTarget - tip;
+        var sprayTarget = usePhysicalOrientation
+            ? tip + direction * Math.Clamp(distFromBase, 60f, 180f)
+            : currentTarget;
+
+        var toTarget = sprayTarget - tip;
         var jetLen = toTarget.Length();
         if (_jetConeMesh is not null && jetLen > 1e-3f)
         {
@@ -529,8 +546,11 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             DrawMesh(_jetConeMesh, jetModel, new Vector3(0.25f, 0.75f, 1f), 0.18f, view, proj);
         }
 
-        DrawLine(view, proj, tip, currentTarget, new Vector4(0.35f, 0.8f, 1f, 0.95f), 2.25f);
-        DrawImpactMarker(view, proj, currentTarget, 6f, new Vector4(0.4f, 0.95f, 1f, 0.95f));
+        DrawLine(view, proj, tip, sprayTarget, new Vector4(0.35f, 0.8f, 1f, 0.95f), 2.25f);
+        DrawImpactMarker(view, proj, sprayTarget, 6f, new Vector4(0.4f, 0.95f, 1f, 0.95f));
+
+        if (usePhysicalOrientation && ShowPairLinks)
+            DrawLine(view, proj, sprayTarget, currentTarget, new Vector4(0.95f, 0.62f, 0.32f, 0.75f), 1.4f);
     }
 
     private void DrawImpactMarker(Matrix4x4 view, Matrix4x4 proj, Vector3 center, float size, Vector4 color)
@@ -954,6 +974,12 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
 
     private static bool IsFinite(Vector3 v)
         => float.IsFinite(v.X) && float.IsFinite(v.Y) && float.IsFinite(v.Z);
+
+    private static Vector3 GetClampedAnglesDirection(double alfaDeg, double bettaDeg, AppSettings? settings)
+    {
+        var (alfa, betta) = NozzleOrientationPolicy.ClampForPhysicalOrientation(settings, alfaDeg, bettaDeg);
+        return AnglesToDirection(alfa, betta);
+    }
 
     private static Vector3 AnglesToDirection(double alfaDeg, double bettaDeg)
     {

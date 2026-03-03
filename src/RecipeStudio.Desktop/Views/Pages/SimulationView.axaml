@@ -5,10 +5,11 @@
 
   <Grid Margin="18" RowDefinitions="Auto,*" RowSpacing="12">
     <Border Classes="card" Padding="14">
-      <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8">
         <StackPanel>
           <TextBlock Text="Симуляция процесса" Classes="h1"/>
           <TextBlock Text="{Binding RecipePath}" Classes="muted" />
+          <TextBlock Text="{Binding NozzleAngleWarning}" Foreground="#FCA5A5" FontSize="11" IsVisible="{Binding HasNozzleAngleWarning}" />
         </StackPanel>
 
         <Button Grid.Column="1" Command="{Binding StepPreviousCommand}" Classes="ghost" VerticalAlignment="Center">⏮</Button>
@@ -21,13 +22,15 @@
 
         <ToggleButton Grid.Column="7" IsChecked="{Binding IncludeSafePoints}" Classes="ghost" VerticalAlignment="Center">Safe в анимации</ToggleButton>
         <ToggleButton Grid.Column="8" IsChecked="{Binding SmoothMotion}" Classes="ghost" VerticalAlignment="Center">Плавная траектория</ToggleButton>
+        <ToggleButton Grid.Column="9" IsChecked="{Binding UsePhysicalNozzleOrientation}" Classes="ghost" VerticalAlignment="Center" ToolTip.Tip="Выкл: сопло наводится на текущую цель, вкл: ориентация только по A/B">A/B физика</ToggleButton>
 
-        <StackPanel Grid.Column="9" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+        <Button Grid.Column="10" Command="{Binding ResetRecommendedModesCommand}" Classes="ghost" VerticalAlignment="Center">Reset Modes</Button>
+        <StackPanel Grid.Column="11" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
           <TextBlock Text="Скорость" Classes="muted" VerticalAlignment="Center"/>
           <Slider Minimum="0.2" Maximum="12" Width="140" Value="{Binding SpeedMultiplier}" />
         </StackPanel>
 
-        <StackPanel Grid.Column="10" VerticalAlignment="Center" Spacing="2">
+        <StackPanel Grid.Column="12" VerticalAlignment="Center" Spacing="2">
           <TextBlock Text="{Binding ProgressPercent, StringFormat='Прогресс: {0}%'}" />
           <TextBlock Text="{Binding CurrentStepIndex, StringFormat='Шаг: {0}'}" Classes="muted" />
         </StackPanel>
@@ -54,6 +57,14 @@
                                         Points="{Binding PointsForPlot}"
                                         AnimationPoints="{Binding PointsForAnimation}"
                                         Progress="{Binding Progress}"
+                                        CurrentAlfa="{Binding CurrentAlfa}"
+                                        CurrentBetta="{Binding CurrentBetta}"
+                                        CurrentSegmentIndex="{Binding CurrentSegmentIndex}"
+                                        CurrentSegmentT="{Binding CurrentSegmentT}"
+                                        ToolXRaw="{Binding ToolXRaw}"
+                                        ToolZRaw="{Binding ToolZRaw}"
+                                        TargetXRaw="{Binding CurrentTargetX}"
+                                        TargetZRaw="{Binding CurrentTargetZ}"
                                         Settings="{Binding AppSettings}"
                                         ShowPairLinks="{Binding ShowPairLinks}"
                                         ShowGrid="{Binding ShowGrid}" />
@@ -129,6 +140,7 @@
                                           ToolXRaw="{Binding ToolXRaw}"
                                           ToolYRaw="{Binding ToolYRaw}"
                                           ToolZRaw="{Binding ToolZRaw}"
+                                          NozzleOrientationMode="{Binding NozzleOrientationMode}"
                                           CurrentAlfa="{Binding CurrentAlfa}"
                                           CurrentBetta="{Binding CurrentBetta}" />
           </Grid>

@@ -89,45 +89,84 @@
           </Border>
 
           <Border Classes="card" IsVisible="{Binding IsMachineSection}">
-            <Grid ColumnDefinitions="*,*">
+            <StackPanel Spacing="12">
+              <Grid ColumnDefinitions="*,*">
+                <Border Classes="card" Padding="12">
+                  <StackPanel Spacing="10">
+                    <TextBlock Text="Геометрия и смещения" FontWeight="SemiBold" />
+                    <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                      <TextBlock Text="Смещение X (Xm)" VerticalAlignment="Center" ToolTip.Tip="Смещение по оси X, мм" Margin="0,0,0,8" />
+                      <TextBox Grid.Column="1" Classes="value-box" Text="{Binding Xm}" Margin="10,0,0,8" ToolTip.Tip="Смещение по оси X, мм" />
+
+                      <TextBlock Grid.Row="1" Text="Смещение Y (Ym)" VerticalAlignment="Center" ToolTip.Tip="Смещение по оси Y, мм" Margin="0,0,0,8" />
+                      <TextBox Grid.Row="1" Grid.Column="1" Classes="value-box" Text="{Binding Ym}" Margin="10,0,0,8" ToolTip.Tip="Смещение по оси Y, мм" />
+
+                      <TextBlock Grid.Row="2" Text="Смещение Z (Zm)" VerticalAlignment="Center" ToolTip.Tip="Смещение по оси Z, мм" Margin="0,0,0,8" />
+                      <TextBox Grid.Row="2" Grid.Column="1" Classes="value-box" Text="{Binding Zm}" Margin="10,0,0,8" ToolTip.Tip="Смещение по оси Z, мм" />
+
+                      <TextBlock Grid.Row="3" Text="Длина сопла (Lz)" VerticalAlignment="Center" ToolTip.Tip="Длина сопла, мм" />
+                      <TextBox Grid.Row="3" Grid.Column="1" Classes="value-box" Text="{Binding Lz}" Margin="10,0,0,0" ToolTip.Tip="Длина сопла, мм" />
+                    </Grid>
+                  </StackPanel>
+                </Border>
+
+                <Border Grid.Column="1" Classes="card" Padding="12" Margin="12,0,0,0">
+                  <StackPanel Spacing="10">
+                    <TextBlock Text="Безопасность и зоны" FontWeight="SemiBold" />
+                    <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                      <TextBlock Text="Высота перехода (H_cont)" VerticalAlignment="Center" ToolTip.Tip="Максимальная высота контейнера, мм" Margin="0,0,0,8" />
+                      <TextBox Grid.Column="1" Classes="value-box" Text="{Binding HContMax}" Margin="10,0,0,8" ToolTip.Tip="Максимальная высота контейнера, мм" />
+
+                      <TextBlock Grid.Row="1" Text="Зона безопасности (H_zone)" VerticalAlignment="Center" ToolTip.Tip="Зазор между столом и фланцем, мм" Margin="0,0,0,8" />
+                      <TextBox Grid.Row="1" Grid.Column="1" Classes="value-box" Text="{Binding HZone}" Margin="10,0,0,8" ToolTip.Tip="Зазор между столом и фланцем, мм" />
+
+                      <TextBlock Grid.Row="2" Text="Боковой предел (H_bok)" VerticalAlignment="Center" ToolTip.Tip="Максимальная толщина крышки, мм" Margin="0,0,0,8" />
+                      <TextBox Grid.Row="2" Grid.Column="1" Classes="value-box" Text="{Binding HBokMax}" Margin="10,0,0,8" ToolTip.Tip="Максимальная толщина крышки, мм" />
+
+                      <TextBlock Grid.Row="3" Text="Нейтральная плоскость (H_freeZ)" VerticalAlignment="Center" ToolTip.Tip="Высота от стола до промежуточной нейтральной плоскости между контейнером и крышкой, мм" />
+                      <TextBox Grid.Row="3" Grid.Column="1" Classes="value-box" Text="{Binding HFreeZ}" Margin="10,0,0,0" ToolTip.Tip="Высота от стола до промежуточной нейтральной плоскости между контейнером и крышкой, мм" />
+                    </Grid>
+                  </StackPanel>
+                </Border>
+              </Grid>
+
               <Border Classes="card" Padding="12">
                 <StackPanel Spacing="10">
-                  <TextBlock Text="Геометрия и смещения" FontWeight="SemiBold" />
-                  <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto">
-                    <TextBlock Text="Смещение X (Xm)" VerticalAlignment="Center" ToolTip.Tip="Смещение по оси X, мм" Margin="0,0,0,8" />
-                    <TextBox Grid.Column="1" Classes="value-box" Text="{Binding Xm}" Margin="10,0,0,8" ToolTip.Tip="Смещение по оси X, мм" />
+                  <TextBlock Text="Ориентация сопла (A/B)" FontWeight="SemiBold" />
+                  <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto">
+                    <TextBlock Text="Режим ориентации" VerticalAlignment="Center" ToolTip.Tip="physical_angles: только по углам A/B; target_tracking: доворот сопла на цель" Margin="0,0,0,8" />
+                    <ComboBox Grid.Column="1"
+                              Classes="value-box"
+                              ItemsSource="{Binding NozzleOrientationModeOptions}"
+                              SelectedValue="{Binding NozzleOrientationMode}"
+                              SelectedValueBinding="{Binding Value}"
+                              Margin="10,0,0,8"
+                              ToolTip.Tip="physical_angles: только по углам A/B; target_tracking: доворот сопла на цель">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                          <TextBlock Text="{Binding Label}" />
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
 
-                    <TextBlock Grid.Row="1" Text="Смещение Y (Ym)" VerticalAlignment="Center" ToolTip.Tip="Смещение по оси Y, мм" Margin="0,0,0,8" />
-                    <TextBox Grid.Row="1" Grid.Column="1" Classes="value-box" Text="{Binding Ym}" Margin="10,0,0,8" ToolTip.Tip="Смещение по оси Y, мм" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Margin="10,0,0,8" Text="{Binding NozzleOrientationModeDescription}" Classes="muted tiny" TextWrapping="Wrap" />
 
-                    <TextBlock Grid.Row="2" Text="Смещение Z (Zm)" VerticalAlignment="Center" ToolTip.Tip="Смещение по оси Z, мм" Margin="0,0,0,8" />
-                    <TextBox Grid.Row="2" Grid.Column="1" Classes="value-box" Text="{Binding Zm}" Margin="10,0,0,8" ToolTip.Tip="Смещение по оси Z, мм" />
+                    <Grid Grid.Row="2" Grid.ColumnSpan="2" ColumnDefinitions="220,*,*,*,*" RowDefinitions="Auto,Auto" Margin="0,2,0,0">
+                      <TextBlock Text="Диапазоны углов, °" VerticalAlignment="Center" ToolTip.Tip="Физические ограничения для режима physical_angles" />
+                      <TextBlock Grid.Column="1" Text="A min" Margin="10,0,0,6" />
+                      <TextBlock Grid.Column="2" Text="A max" Margin="10,0,0,6" />
+                      <TextBlock Grid.Column="3" Text="B min" Margin="10,0,0,6" />
+                      <TextBlock Grid.Column="4" Text="B max" Margin="10,0,0,6" />
 
-                    <TextBlock Grid.Row="3" Text="Длина сопла (Lz)" VerticalAlignment="Center" ToolTip.Tip="Длина сопла, мм" />
-                    <TextBox Grid.Row="3" Grid.Column="1" Classes="value-box" Text="{Binding Lz}" Margin="10,0,0,0" ToolTip.Tip="Длина сопла, мм" />
+                      <TextBox Grid.Row="1" Grid.Column="1" Classes="value-box" Text="{Binding AlfaMinDeg}" Margin="10,0,0,0" ToolTip.Tip="Минимальный угол A (обычно -90)" />
+                      <TextBox Grid.Row="1" Grid.Column="2" Classes="value-box" Text="{Binding AlfaMaxDeg}" Margin="10,0,0,0" ToolTip.Tip="Максимальный угол A (обычно +90)" />
+                      <TextBox Grid.Row="1" Grid.Column="3" Classes="value-box" Text="{Binding BettaMinDeg}" Margin="10,0,0,0" ToolTip.Tip="Минимальный угол B (обычно -15)" />
+                      <TextBox Grid.Row="1" Grid.Column="4" Classes="value-box" Text="{Binding BettaMaxDeg}" Margin="10,0,0,0" ToolTip.Tip="Максимальный угол B (обычно +15)" />
+                    </Grid>
                   </Grid>
                 </StackPanel>
               </Border>
-
-              <Border Grid.Column="1" Classes="card" Padding="12" Margin="12,0,0,0">
-                <StackPanel Spacing="10">
-                  <TextBlock Text="Безопасность и зоны" FontWeight="SemiBold" />
-                  <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto">
-                    <TextBlock Text="Высота перехода (H_cont)" VerticalAlignment="Center" ToolTip.Tip="Максимальная высота контейнера, мм" Margin="0,0,0,8" />
-                    <TextBox Grid.Column="1" Classes="value-box" Text="{Binding HContMax}" Margin="10,0,0,8" ToolTip.Tip="Максимальная высота контейнера, мм" />
-
-                    <TextBlock Grid.Row="1" Text="Зона безопасности (H_zone)" VerticalAlignment="Center" ToolTip.Tip="Зазор между столом и фланцем, мм" Margin="0,0,0,8" />
-                    <TextBox Grid.Row="1" Grid.Column="1" Classes="value-box" Text="{Binding HZone}" Margin="10,0,0,8" ToolTip.Tip="Зазор между столом и фланцем, мм" />
-
-                    <TextBlock Grid.Row="2" Text="Боковой предел (H_bok)" VerticalAlignment="Center" ToolTip.Tip="Максимальная толщина крышки, мм" Margin="0,0,0,8" />
-                    <TextBox Grid.Row="2" Grid.Column="1" Classes="value-box" Text="{Binding HBokMax}" Margin="10,0,0,8" ToolTip.Tip="Максимальная толщина крышки, мм" />
-
-                    <TextBlock Grid.Row="3" Text="Нейтральная плоскость (H_freeZ)" VerticalAlignment="Center" ToolTip.Tip="Высота от стола до промежуточной нейтральной плоскости между контейнером и крышкой, мм" />
-                    <TextBox Grid.Row="3" Grid.Column="1" Classes="value-box" Text="{Binding HFreeZ}" Margin="10,0,0,0" ToolTip.Tip="Высота от стола до промежуточной нейтральной плоскости между контейнером и крышкой, мм" />
-                  </Grid>
-                </StackPanel>
-              </Border>
-            </Grid>
+            </StackPanel>
           </Border>
 
           <Border Classes="card" IsVisible="{Binding IsCoefficientsSection}">

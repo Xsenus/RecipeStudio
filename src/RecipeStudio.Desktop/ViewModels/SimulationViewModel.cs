@@ -25,10 +25,17 @@ public sealed class SimulationViewModel : ViewModelBase
     private Point3D _toolPosition;
     private double _currentAlfa;
     private double _currentBetta;
+    private double _currentTargetX;
+    private double _currentTargetZ;
+    private int _currentSegmentIndex = -1;
+    private double _currentSegmentT;
     private bool _showGrid = true;
     private bool _showPairLinks = false;
-    private bool _includeSafePoints = false;
-    private bool _smoothMotion = false;
+    // Startup defaults for the industrial simulation scenario:
+    // include safe travel points and use smooth interpolation.
+    private bool _includeSafePoints = true;
+    private bool _smoothMotion = true;
+    private string _nozzleAngleWarning = string.Empty;
     private SimulationPath _timeline = new(new List<PathWaypoint>(), new List<PathSegment>(), 0);
 
     public SimulationViewModel(EditorViewModel editor)
@@ -36,11 +43,13 @@ public sealed class SimulationViewModel : ViewModelBase
         _editor = editor;
         _editor.Points.CollectionChanged += OnEditorPointsChanged;
         HookPointHandlers(_editor.Points);
+        _editor.AppSettings.NozzleOrientationMode = NozzleOrientationModes.Normalize(_editor.AppSettings.NozzleOrientationMode);
 
         PlayPauseCommand = new RelayCommand(TogglePlay, () => _editor.HasDocument && GetAnimationPoints().Count > 1);
         StopCommand = new RelayCommand(Stop, () => _editor.HasDocument);
         StepPreviousCommand = new RelayCommand(StepPrevious, () => _editor.HasDocument && GetAnimationPoints().Count > 1);
         StepNextCommand = new RelayCommand(StepNext, () => _editor.HasDocument && GetAnimationPoints().Count > 1);
+        ResetRecommendedModesCommand = new RelayCommand(ApplyRecommendedModes);
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
         _timer.Tick += (_, __) => Tick();
@@ -57,10 +66,32 @@ public sealed class SimulationViewModel : ViewModelBase
     public RelayCommand StopCommand { get; }
     public RelayCommand StepPreviousCommand { get; }
     public RelayCommand StepNextCommand { get; }
+    public RelayCommand ResetRecommendedModesCommand { get; }
 
     public bool IsPlaying { get => _isPlaying; private set => SetProperty(ref _isPlaying, value); }
     public bool ShowGrid { get => _showGrid; set => SetProperty(ref _showGrid, value); }
     public bool ShowPairLinks { get => _showPairLinks; set => SetProperty(ref _showPairLinks, value); }
+    public string NozzleOrientationMode => NozzleOrientationModes.Normalize(AppSettings.NozzleOrientationMode);
+    public string NozzleOrientationLabel => UsePhysicalNozzleOrientation ? "Ориентация: A/B (физика)" : "Ориентация: на цель (legacy)";
+    public string NozzleAngleWarning => _nozzleAngleWarning;
+    public bool HasNozzleAngleWarning => !string.IsNullOrWhiteSpace(_nozzleAngleWarning);
+
+    public bool UsePhysicalNozzleOrientation
+    {
+        get => NozzleOrientationPolicy.UsePhysicalOrientation(AppSettings.NozzleOrientationMode);
+        set
+        {
+            var mode = value ? NozzleOrientationModes.PhysicalAngles : NozzleOrientationModes.TargetTracking;
+            if (NozzleOrientationMode == mode)
+                return;
+
+            AppSettings.NozzleOrientationMode = mode;
+            RaisePropertyChanged(nameof(UsePhysicalNozzleOrientation));
+            RaisePropertyChanged(nameof(NozzleOrientationMode));
+            RaisePropertyChanged(nameof(NozzleOrientationLabel));
+            SaveAppSettings();
+        }
+    }
 
     public bool IncludeSafePoints
     {
@@ -92,12 +123,26 @@ public sealed class SimulationViewModel : ViewModelBase
     public double ToolZRaw => _toolPosition.Z;
     public double CurrentAlfa { get => _currentAlfa; private set => SetProperty(ref _currentAlfa, value); }
     public double CurrentBetta { get => _currentBetta; private set => SetProperty(ref _currentBetta, value); }
+    public double CurrentTargetX => _currentTargetX;
+    public double CurrentTargetZ => _currentTargetZ;
+    public int CurrentSegmentIndex => _currentSegmentIndex;
+    public double CurrentSegmentT => _currentSegmentT;
     public int CurrentXPuls => (int)Math.Round(ToolX * AppSettings.PulseX, 0, MidpointRounding.AwayFromZero);
     public int CurrentYPuls => (int)Math.Round(ToolY * AppSettings.PulseY, 0, MidpointRounding.AwayFromZero);
     public int CurrentZPuls => (int)Math.Round(ToolZ * AppSettings.PulseZ, 0, MidpointRounding.AwayFromZero);
     public int ProgressPercent => (int)Math.Round(Progress * 100, 0, MidpointRounding.AwayFromZero);
 
     public void SaveAppSettings() => _editor.SaveAppSettings();
+
+    private void ApplyRecommendedModes()
+    {
+        IncludeSafePoints = true;
+        SmoothMotion = true;
+        ShowGrid = true;
+        ShowPairLinks = false;
+        SpeedMultiplier = 2.0;
+        UsePhysicalNozzleOrientation = true;
+    }
 
     private void TogglePlay()
     {
@@ -155,6 +200,7 @@ public sealed class SimulationViewModel : ViewModelBase
             _stepTimes.Add(seg.EndSec);
 
         _elapsedSec = Math.Min(_elapsedSec, _totalDurationSec);
+        UpdateNozzleAngleWarning(points);
         UpdateFromElapsed();
         RaiseCommandsState();
         RaisePropertyChanged(nameof(PointsForAnimation));
@@ -175,6 +221,10 @@ public sealed class SimulationViewModel : ViewModelBase
         if (points.Count == 0)
         {
             _toolPosition = default;
+            _currentTargetX = 0;
+            _currentTargetZ = 0;
+            _currentSegmentIndex = -1;
+            _currentSegmentT = 0;
             Progress = 0;
             RaiseTelemetry();
             return;
@@ -185,6 +235,11 @@ public sealed class SimulationViewModel : ViewModelBase
         Progress = sample.Progress;
         CurrentAlfa = sample.Alfa;
         CurrentBetta = sample.Betta;
+        var (targetX, targetZ) = EvaluateTargetPosition(points, sample);
+        _currentTargetX = targetX;
+        _currentTargetZ = targetZ;
+        _currentSegmentIndex = sample.SegmentIndex;
+        _currentSegmentT = sample.SegmentT;
         RaiseTelemetry();
     }
 
@@ -208,6 +263,10 @@ public sealed class SimulationViewModel : ViewModelBase
         RaisePropertyChanged(nameof(ToolZRaw));
         RaisePropertyChanged(nameof(CurrentAlfa));
         RaisePropertyChanged(nameof(CurrentBetta));
+        RaisePropertyChanged(nameof(CurrentTargetX));
+        RaisePropertyChanged(nameof(CurrentTargetZ));
+        RaisePropertyChanged(nameof(CurrentSegmentIndex));
+        RaisePropertyChanged(nameof(CurrentSegmentT));
         RaisePropertyChanged(nameof(CurrentXPuls));
         RaisePropertyChanged(nameof(CurrentYPuls));
         RaisePropertyChanged(nameof(CurrentZPuls));
@@ -218,23 +277,82 @@ public sealed class SimulationViewModel : ViewModelBase
 
     private IList<RecipePoint> GetAnimationPoints()
     {
-        // Excel-совместимый путь: анимация строится по рабочим точкам очистки (Safe=0).
-        // Safe-контуры отображаются на графике как отдельные серии и не должны искажать основную траекторию.
-        var working = _editor.Points.Where(p => p.Act && !p.Safe && !p.Hidden && IsRenderable(p)).ToList();
+        var all = _editor.Points.ToList();
+        if (all.Count < 2)
+            return all;
+
+        if (_includeSafePoints)
+        {
+            var activeRobot = all.Where(p => p.Act && !p.Hidden && HasRobotGeometry(p)).ToList();
+            if (activeRobot.Count >= 2)
+                return activeRobot;
+
+            var activeRobotIncludingHidden = all.Where(p => p.Act && HasRobotGeometry(p)).ToList();
+            if (activeRobotIncludingHidden.Count >= 2)
+                return activeRobotIncludingHidden;
+        }
+
+        // Excel-compatible mode: animate only working cleaning points (Safe=0).
+        var workingRobot = all.Where(p => p.Act && !p.Safe && !p.Hidden && HasRobotGeometry(p)).ToList();
+        if (workingRobot.Count >= 2)
+            return workingRobot;
+
+        var workingRobotIncludingHidden = all.Where(p => p.Act && !p.Safe && HasRobotGeometry(p)).ToList();
+        if (workingRobotIncludingHidden.Count >= 2)
+            return workingRobotIncludingHidden;
+
+        var working = all.Where(p => p.Act && !p.Safe).ToList();
         if (working.Count >= 2)
             return working;
 
-        var activeVisible = _editor.Points.Where(p => p.Act && !p.Hidden).ToList();
-        if (activeVisible.Count >= 2)
-            return activeVisible;
+        var fallbackRobot = all.Where(p => p.Act && !p.Hidden && HasRobotGeometry(p)).ToList();
+        if (fallbackRobot.Count >= 2)
+            return fallbackRobot;
 
-        var active = _editor.Points.Where(p => p.Act).ToList();
-        if (active.Count >= 2)
-            return active;
+        var fallbackRobotIncludingHidden = all.Where(p => p.Act && HasRobotGeometry(p)).ToList();
+        if (fallbackRobotIncludingHidden.Count >= 2)
+            return fallbackRobotIncludingHidden;
 
-        return _editor.Points.ToList();
+        var fallbackRenderable = all.Where(p => p.Act && !p.Hidden && IsRenderable(p)).ToList();
+        if (fallbackRenderable.Count >= 2)
+            return fallbackRenderable;
+
+        return all.Where(p => p.Act && !p.Hidden).ToList() is { Count: >= 2 } activeVisible
+            ? activeVisible
+            : all;
     }
 
+    private static bool HasRobotGeometry(RecipePoint p)
+    {
+        const double eps = 1e-6;
+        return Math.Abs(p.Xr0) > eps
+            || Math.Abs(p.Yx0) > eps
+            || Math.Abs(p.Zr0) > eps
+            || Math.Abs(p.DX) > eps
+            || Math.Abs(p.DY) > eps
+            || Math.Abs(p.DZ) > eps;
+    }
+
+    private (double X, double Z) EvaluateTargetPosition(IList<RecipePoint> points, PathSample sample)
+    {
+        if (points.Count == 0)
+            return (0, 0);
+
+        if (points.Count == 1)
+        {
+            var p = points[0].GetTargetPoint(AppSettings.HZone);
+            return (p.Xp, p.Zp);
+        }
+
+        var seg = Math.Clamp(sample.SegmentIndex, 0, points.Count - 2);
+        var t = Math.Clamp(sample.SegmentT, 0f, 1f);
+
+        var a = points[seg].GetTargetPoint(AppSettings.HZone);
+        var b = points[seg + 1].GetTargetPoint(AppSettings.HZone);
+        return (
+            a.Xp + (b.Xp - a.Xp) * t,
+            a.Zp + (b.Zp - a.Zp) * t);
+    }
     private static bool IsRenderable(RecipePoint p)
     {
         const double eps = 1e-6;
@@ -267,6 +385,15 @@ public sealed class SimulationViewModel : ViewModelBase
     {
         if (e.PropertyName is nameof(RecipePoint.DX) or nameof(RecipePoint.DY) or nameof(RecipePoint.DZ) or nameof(RecipePoint.NozzleSpeedMmMin) or nameof(RecipePoint.Alfa) or nameof(RecipePoint.Betta) or nameof(RecipePoint.Act) or nameof(RecipePoint.Safe))
             RecalculateTimeline();
+    }
+
+    private void UpdateNozzleAngleWarning(IList<RecipePoint> points)
+    {
+        var diagnostics = NozzleOrientationPolicy.AnalyzePoints(points, AppSettings);
+        var limits = NozzleOrientationPolicy.GetLimits(AppSettings);
+        _nozzleAngleWarning = NozzleOrientationPolicy.BuildWarningText(diagnostics, limits);
+        RaisePropertyChanged(nameof(NozzleAngleWarning));
+        RaisePropertyChanged(nameof(HasNozzleAngleWarning));
     }
 
     private readonly record struct Point3D(double X, double Y, double Z);
