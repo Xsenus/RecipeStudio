@@ -418,6 +418,13 @@
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
 
+  <Style Selector="DataGrid.editor-grid DataGridColumnHeader > ContentPresenter">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
   <Style Selector="DataGrid.editor-grid DataGridColumnHeader:pointerover">
     <Setter Property="Background" Value="#242A36" />
   </Style>
