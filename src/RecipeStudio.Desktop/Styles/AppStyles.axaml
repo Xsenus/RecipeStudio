@@ -339,11 +339,11 @@
   </Style>
 
   <Style Selector="TextBlock.hdr-red">
-    <Setter Property="Foreground" Value="#81232B" />
+    <Setter Property="Foreground" Value="#FF4D5B" />
   </Style>
 
   <Style Selector="TextBlock.hdr-deep-blue">
-    <Setter Property="Foreground" Value="#1D4BB5" />
+    <Setter Property="Foreground" Value="#2F82FF" />
   </Style>
 
 
@@ -460,8 +460,39 @@
     <Setter Property="BorderBrush" Value="#252D3B" />
     <Setter Property="BorderThickness" Value="0,0,1,1" />
     <Setter Property="Padding" Value="1,0" />
-    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridCell TextBlock">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="TextAlignment" Value="Right" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridCell TextBox">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="TextAlignment" Value="Right" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(2)">
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(3)">
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(10)">
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(32)">
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(32) TextBlock">
+    <Setter Property="TextAlignment" Value="Center" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(32) TextBox">
+    <Setter Property="TextAlignment" Value="Center" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
   </Style>
 
   <Style Selector="DataGrid.editor-grid CheckBox">
@@ -515,12 +546,12 @@
     <Setter Property="BorderBrush" Value="#42E885" />
   </Style>
 
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(4)">
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(4)">
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
     <Setter Property="Padding" Value="0,0,6,0" />
   </Style>
 
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(5)">
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(5)">
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
     <Setter Property="Padding" Value="0,0,6,0" />
   </Style>
@@ -541,47 +572,167 @@
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="Padding" Value="0,0,10,0" />
   </Style>
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(13)">
-    <Setter Property="Foreground" Value="#D8BBFF" />
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(13)">
+    <Setter Property="Foreground" Value="#D7B7FF" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="Padding" Value="0,0,8,0" />
   </Style>
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(14)">
-    <Setter Property="Foreground" Value="#D8BBFF" />
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(14)">
+    <Setter Property="Foreground" Value="#D7B7FF" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="Padding" Value="0,0,8,0" />
   </Style>
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(15)">
-    <Setter Property="Foreground" Value="#D8BBFF" />
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(15)">
+    <Setter Property="Foreground" Value="#D7B7FF" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="Padding" Value="0,0,8,0" />
   </Style>
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(16)">
-    <Setter Property="Foreground" Value="#D8BBFF" />
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(16)">
+    <Setter Property="Foreground" Value="#D7B7FF" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="Padding" Value="0,0,8,0" />
   </Style>
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(17)">
-    <Setter Property="Foreground" Value="#FFAB56" />
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(17)">
+    <Setter Property="Foreground" Value="#FF9C37" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="Padding" Value="0,0,8,0" />
   </Style>
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(18)">
-    <Setter Property="Foreground" Value="#FFAB56" />
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(18)">
+    <Setter Property="Foreground" Value="#FF9C37" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="Padding" Value="0,0,8,0" />
   </Style>
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(24)">
-    <Setter Property="Foreground" Value="#8C343A" />
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(9)">
+    <Setter Property="Foreground" Value="#66A7FF" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="Padding" Value="0,0,8,0" />
   </Style>
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(25)">
-    <Setter Property="Foreground" Value="#8C343A" />
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(24)">
+    <Setter Property="Foreground" Value="#FF4D5B" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="Padding" Value="0,0,8,0" />
   </Style>
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(26)">
-    <Setter Property="Foreground" Value="#8C343A" />
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(25)">
+    <Setter Property="Foreground" Value="#FF4D5B" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="Padding" Value="0,0,8,0" />
   </Style>
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(27)">
-    <Setter Property="Foreground" Value="#2D58BF" />
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(26)">
+    <Setter Property="Foreground" Value="#FF4D5B" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="Padding" Value="0,0,8,0" />
   </Style>
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(28)">
-    <Setter Property="Foreground" Value="#2D58BF" />
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(27)">
+    <Setter Property="Foreground" Value="#2F82FF" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="Padding" Value="0,0,8,0" />
   </Style>
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(29)">
-    <Setter Property="Foreground" Value="#2D58BF" />
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(28)">
+    <Setter Property="Foreground" Value="#2F82FF" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="Padding" Value="0,0,8,0" />
   </Style>
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(30)">
-    <Setter Property="Foreground" Value="#2D58BF" />
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(29)">
+    <Setter Property="Foreground" Value="#2F82FF" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="Padding" Value="0,0,8,0" />
   </Style>
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(31)">
-    <Setter Property="Foreground" Value="#2D58BF" />
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(30)">
+    <Setter Property="Foreground" Value="#2F82FF" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="Padding" Value="0,0,8,0" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(31)">
+    <Setter Property="Foreground" Value="#2F82FF" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="Padding" Value="0,0,8,0" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(9) TextBox">
+    <Setter Property="TextAlignment" Value="Right" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="Padding" Value="0,0,8,0" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(13) TextBox">
+    <Setter Property="TextAlignment" Value="Right" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="Padding" Value="0,0,8,0" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(14) TextBox">
+    <Setter Property="TextAlignment" Value="Right" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="Padding" Value="0,0,8,0" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(15) TextBox">
+    <Setter Property="TextAlignment" Value="Right" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="Padding" Value="0,0,8,0" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(16) TextBox">
+    <Setter Property="TextAlignment" Value="Right" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="Padding" Value="0,0,8,0" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(9) TextBlock">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="TextAlignment" Value="Right" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(13) TextBlock">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="TextAlignment" Value="Right" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(14) TextBlock">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="TextAlignment" Value="Right" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(15) TextBlock">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="TextAlignment" Value="Right" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(16) TextBlock">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="TextAlignment" Value="Right" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(17) TextBlock">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="TextAlignment" Value="Right" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(18) TextBlock">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="TextAlignment" Value="Right" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(24) TextBlock">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="TextAlignment" Value="Right" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(25) TextBlock">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="TextAlignment" Value="Right" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(26) TextBlock">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="TextAlignment" Value="Right" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(27) TextBlock">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="TextAlignment" Value="Right" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(28) TextBlock">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="TextAlignment" Value="Right" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(29) TextBlock">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="TextAlignment" Value="Right" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(30) TextBlock">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="TextAlignment" Value="Right" />
+  </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(31) TextBlock">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="TextAlignment" Value="Right" />
   </Style>
 
 

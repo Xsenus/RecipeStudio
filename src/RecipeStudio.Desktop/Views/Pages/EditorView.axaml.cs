@@ -6,6 +6,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using RecipeStudio.Desktop.Services;
 using RecipeStudio.Desktop.ViewModels;
 using RecipeStudio.Desktop.Views.Dialogs;
@@ -34,6 +35,7 @@ public sealed partial class EditorView : UserControl
     private Point _resizeStart;
     private Size _resizeStartSize;
     private int _zOrderCounter;
+    private bool _isApplyingSavedColumnWidths;
 
     private void HookVm()
     {
@@ -71,15 +73,20 @@ public sealed partial class EditorView : UserControl
 
         RecipePlot.ZoomChanged -= OnRecipePlotZoomChanged;
         RecipePlot.ZoomChanged += OnRecipePlotZoomChanged;
+        PointsGrid.PointerReleased -= OnPointsGridPointerReleased;
+        PointsGrid.PointerReleased += OnPointsGridPointerReleased;
 
         UpdateZoomText();
         UpdatePlotOverlayButtons();
+        Dispatcher.UIThread.Post(ApplySavedGridColumnWidths, DispatcherPriority.Loaded);
     }
 
     private void OnDetachedFromVisualTree(object? sender, Avalonia.VisualTreeAttachmentEventArgs e)
     {
         PanelsCanvas.SizeChanged -= OnPanelsCanvasSizeChanged;
         RecipePlot.ZoomChanged -= OnRecipePlotZoomChanged;
+        PointsGrid.PointerReleased -= OnPointsGridPointerReleased;
+        PersistGridColumnWidths(force: true);
         PersistPanelsLayout(force: false);
         _panelsInitialized = false;
     }
@@ -114,8 +121,125 @@ public sealed partial class EditorView : UserControl
 
         if (e.PropertyName == nameof(EditorViewModel.HasDocument) && !_vm.HasDocument)
         {
+            PersistGridColumnWidths(force: true);
             PersistPanelsLayout(force: false);
         }
+    }
+
+    private void OnPointsGridPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        PersistGridColumnWidths(force: false);
+    }
+
+    private void ApplySavedGridColumnWidths()
+    {
+        if (_vm is null || PointsGrid.Columns.Count == 0 || _isApplyingSavedColumnWidths)
+            return;
+
+        var savedNamed = _vm.AppSettings.EditorGridColumns;
+        var savedLegacy = _vm.AppSettings.EditorGridColumnWidths;
+        var migratedFromLegacy = false;
+
+        _isApplyingSavedColumnWidths = true;
+        try
+        {
+            if (savedNamed is { Count: > 0 })
+            {
+                var byName = savedNamed
+                    .Where(x => !string.IsNullOrWhiteSpace(x.Name) && IsFinite(x.Width) && x.Width > 0)
+                    .GroupBy(x => x.Name, StringComparer.Ordinal)
+                    .ToDictionary(g => g.Key, g => g.Last().Width, StringComparer.Ordinal);
+
+                for (var i = 0; i < PointsGrid.Columns.Count; i++)
+                {
+                    var key = GetColumnName(PointsGrid.Columns[i], i);
+                    if (!byName.TryGetValue(key, out var width))
+                        continue;
+
+                    PointsGrid.Columns[i].Width = new DataGridLength(width);
+                }
+
+                return;
+            }
+
+            if (savedLegacy is not { Count: > 0 })
+                return;
+
+            migratedFromLegacy = true;
+            var count = Math.Min(savedLegacy.Count, PointsGrid.Columns.Count);
+            for (var i = 0; i < count; i++)
+            {
+                var width = savedLegacy[i];
+                if (!IsFinite(width) || width <= 0)
+                    continue;
+
+                PointsGrid.Columns[i].Width = new DataGridLength(width);
+            }
+        }
+        finally
+        {
+            _isApplyingSavedColumnWidths = false;
+        }
+
+        if (migratedFromLegacy)
+            PersistGridColumnWidths(force: true);
+    }
+
+    private void PersistGridColumnWidths(bool force)
+    {
+        if (_vm is null || PointsGrid.Columns.Count == 0 || _isApplyingSavedColumnWidths)
+            return;
+
+        var current = new List<EditorGridColumnWidthSettings>(PointsGrid.Columns.Count);
+        for (var i = 0; i < PointsGrid.Columns.Count; i++)
+        {
+            var width = Math.Round(PointsGrid.Columns[i].ActualWidth, 2);
+            if (!IsFinite(width) || width <= 0)
+                return;
+
+            current.Add(new EditorGridColumnWidthSettings
+            {
+                Name = GetColumnName(PointsGrid.Columns[i], i),
+                Width = width
+            });
+        }
+
+        var saved = _vm.AppSettings.EditorGridColumns;
+        if (!force && AreColumnWidthsEqual(saved, current))
+            return;
+
+        _vm.AppSettings.EditorGridColumns = current;
+        _vm.AppSettings.EditorGridColumnWidths = null;
+        _vm.SaveAppSettings();
+    }
+
+    private static bool AreColumnWidthsEqual(IReadOnlyList<EditorGridColumnWidthSettings>? left, IReadOnlyList<EditorGridColumnWidthSettings> right)
+    {
+        if (left is null || left.Count != right.Count)
+            return false;
+
+        for (var i = 0; i < right.Count; i++)
+        {
+            if (!string.Equals(left[i].Name, right[i].Name, StringComparison.Ordinal))
+                return false;
+
+            if (Math.Abs(left[i].Width - right[i].Width) > 0.5)
+                return false;
+        }
+
+        return true;
+    }
+
+    private static string GetColumnName(DataGridColumn column, int index)
+    {
+        var headerText = column.Header switch
+        {
+            TextBlock textBlock => textBlock.Text,
+            string text => text,
+            _ => column.Header?.ToString()
+        };
+
+        return string.IsNullOrWhiteSpace(headerText) ? $"Column-{index + 1}" : headerText.Trim();
     }
 
     private async void OnRequestShowCharts()

@@ -120,6 +120,7 @@ public sealed class SettingsService
         Settings.EditorPanels.Parameters ??= new PanelPlacementSettings();
         Settings.EditorPanels.Visualization ??= new PanelPlacementSettings();
         Settings.EditorPanels.SelectedPoint ??= new PanelPlacementSettings();
+        Settings.EditorGridColumns ??= new();
 
         try
         {
@@ -200,6 +201,31 @@ public sealed class SettingsService
             {
                 error = "EditorPanels содержит недопустимые значения.";
                 return false;
+            }
+        }
+
+        if (s.EditorGridColumns is not null)
+        {
+            foreach (var column in s.EditorGridColumns)
+            {
+                if (column is null || string.IsNullOrWhiteSpace(column.Name) ||
+                    !IsFinite(column.Width) || column.Width <= 0 || column.Width > 5000)
+                {
+                    error = "EditorGridColumns has invalid values.";
+                    return false;
+                }
+            }
+        }
+
+        if (s.EditorGridColumnWidths is not null)
+        {
+            foreach (var width in s.EditorGridColumnWidths)
+            {
+                if (!IsFinite(width) || width <= 0 || width > 5000)
+                {
+                    error = "EditorGridColumnWidths has invalid values.";
+                    return false;
+                }
             }
         }
 

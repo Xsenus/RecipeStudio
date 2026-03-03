@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
+
 namespace RecipeStudio.Desktop.Services;
 
 public sealed class AppSettings
@@ -47,6 +50,11 @@ public sealed class AppSettings
     public WindowPlacementSettings WindowPlacement { get; set; } = new();
     public EditorPanelsSettings EditorPanels { get; set; } = new();
     public SimulationPanelsSettings SimulationPanels { get; set; } = new();
+    public List<EditorGridColumnWidthSettings> EditorGridColumns { get; set; } = new();
+
+    // Backward compatibility: old numeric-only format.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<double>? EditorGridColumnWidths { get; set; }
 
     // Logging
     public bool LoggingEnabled { get; set; } = true;
@@ -93,4 +101,10 @@ public sealed class SimulationPanelsSettings
     public PanelPlacementSettings Telemetry { get; set; } = new();
     public PanelPlacementSettings TopView { get; set; } = new() { IsVisible = false };
     public PanelPlacementSettings View3D { get; set; } = new();
+}
+
+public sealed class EditorGridColumnWidthSettings
+{
+    public string Name { get; set; } = "";
+    public double Width { get; set; }
 }
