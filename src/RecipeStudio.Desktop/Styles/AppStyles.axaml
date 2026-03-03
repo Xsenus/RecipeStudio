@@ -459,35 +459,19 @@
     <Setter Property="MinHeight" Value="18" />
   </Style>
 
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(3) CheckBox /template/ Border">
+  <Style Selector="CheckBox.s-yellow /template/ Border">
     <Setter Property="Background" Value="#2A2410" />
     <Setter Property="BorderBrush" Value="#D4A514" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="4" />
   </Style>
 
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(3) CheckBox:checked /template/ Border">
+  <Style Selector="CheckBox.s-yellow:checked /template/ Border">
     <Setter Property="Background" Value="#FACC15" />
     <Setter Property="BorderBrush" Value="#FACC15" />
   </Style>
 
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(3) CheckBox /template/ PathIcon">
-    <Setter Property="Foreground" Value="#1B1608" />
-  </Style>
-
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(4) CheckBox /template/ Border">
-    <Setter Property="Background" Value="#2A2410" />
-    <Setter Property="BorderBrush" Value="#D4A514" />
-    <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="CornerRadius" Value="4" />
-  </Style>
-
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(4) CheckBox:checked /template/ Border">
-    <Setter Property="Background" Value="#FACC15" />
-    <Setter Property="BorderBrush" Value="#FACC15" />
-  </Style>
-
-  <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(4) CheckBox /template/ PathIcon">
+  <Style Selector="CheckBox.s-yellow /template/ PathIcon">
     <Setter Property="Foreground" Value="#1B1608" />
   </Style>
 

@@ -77,11 +77,19 @@
                 </DataGridCheckBoxColumn.Header>
               </DataGridCheckBoxColumn>
 
-              <DataGridCheckBoxColumn Binding="{Binding Safe}" Width="40">
-                <DataGridCheckBoxColumn.Header>
+              <DataGridTemplateColumn Width="40">
+                <DataGridTemplateColumn.Header>
                   <TextBlock Text="S" Classes="grid-hdr" ToolTip.Tip="Зона безопасности (Safe)" />
-                </DataGridCheckBoxColumn.Header>
-              </DataGridCheckBoxColumn>
+                </DataGridTemplateColumn.Header>
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate>
+                    <CheckBox Classes="s-yellow"
+                              IsChecked="{Binding Safe, Mode=TwoWay}"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
 
               <DataGridTextColumn Binding="{Binding RCrd}" Width="52">
                 <DataGridTextColumn.Header>
