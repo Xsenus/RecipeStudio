@@ -460,8 +460,8 @@
   </Style>
 
   <Style Selector="CheckBox.s-yellow /template/ Border">
-    <Setter Property="Background" Value="#2A2410" />
-    <Setter Property="BorderBrush" Value="#D4A514" />
+    <Setter Property="Background" Value="#1A1F2B" />
+    <Setter Property="BorderBrush" Value="#5B667A" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="4" />
   </Style>
@@ -472,7 +472,7 @@
   </Style>
 
   <Style Selector="CheckBox.s-yellow /template/ PathIcon">
-    <Setter Property="Foreground" Value="#1B1608" />
+    <Setter Property="Foreground" Value="#171207" />
   </Style>
 
   <Style Selector="DataGrid.editor-grid DataGridRow > DataGridCell:nth-child(4)">
