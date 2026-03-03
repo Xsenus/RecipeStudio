@@ -79,7 +79,7 @@
 
               <DataGridTemplateColumn Width="40">
                 <DataGridTemplateColumn.Header>
-                  <TextBlock Text="S" Classes="grid-hdr" ToolTip.Tip="Зона безопасности (Safe)" />
+                  <TextBlock Text="S" Classes="grid-hdr hdr-yellow" ToolTip.Tip="Зона безопасности (Safe)" />
                 </DataGridTemplateColumn.Header>
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
