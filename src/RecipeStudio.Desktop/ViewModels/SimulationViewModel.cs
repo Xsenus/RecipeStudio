@@ -383,7 +383,7 @@ public sealed class SimulationViewModel : ViewModelBase
 
     private void OnPointPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(RecipePoint.DX) or nameof(RecipePoint.DY) or nameof(RecipePoint.DZ) or nameof(RecipePoint.NozzleSpeedMmMin) or nameof(RecipePoint.Alfa) or nameof(RecipePoint.Betta) or nameof(RecipePoint.Act) or nameof(RecipePoint.Safe))
+        if (e.PropertyName is nameof(RecipePoint.DX) or nameof(RecipePoint.DY) or nameof(RecipePoint.DZ) or nameof(RecipePoint.NozzleSpeedMmMin) or nameof(RecipePoint.Alfa) or nameof(RecipePoint.Betta) or nameof(RecipePoint.Act) or nameof(RecipePoint.Safe) or nameof(RecipePoint.Hidden))
             RecalculateTimeline();
     }
 

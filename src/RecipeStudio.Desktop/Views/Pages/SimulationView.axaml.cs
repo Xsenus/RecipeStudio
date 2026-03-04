@@ -203,17 +203,24 @@ public sealed partial class SimulationView : UserControl
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
             return;
 
+        if (sender is not Border panel)
+            return;
+
+        var header = GetPanelHeader(panel);
+        if (header is null)
+            return;
+
+        // Panel drag is allowed only from panel headers.
+        // This prevents stealing pointer input from embedded controls (plot/3D viewport).
+        var headerPos = e.GetPosition(header);
+        if (headerPos.X < 0 || headerPos.Y < 0 || headerPos.X > header.Bounds.Width || headerPos.Y > header.Bounds.Height)
+            return;
+
         if (e.Source is Control source)
         {
             if (source is TextBox || source is CheckBox || source is Slider || source is Button || source is ToggleButton)
                 return;
-
-            if (IsDescendantOf(source, RecipePlot) || IsDescendantOf(source, TopViewPlot) || IsDescendantOf(source, Simulation3D))
-                return;
         }
-
-        if (sender is not Border panel)
-            return;
 
         _dragPanel = panel;
         BringPanelToFront(panel);
@@ -223,18 +230,21 @@ public sealed partial class SimulationView : UserControl
         e.Handled = true;
     }
 
-    private static bool IsDescendantOf(Control source, Control ancestor)
+    private Control? GetPanelHeader(Border panel)
     {
-        Control? current = source;
-        while (current is not null)
-        {
-            if (ReferenceEquals(current, ancestor))
-                return true;
+        if (ReferenceEquals(panel, PlotPanel))
+            return PlotPanelHeader;
 
-            current = current.Parent as Control;
-        }
+        if (ReferenceEquals(panel, TelemetryPanel))
+            return TelemetryPanelHeader;
 
-        return false;
+        if (ReferenceEquals(panel, TopViewPanel))
+            return TopViewPanelHeader;
+
+        if (ReferenceEquals(panel, View3DPanel))
+            return View3DPanelHeader;
+
+        return null;
     }
 
     private void Panel_PointerMoved(object? sender, PointerEventArgs e)

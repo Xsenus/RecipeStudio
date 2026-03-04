@@ -75,6 +75,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
 
     private List<Vector3> _toolPath = new();
     private List<Vector3> _targetPath = new();
+    private List<RecipePoint> _pathPoints = new();
 
     public IList<RecipePoint>? Points { get => GetValue(PointsProperty); set => SetValue(PointsProperty, value); }
     public AppSettings? Settings { get => GetValue(SettingsProperty); set => SetValue(SettingsProperty, value); }
@@ -129,9 +130,9 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             _quadMesh = BuildQuadMesh();
             _quadMesh.Upload(_gl);
 
-            _blueprintPartTex = TextureLoader.LoadFromResource(_gl, "avares://RecipeStudio.Desktop/Assets/Images/H340_KAMA_1.fw.png");
-            _blueprintManipulatorTex = TextureLoader.LoadFromResource(_gl, "avares://RecipeStudio.Desktop/Assets/Images/manipulator.fw.png");
-            _blueprintNozzleTex = TextureLoader.LoadFromResource(_gl, "avares://RecipeStudio.Desktop/Assets/Images/soplo.fw.png");
+            _blueprintPartTex = TryLoadTexture("avares://RecipeStudio.Desktop/Assets/Images/H340_KAMA_1.fw.png");
+            _blueprintManipulatorTex = TryLoadTexture("avares://RecipeStudio.Desktop/Assets/Images/manipulator.fw.png");
+            _blueprintNozzleTex = TryLoadTexture("avares://RecipeStudio.Desktop/Assets/Images/soplo.fw.png");
 
             _dynamicLineVao = _gl.GenVertexArray();
             _dynamicLineVbo = _gl.GenBuffer();
@@ -140,7 +141,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             _gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(6 * sizeof(float)), null, BufferUsageARB.DynamicDraw);
             _gl.EnableVertexAttribArray(0);
             _gl.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), (void*)0);
-            _gl.BindVertexArray(0);
+            _gl?.BindVertexArray(0);
 
             _glInitialized = true;
             LogInfo("OpenGL init success.");
@@ -280,9 +281,9 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
                 DrawMesh(_partMesh, Matrix4x4.Identity, new Vector3(0.75f, 0.78f, 0.83f), 0.5f, view, proj);
 
             var nozzleBase = new Vector3((float)ToolXRaw, (float)ToolYRaw, (float)ToolZRaw);
-            var currentTarget = GetCurrentTargetPoint(nozzleBase, out _, out _);
+            var currentTarget = GetCurrentTargetPoint(nozzleBase, out var segmentIndex, out var segmentT);
             var usePhysicalOrientation = NozzleOrientationPolicy.UsePhysicalOrientation(NozzleOrientationMode);
-            var angleDir = GetClampedAnglesDirection(CurrentAlfa, CurrentBetta, Settings);
+            var angleDir = GetPhysicalDirection(segmentIndex, segmentT);
             var targetDir = SafeNormalize(currentTarget - nozzleBase, angleDir);
             var nozzleDir = usePhysicalOrientation ? angleDir : targetDir;
 
@@ -406,9 +407,9 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         DrawPath(tool, Color.FromRgb(80, 190, 240), 2.2);
 
         var nozzleBase = new Vector3((float)ToolXRaw, (float)ToolYRaw, (float)ToolZRaw);
-        var currentTarget = GetCurrentTargetPoint(nozzleBase, out _, out _);
+        var currentTarget = GetCurrentTargetPoint(nozzleBase, out var segmentIndex, out var segmentT);
         var usePhysicalOrientation = NozzleOrientationPolicy.UsePhysicalOrientation(NozzleOrientationMode);
-        var angleDir = GetClampedAnglesDirection(CurrentAlfa, CurrentBetta, Settings);
+        var angleDir = GetPhysicalDirection(segmentIndex, segmentT);
         var targetDir = SafeNormalize(currentTarget - nozzleBase, angleDir);
         var nozzleDir = usePhysicalOrientation ? angleDir : targetDir;
         var impactPoint = usePhysicalOrientation
@@ -493,7 +494,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             }
         }
 
-        _gl.BindVertexArray(0);
+        _gl?.BindVertexArray(0);
     }
 
     private void DrawGrid(Matrix4x4 view, Matrix4x4 proj)
@@ -511,7 +512,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         _gl!.BindVertexArray(_gridVao);
         _gl.LineWidth(1f);
         _gl.DrawArrays(PrimitiveType.Lines, 0, (uint)_gridCount);
-        _gl.BindVertexArray(0);
+        _gl?.BindVertexArray(0);
     }
 
     private void DrawNozzle(Vector3 basePoint, Vector3 direction, Vector3 currentTarget, bool usePhysicalOrientation, Matrix4x4 view, Matrix4x4 proj)
@@ -586,7 +587,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         _gl.BindTexture(TextureTarget.Texture2D, texture);
         _gl.BindVertexArray(_quadMesh!.Vao);
         _gl.DrawElements(PrimitiveType.Triangles, (uint)_quadMesh.Indices.Length, DrawElementsType.UnsignedInt, null);
-        _gl.BindVertexArray(0);
+        _gl?.BindVertexArray(0);
     }
 
     private void DrawLine(Matrix4x4 view, Matrix4x4 proj, Vector3 a, Vector3 b, Vector4 color, float width)
@@ -609,7 +610,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         _gl.LineWidth(width);
         _gl.BindVertexArray(_dynamicLineVao);
         _gl.DrawArrays(PrimitiveType.Lines, 0, 2);
-        _gl.BindVertexArray(0);
+        _gl?.BindVertexArray(0);
     }
 
 
@@ -785,6 +786,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
 
         _toolPath = new List<Vector3>();
         _targetPath = new List<Vector3>();
+        _pathPoints = new List<RecipePoint>();
 
         var points = GetRenderablePoints();
         if (points.Count == 0)
@@ -809,6 +811,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
 
             _toolPath.Add(toolPos);
             _targetPath.Add(targetPos);
+            _pathPoints.Add(p);
         }
 
         _trajectoryCount = _toolPath.Count;
@@ -848,7 +851,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             _gl.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), (void*)0);
         }
 
-        _gl.BindVertexArray(0);
+        _gl?.BindVertexArray(0);
     }
 
     private void RebuildGrid()
@@ -882,7 +885,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
 
         _gl.EnableVertexAttribArray(0);
         _gl.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), (void*)0);
-        _gl.BindVertexArray(0);
+        _gl?.BindVertexArray(0);
     }
 
     private (int PassedCount, int SegmentIndex, float SegmentT) CalculatePassedTrajectoryProgress()
@@ -924,7 +927,8 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         {
             segmentIndex = -1;
             segmentT = 0f;
-            return nozzleBase + AnglesToDirection(CurrentAlfa, CurrentBetta) * 80f;
+            var place = ResolveCurrentPlace(segmentIndex, segmentT);
+            return nozzleBase + AnglesToDirection(CurrentAlfa, CurrentBetta, place) * 80f;
         }
 
         if (_targetPath.Count == 1 || _toolPath.Count < 2)
@@ -975,17 +979,100 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     private static bool IsFinite(Vector3 v)
         => float.IsFinite(v.X) && float.IsFinite(v.Y) && float.IsFinite(v.Z);
 
-    private static Vector3 GetClampedAnglesDirection(double alfaDeg, double bettaDeg, AppSettings? settings)
+    private Vector3 GetPhysicalDirection(int segmentIndex, float segmentT)
     {
-        var (alfa, betta) = NozzleOrientationPolicy.ClampForPhysicalOrientation(settings, alfaDeg, bettaDeg);
-        return AnglesToDirection(alfa, betta);
+        var currentPlace = ResolveCurrentPlace(segmentIndex, segmentT);
+        var angleDir = GetClampedAnglesDirection(CurrentAlfa, CurrentBetta, Settings, currentPlace);
+        if (!IsTransitionSegment(segmentIndex))
+            return angleDir;
+
+        if (segmentIndex < 0 || segmentIndex >= _pathPoints.Count - 1)
+            return angleDir;
+
+        var a = _pathPoints[segmentIndex];
+        var b = _pathPoints[segmentIndex + 1];
+        var start = GetClampedAnglesDirection(a.Alfa, a.Betta, Settings, a.Place);
+        var end = GetClampedAnglesDirection(b.Alfa, b.Betta, Settings, b.Place);
+        var t = SmoothStep(Math.Clamp(segmentT, 0f, 1f));
+        return SlerpDirection(start, end, t, angleDir);
     }
 
-    private static Vector3 AnglesToDirection(double alfaDeg, double bettaDeg)
+    private int ResolveCurrentPlace(int segmentIndex, float segmentT)
+    {
+        if (_pathPoints.Count == 0)
+            return 0;
+
+        var seg = Math.Clamp(segmentIndex, 0, Math.Max(0, _pathPoints.Count - 2));
+        if (seg >= _pathPoints.Count - 1)
+            return _pathPoints[^1].Place;
+
+        return segmentT >= 0.5f ? _pathPoints[seg + 1].Place : _pathPoints[seg].Place;
+    }
+
+    private bool IsTransitionSegment(int segmentIndex)
+    {
+        if (segmentIndex < 0)
+            return false;
+
+        if (segmentIndex >= _pathPoints.Count - 1 || segmentIndex >= _toolPath.Count - 1)
+            return false;
+
+        var a = _pathPoints[segmentIndex];
+        var b = _pathPoints[segmentIndex + 1];
+        if (a.Place != b.Place || a.Safe != b.Safe)
+            return true;
+
+        var dist = Vector3.Distance(_toolPath[segmentIndex], _toolPath[segmentIndex + 1]);
+        return dist >= 180f;
+    }
+
+    private static float SmoothStep(float x)
+        => x * x * (3f - 2f * x);
+
+    private static Vector3 SlerpDirection(Vector3 from, Vector3 to, float t, Vector3 fallback)
+    {
+        var a = SafeNormalize(from, fallback);
+        var b = SafeNormalize(to, a);
+        var dot = Math.Clamp(Vector3.Dot(a, b), -1f, 1f);
+
+        // Almost collinear: avoid numeric noise and use normalized lerp.
+        if (dot > 0.9995f)
+            return SafeNormalize(Vector3.Lerp(a, b, t), fallback);
+
+        // Opposite vectors: build a stable orthogonal axis to define the arc plane.
+        if (dot < -0.9995f)
+        {
+            var axis = Vector3.Cross(a, Vector3.UnitY);
+            if (axis.LengthSquared() < 1e-6f)
+                axis = Vector3.Cross(a, Vector3.UnitX);
+            axis = SafeNormalize(axis, Vector3.UnitZ);
+            var angle = MathF.PI * t;
+            var rotated = a * MathF.Cos(angle) + axis * MathF.Sin(angle);
+            return SafeNormalize(rotated, fallback);
+        }
+
+        var theta = MathF.Acos(dot);
+        var sinTheta = MathF.Sin(theta);
+        if (MathF.Abs(sinTheta) < 1e-6f)
+            return SafeNormalize(Vector3.Lerp(a, b, t), fallback);
+
+        var wa = MathF.Sin((1f - t) * theta) / sinTheta;
+        var wb = MathF.Sin(t * theta) / sinTheta;
+        return SafeNormalize(a * wa + b * wb, fallback);
+    }
+
+    private static Vector3 GetClampedAnglesDirection(double alfaDeg, double bettaDeg, AppSettings? settings, int place)
+    {
+        var (alfa, betta) = NozzleOrientationPolicy.ClampForPhysicalOrientation(settings, alfaDeg, bettaDeg);
+        return AnglesToDirection(alfa, betta, place);
+    }
+
+    private static Vector3 AnglesToDirection(double alfaDeg, double bettaDeg, int place)
     {
         var a = (float)(alfaDeg * Math.PI / 180.0);
         var b = (float)(bettaDeg * Math.PI / 180.0);
-        var dir = new Vector3(MathF.Cos(b) * MathF.Cos(a), MathF.Sin(b), -MathF.Cos(b) * MathF.Sin(a));
+        var zSign = place == 0 ? -1f : 1f;
+        var dir = new Vector3(MathF.Cos(b) * MathF.Cos(a), MathF.Sin(b), zSign * MathF.Cos(b) * MathF.Sin(a));
         return SafeNormalize(dir, Vector3.UnitX);
     }
 
@@ -1013,6 +1100,22 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         };
         var indices = new uint[] { 0, 1, 2, 0, 2, 3 };
         return new Mesh(vertices, indices);
+    }
+
+    private uint TryLoadTexture(string uri)
+    {
+        if (_gl is null)
+            return 0;
+
+        try
+        {
+            return TextureLoader.LoadFromResource(_gl, uri);
+        }
+        catch (Exception ex)
+        {
+            LogWarn($"texture load skipped: {uri} ({ex.GetType().Name}: {ex.Message})");
+            return 0;
+        }
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)

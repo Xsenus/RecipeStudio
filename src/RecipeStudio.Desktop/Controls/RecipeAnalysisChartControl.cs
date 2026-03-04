@@ -189,7 +189,7 @@ public sealed class RecipeAnalysisChartControl : Control
             DrawSeries(context, chartRect, xValues, s, minX, maxX, yRange.min, yRange.max, _revealProgress);
         }
 
-        DrawLeftAxisLabel(context, chartRect, leftSeries.FirstOrDefault().AxisTitle ?? "");
+        DrawLeftAxisLabel(context, chartRect, leftSeries.FirstOrDefault()?.AxisTitle ?? "");
         DrawLegend(context, chartRect, series);
 
         if (_hoverIndex >= 0 && _hoverIndex < points.Count)
