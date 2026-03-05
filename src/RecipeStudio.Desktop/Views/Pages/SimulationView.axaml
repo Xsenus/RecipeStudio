@@ -141,7 +141,7 @@
 
             <Border Grid.Row="1" Classes="card" Padding="8,6">
               <StackPanel Spacing="6">
-                <Grid ColumnDefinitions="Auto,90,Auto,90,Auto,90,Auto,90,Auto" ColumnSpacing="8">
+                <Grid ColumnDefinitions="Auto,90,Auto,90,Auto,90,Auto,90,Auto,Auto" ColumnSpacing="8">
                   <TextBlock Text="Nozzle X" Classes="muted" VerticalAlignment="Center" />
                   <Slider Grid.Column="1" Minimum="0.00" Maximum="0.99"
                           Value="{Binding ElementName=View2DPlot, Path=NozzleAnchorX, Mode=TwoWay}" />
@@ -159,12 +159,25 @@
                           Value="{Binding ElementName=View2DPlot, Path=ManipulatorAnchorY, Mode=TwoWay}" />
 
                   <Button Grid.Column="8" Classes="ghost" Click="Reset2DCalibration_Click">Reset Cal</Button>
+                  <Button Grid.Column="9" Classes="ghost" Click="AutoAlign2DCalibration_Click">Auto Cal</Button>
                 </Grid>
 
-                <Grid ColumnDefinitions="Auto,260" ColumnSpacing="8">
+                <Grid ColumnDefinitions="Auto,220,Auto,220" ColumnSpacing="8">
                   <TextBlock Text="Offset Z (mm)" Classes="muted" VerticalAlignment="Center" />
                   <Slider Grid.Column="1" Minimum="-5000" Maximum="5000"
                           Value="{Binding ElementName=View2DPlot, Path=VerticalOffsetMm, Mode=TwoWay}" />
+
+                  <TextBlock Grid.Column="2" Text="Offset X (mm)" Classes="muted" VerticalAlignment="Center" />
+                  <Slider Grid.Column="3" Minimum="-5000" Maximum="5000"
+                          Value="{Binding ElementName=View2DPlot, Path=HorizontalOffsetMm, Mode=TwoWay}" />
+                </Grid>
+
+                <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="8">
+                  <TextBlock Text="Reverse Path" Classes="muted" VerticalAlignment="Center" />
+                  <ToggleButton Grid.Column="1"
+                                IsChecked="{Binding ElementName=View2DPlot, Path=ReversePath, Mode=TwoWay}"
+                                Classes="ghost"
+                                VerticalAlignment="Center">Right → Left</ToggleButton>
                 </Grid>
               </StackPanel>
             </Border>

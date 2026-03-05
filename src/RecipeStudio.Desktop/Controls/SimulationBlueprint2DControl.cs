@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -19,9 +20,21 @@ public sealed class SimulationBlueprint2DControl : Control
     public const double DefaultManipulatorAnchorX = 0.04;
     public const double DefaultManipulatorAnchorY = 0.90;
     public const double DefaultVerticalOffsetMm = 240.0;
+    public const double DefaultHorizontalOffsetMm = 0.0;
     private const double NozzlePivotAnchorX = 0.84;
-    private const double NozzleMinStretch = 0.35;
-    private const double NozzleMaxStretch = 4.0;
+    private const double ApproachPhase = 0.15;
+    private const double CenterTransferPhase = 0.10;
+    private const double ApproachDistanceFactor = 0.45;
+    private const double RenderSubsampleThresholdMm = 80.0;
+    private const double AutoAlignHorizontalBiasMm = 0.0;
+    private const double AutoAlignVerticalBiasMm = 0.0;
+    private const double UpperZoneBlendStartMm = 40.0;
+    private const double UpperZoneBlendSpanMm = 220.0;
+    private const double UpperZoneExtraPivotDropMm = 120.0;
+    private const double UpperZoneExtraPivotRightMm = 70.0;
+    private const double BasePivotDropMm = 35.0;
+    private const double PivotFollowSmoothing = 0.55;
+    private const double AutoAlignPathSubsampleMm = 24.0;
 
     public static readonly StyledProperty<IList<RecipePoint>?> PointsProperty =
         AvaloniaProperty.Register<SimulationBlueprint2DControl, IList<RecipePoint>?>(nameof(Points));
@@ -71,6 +84,12 @@ public sealed class SimulationBlueprint2DControl : Control
     public static readonly StyledProperty<double> VerticalOffsetMmProperty =
         AvaloniaProperty.Register<SimulationBlueprint2DControl, double>(nameof(VerticalOffsetMm), DefaultVerticalOffsetMm);
 
+    public static readonly StyledProperty<double> HorizontalOffsetMmProperty =
+        AvaloniaProperty.Register<SimulationBlueprint2DControl, double>(nameof(HorizontalOffsetMm), DefaultHorizontalOffsetMm);
+
+    public static readonly StyledProperty<bool> ReversePathProperty =
+        AvaloniaProperty.Register<SimulationBlueprint2DControl, bool>(nameof(ReversePath));
+
     private const double Pad = 20;
     private Rect _fitWorldBounds;
     private Rect _worldBounds;
@@ -88,6 +107,14 @@ public sealed class SimulationBlueprint2DControl : Control
     private readonly Bitmap? _partImage;
     private readonly Bitmap? _manipulatorImage;
     private readonly Bitmap? _nozzleImage;
+    private readonly EdgeMap? _partEdgeMap;
+
+    private sealed class EdgeMap
+    {
+        public required int Width { get; init; }
+        public required int Height { get; init; }
+        public required double[] Magnitude { get; init; }
+    }
 
     public IList<RecipePoint>? Points
     {
@@ -185,6 +212,18 @@ public sealed class SimulationBlueprint2DControl : Control
         set => SetValue(VerticalOffsetMmProperty, value);
     }
 
+    public double HorizontalOffsetMm
+    {
+        get => GetValue(HorizontalOffsetMmProperty);
+        set => SetValue(HorizontalOffsetMmProperty, value);
+    }
+
+    public bool ReversePath
+    {
+        get => GetValue(ReversePathProperty);
+        set => SetValue(ReversePathProperty, value);
+    }
+
     public double ZoomFactor => _zoomFactor;
     public event Action<double>? ZoomChanged;
 
@@ -206,6 +245,8 @@ public sealed class SimulationBlueprint2DControl : Control
         NozzleAnchorYProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.MarkRefit());
         ManipulatorAnchorYProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.MarkRefit());
         VerticalOffsetMmProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.MarkRefit());
+        HorizontalOffsetMmProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.MarkRefit());
+        ReversePathProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.MarkRefit());
     }
 
     public SimulationBlueprint2DControl()
@@ -214,6 +255,7 @@ public sealed class SimulationBlueprint2DControl : Control
         _partImage = TryLoadBitmap("avares://RecipeStudio.Desktop/Assets/Images/H340_KAMA_1.fw.png");
         _manipulatorImage = TryLoadBitmap("avares://RecipeStudio.Desktop/Assets/Images/manipulator.fw.png");
         _nozzleImage = TryLoadBitmap("avares://RecipeStudio.Desktop/Assets/Images/soplo.fw.png");
+        _partEdgeMap = TryBuildEdgeMap(_partImage);
     }
 
     public void ZoomIn()
@@ -241,6 +283,43 @@ public sealed class SimulationBlueprint2DControl : Control
         ZoomChanged?.Invoke(_zoomFactor);
     }
 
+    public void AutoAlignCalibration()
+    {
+        var points = SelectRenderablePoints(Points?.ToList() ?? new List<RecipePoint>());
+        var hZone = Settings?.HZone ?? 1200;
+        var pathSource = SelectPathSource(points);
+        if (ReversePath && pathSource.Count > 1)
+            pathSource.Reverse();
+
+        var fitSource = pathSource.Where(p => !p.Safe).ToList();
+        if (fitSource.Count < 2)
+            fitSource = pathSource;
+
+        var path = BuildDisplayPath(fitSource, hZone);
+        if (path.Count == 0)
+            return;
+
+        path = BuildRenderPath(path, AutoAlignPathSubsampleMm);
+        var bounds = ComputePathBounds(path);
+        var referenceHeightMm = Math.Max(100, ReferenceHeightMm);
+        var mmPerPixel = ResolveMmPerPixel(referenceHeightMm);
+        var baseHorizontal = bounds.Center.X + AutoAlignHorizontalBiasMm;
+        var baseVertical = referenceHeightMm * 0.5 - bounds.Center.Y + AutoAlignVerticalBiasMm;
+
+        if (_partEdgeMap is not null)
+        {
+            var optimized = OptimizeAutoAlignment(path, _partEdgeMap, mmPerPixel, baseHorizontal, baseVertical);
+            HorizontalOffsetMm = optimized.Horizontal;
+            VerticalOffsetMm = optimized.Vertical;
+            return;
+        }
+
+        // Align model center to trajectory center so initial overlay is usable
+        // without manual slider tuning. Fine adjustment is still available.
+        HorizontalOffsetMm = baseHorizontal;
+        VerticalOffsetMm = baseVertical;
+    }
+
     public override void Render(DrawingContext context)
     {
         base.Render(context);
@@ -249,78 +328,59 @@ public sealed class SimulationBlueprint2DControl : Control
         var points = SelectRenderablePoints(Points?.ToList() ?? new List<RecipePoint>());
         var hZone = Settings?.HZone ?? 1200;
         var pathSource = SelectPathSource(points);
-        var path = BuildDisplayPath(pathSource, hZone);
-        var verticalOffset = VerticalOffsetMm;
-        if (Math.Abs(verticalOffset) > 1e-6)
-            path = path.Select(p => new Point(p.X, p.Y + verticalOffset)).ToList();
+        if (ReversePath && pathSource.Count > 1)
+            pathSource.Reverse();
 
-        var timelineProgress = Math.Clamp(Progress, 0.0, 1.0);
-        const double approachPhase = 0.15;
-        var processProgress = timelineProgress <= approachPhase
-            ? 0.0
-            : (timelineProgress - approachPhase) / (1.0 - approachPhase);
-        var state = Interpolate(path, processProgress);
-        var segmentSafety = BuildSegmentSafety(pathSource);
-        var currentPose = path.Count >= 2
-            ? state.Position
-            : (double.IsFinite(TargetXRaw) && double.IsFinite(TargetZRaw)
-                ? new Point(ToVisualX(TargetXRaw), TargetZRaw)
-                : state.Position);
-        var calibratedPose = new Point(currentPose.X, currentPose.Y);
-
+        var rawPath = BuildDisplayPath(pathSource, hZone);
+        var path = BuildRenderPath(ApplyTrajectoryOffsets(rawPath), RenderSubsampleThresholdMm);
         var referenceHeightMm = Math.Max(100, ReferenceHeightMm);
         var mmPerPixel = ResolveMmPerPixel(referenceHeightMm);
+        var partRectWorld = CreateWorldRectCenteredAtX(HorizontalOffsetMm, 0, _partImage, mmPerPixel, referenceHeightMm);
 
-        var partRectWorld = CreateWorldRectCenteredAtX(0, 0, _partImage, mmPerPixel, referenceHeightMm);
-        var nozzleDirection = ResolveNozzleDirection(state.Direction);
-        var startTip = path.Count > 0 ? path[0] : calibratedPose;
-        var startDirection = path.Count > 1
-            ? ResolveNozzleDirection(new Point(path[1].X - path[0].X, path[1].Y - path[0].Y))
-            : nozzleDirection;
-        var startNozzlePivot = ResolveNozzlePivot(startTip, startDirection, _nozzleImage, mmPerPixel);
-        var approachOffsetX = ResolveApproachOffsetX(partRectWorld, timelineProgress);
-        var approachOffset = new Point(approachOffsetX, 0);
+        var pathBounds = ComputePathBounds(path.Count > 0
+            ? path
+            : new List<Point> { new Point(partRectWorld.Center.X, partRectWorld.Center.Y) });
+        var centerTip = new Point(partRectWorld.Center.X, pathBounds.Center.Y);
+        var centerNozzlePivot = ResolveNozzlePivot(centerTip, new Point(1, 0), mmPerPixel);
+        var processPivotPath = BuildManipulatorFollowPath(path, centerNozzlePivot, mmPerPixel, centerTip.Y);
 
-        // Platform behavior:
-        // 1) approach phase: move from right to first working pose
-        // 2) safe transitions: platform can reposition
-        // 3) working segments: platform stays at block-start, only nozzle rotates/works
-        var manipPivot = ResolveManipulatorPivot(
+        var approachDistance = ResolveApproachDistance(partRectWorld);
+        var approachStartTip = new Point(centerTip.X + approachDistance, centerTip.Y);
+        var approachStartPivot = new Point(centerNozzlePivot.X + approachDistance, centerNozzlePivot.Y);
+        var timelineProgress = Math.Clamp(Progress, 0.0, 1.0);
+        var motion = ResolveMotionState(
             timelineProgress,
-            approachPhase,
-            startNozzlePivot,
-            approachOffset,
-            state,
             path,
-            pathSource,
-            segmentSafety,
-            mmPerPixel);
-        var manipRectWorld = CreateManipulatorRectFromNozzlePivot(manipPivot, _manipulatorImage, mmPerPixel);
+            processPivotPath,
+            centerTip,
+            centerNozzlePivot,
+            approachStartTip,
+            approachStartPivot);
 
-        // Nozzle: during approach moves with platform; during processing
-        // platform is fixed and only nozzle works along trajectory.
-        var nozzlePoseWorld = timelineProgress <= approachPhase
-            ? new Point(startTip.X + approachOffset.X, startTip.Y + approachOffset.Y)
-            : calibratedPose;
-        var nozzlePivotWorld = manipPivot;
-        var nozzleWorkDirection = ResolveNozzleDirection(new Point(nozzlePoseWorld.X - nozzlePivotWorld.X, nozzlePoseWorld.Y - nozzlePivotWorld.Y));
+        var nozzlePoseWorld = motion.Tip;
+        var nozzlePivotWorld = motion.Pivot;
+        var nozzleWorkDirection = ResolveNozzleDirection(new Point(nozzlePivotWorld.X - nozzlePoseWorld.X, nozzlePivotWorld.Y - nozzlePoseWorld.Y));
+        var manipRectWorld = CreateManipulatorRectFromNozzlePivot(nozzlePivotWorld, _manipulatorImage, mmPerPixel);
 
-        var nozzlePivotPath = BuildNozzlePivotPath(path, mmPerPixel);
-        var approachPivotPath = nozzlePivotPath.Select(p => new Point(p.X + Math.Max(0, ResolveApproachOffsetX(partRectWorld, 0)), p.Y)).ToList();
-        var manipPivotPath = BuildManipulatorPivotPath(
-            path,
-            pathSource,
-            segmentSafety,
-            startNozzlePivot,
-            Math.Max(0, ResolveApproachOffsetX(partRectWorld, 0)),
-            mmPerPixel);
-        var manipEnvelope = BuildCombinedEnvelope(
-            BuildMovingImageEnvelope(manipPivotPath, _manipulatorImage, mmPerPixel, Math.Clamp(ManipulatorAnchorX, 0.0, 1.0), Math.Clamp(ManipulatorAnchorY, 0.0, 1.0)),
-            BuildMovingImageEnvelope(new List<Point> { startNozzlePivot }, _manipulatorImage, mmPerPixel, Math.Clamp(ManipulatorAnchorX, 0.0, 1.0), Math.Clamp(ManipulatorAnchorY, 0.0, 1.0)));
-        var nozzleEnvelope = BuildCombinedEnvelope(
-            BuildMovingImageEnvelope(nozzlePivotPath, _nozzleImage, mmPerPixel, NozzlePivotAnchorX, Math.Clamp(NozzleAnchorY, 0.0, 1.0), NozzleMaxStretch),
-            BuildMovingImageEnvelope(approachPivotPath, _nozzleImage, mmPerPixel, NozzlePivotAnchorX, Math.Clamp(NozzleAnchorY, 0.0, 1.0), NozzleMaxStretch));
-        var worldBounds = ComputeWorldBounds(path, partRectWorld, manipEnvelope, nozzleEnvelope);
+        var tipMotionPath = BuildMotionPath(path, centerTip, approachStartTip);
+        var pivotMotionPath = BuildMotionPath(processPivotPath, centerNozzlePivot, approachStartPivot);
+        var manipEnvelope = BuildMovingImageEnvelope(
+            pivotMotionPath,
+            _manipulatorImage,
+            mmPerPixel,
+            Math.Clamp(ManipulatorAnchorX, 0.0, 1.0),
+            Math.Clamp(ManipulatorAnchorY, 0.0, 1.0));
+        var nozzleEnvelope = BuildMovingImageEnvelope(
+            pivotMotionPath,
+            _nozzleImage,
+            mmPerPixel,
+            NozzlePivotAnchorX,
+            Math.Clamp(NozzleAnchorY, 0.0, 1.0));
+        var worldBounds = ComputeWorldBounds(
+            tipMotionPath.Count > 0 ? tipMotionPath : path,
+            partRectWorld,
+            manipEnvelope,
+            nozzleEnvelope);
         if (worldBounds.Width <= 0 || worldBounds.Height <= 0)
             return;
 
@@ -351,13 +411,15 @@ public sealed class SimulationBlueprint2DControl : Control
             if (path.Count >= 2)
             {
                 DrawPolyline(context, path, new Pen(new SolidColorBrush(Color.FromRgb(96, 165, 250)), 1.7));
-                var passed = path.Take(state.SegmentIndex + 1).ToList();
-                passed.Add(state.Position);
-                DrawPolyline(context, passed, new Pen(new SolidColorBrush(Color.FromRgb(52, 211, 153)), 2.4));
+                if (motion.IsProcessing)
+                {
+                    var passed = BuildPassedPath(path, motion.ProcessSegmentIndex, motion.ProcessSegmentT, motion.Tip);
+                    DrawPolyline(context, passed, new Pen(new SolidColorBrush(Color.FromRgb(52, 211, 153)), 2.4));
+                }
             }
 
             DrawImageWorld(context, _manipulatorImage, manipRectWorld);
-            DrawNozzleImageWorld(context, _nozzleImage, nozzlePivotWorld, nozzlePoseWorld, nozzleWorkDirection, mmPerPixel);
+            DrawNozzleImageWorld(context, _nozzleImage, nozzlePivotWorld, nozzleWorkDirection, mmPerPixel);
             DrawNozzleMarker(context, nozzlePoseWorld);
         }
     }
@@ -441,6 +503,179 @@ public sealed class SimulationBlueprint2DControl : Control
         }
     }
 
+    private static EdgeMap? TryBuildEdgeMap(Bitmap? image)
+    {
+        if (image is null)
+            return null;
+
+        var width = image.PixelSize.Width;
+        var height = image.PixelSize.Height;
+        if (width < 3 || height < 3)
+            return null;
+
+        var stride = width * 4;
+        var raw = new byte[stride * height];
+        var handle = GCHandle.Alloc(raw, GCHandleType.Pinned);
+        try
+        {
+            image.CopyPixels(new PixelRect(0, 0, width, height), handle.AddrOfPinnedObject(), raw.Length, stride);
+        }
+        catch
+        {
+            return null;
+        }
+        finally
+        {
+            handle.Free();
+        }
+
+        var luma = new double[width * height];
+        for (var y = 0; y < height; y++)
+        {
+            var rowOffset = y * stride;
+            var pixOffset = y * width;
+            for (var x = 0; x < width; x++)
+            {
+                var src = rowOffset + x * 4;
+                var b = raw[src];
+                var g = raw[src + 1];
+                var r = raw[src + 2];
+                luma[pixOffset + x] = 0.114 * b + 0.587 * g + 0.299 * r;
+            }
+        }
+
+        var magnitude = new double[width * height];
+        for (var y = 1; y < height - 1; y++)
+        {
+            for (var x = 1; x < width - 1; x++)
+            {
+                var idx = y * width + x;
+                var gx = luma[idx + 1] - luma[idx - 1];
+                var gy = luma[idx + width] - luma[idx - width];
+                magnitude[idx] = Math.Sqrt(gx * gx + gy * gy);
+            }
+        }
+
+        return new EdgeMap
+        {
+            Width = width,
+            Height = height,
+            Magnitude = magnitude
+        };
+    }
+
+    private static (double Horizontal, double Vertical) OptimizeAutoAlignment(
+        IReadOnlyList<Point> path,
+        EdgeMap edgeMap,
+        double mmPerPixel,
+        double baseHorizontal,
+        double baseVertical)
+    {
+        var bestHorizontal = baseHorizontal;
+        var bestVertical = baseVertical;
+        var bestScore = EvaluateAutoAlignScore(path, edgeMap, mmPerPixel, baseHorizontal, baseVertical, bestHorizontal, bestVertical);
+
+        for (var h = baseHorizontal - 260; h <= baseHorizontal + 260; h += 20)
+        {
+            for (var v = baseVertical - 260; v <= baseVertical + 260; v += 20)
+            {
+                var score = EvaluateAutoAlignScore(path, edgeMap, mmPerPixel, baseHorizontal, baseVertical, h, v);
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestHorizontal = h;
+                    bestVertical = v;
+                }
+            }
+        }
+
+        for (var h = bestHorizontal - 40; h <= bestHorizontal + 40; h += 4)
+        {
+            for (var v = bestVertical - 40; v <= bestVertical + 40; v += 4)
+            {
+                var score = EvaluateAutoAlignScore(path, edgeMap, mmPerPixel, baseHorizontal, baseVertical, h, v);
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestHorizontal = h;
+                    bestVertical = v;
+                }
+            }
+        }
+
+        return (bestHorizontal, bestVertical);
+    }
+
+    private static double EvaluateAutoAlignScore(
+        IReadOnlyList<Point> path,
+        EdgeMap edgeMap,
+        double mmPerPixel,
+        double baseHorizontal,
+        double baseVertical,
+        double horizontal,
+        double vertical)
+    {
+        if (path.Count == 0 || mmPerPixel <= 1e-9)
+            return double.NegativeInfinity;
+
+        var imageWidthMm = edgeMap.Width * mmPerPixel;
+        var leftWorld = horizontal - imageWidthMm * 0.5;
+        var step = Math.Max(1, path.Count / 240);
+        var sum = 0.0;
+        var hits = 0;
+
+        for (var i = 0; i < path.Count; i += step)
+        {
+            var worldX = path[i].X;
+            var worldY = path[i].Y + vertical;
+            var px = (worldX - leftWorld) / mmPerPixel;
+            var py = edgeMap.Height - (worldY / mmPerPixel);
+            var sample = SampleEdgeMagnitude(edgeMap, px, py);
+            if (sample < 0)
+                continue;
+
+            sum += sample;
+            hits++;
+        }
+
+        if (hits < 24)
+            return double.NegativeInfinity;
+
+        var average = sum / hits;
+        // Keep solution close to deterministic baseline to avoid wrong local maxima.
+        var deviationPenalty = 0.008 * Math.Abs(horizontal - baseHorizontal)
+            + 0.006 * Math.Abs(vertical - baseVertical);
+        return average - deviationPenalty;
+    }
+
+    private static double SampleEdgeMagnitude(EdgeMap edgeMap, double x, double y)
+    {
+        if (!double.IsFinite(x) || !double.IsFinite(y))
+            return -1;
+
+        if (x < 1 || y < 1 || x >= edgeMap.Width - 2 || y >= edgeMap.Height - 2)
+            return -1;
+
+        var x0 = (int)Math.Floor(x);
+        var y0 = (int)Math.Floor(y);
+        var tx = x - x0;
+        var ty = y - y0;
+
+        var i00 = y0 * edgeMap.Width + x0;
+        var i10 = i00 + 1;
+        var i01 = i00 + edgeMap.Width;
+        var i11 = i01 + 1;
+
+        var v00 = edgeMap.Magnitude[i00];
+        var v10 = edgeMap.Magnitude[i10];
+        var v01 = edgeMap.Magnitude[i01];
+        var v11 = edgeMap.Magnitude[i11];
+
+        var top = v00 + (v10 - v00) * tx;
+        var bottom = v01 + (v11 - v01) * tx;
+        return top + (bottom - top) * ty;
+    }
+
     private double ResolveMmPerPixel(double referenceHeightMm)
     {
         if (_partImage is null || _partImage.Size.Height <= 0)
@@ -475,15 +710,6 @@ public sealed class SimulationBlueprint2DControl : Control
         return new Rect(left, bottom, w, h);
     }
 
-    private static Rect BuildCombinedEnvelope(Rect a, Rect b)
-    {
-        var left = Math.Min(a.Left, b.Left);
-        var top = Math.Min(a.Top, b.Top);
-        var right = Math.Max(a.Right, b.Right);
-        var bottom = Math.Max(a.Bottom, b.Bottom);
-        return new Rect(left, top, Math.Max(1, right - left), Math.Max(1, bottom - top));
-    }
-
     private static Rect ComputeWorldBounds(IReadOnlyList<Point> path, params Rect[] rects)
     {
         var seed = path.Count > 0 ? path[0] : new Point(0, 0);
@@ -513,6 +739,18 @@ public sealed class SimulationBlueprint2DControl : Control
         const double marginX = 220;
         const double marginZ = 420;
         return new Rect(minX - marginX, minZ - marginZ, w + marginX * 2, h + marginZ * 2);
+    }
+
+    private static Rect ComputePathBounds(IReadOnlyList<Point> path)
+    {
+        if (path.Count == 0)
+            return new Rect(0, 0, 1, 1);
+
+        var minX = path.Min(p => p.X);
+        var maxX = path.Max(p => p.X);
+        var minZ = path.Min(p => p.Y);
+        var maxZ = path.Max(p => p.Y);
+        return new Rect(minX, minZ, Math.Max(1, maxX - minX), Math.Max(1, maxZ - minZ));
     }
 
     private static Rect BuildMovingImageEnvelope(IReadOnlyList<Point> path, Bitmap? image, double mmPerPixel, double anchorX, double anchorY, double widthScale = 1.0)
@@ -572,19 +810,14 @@ public sealed class SimulationBlueprint2DControl : Control
             dest);
     }
 
-    private void DrawNozzleImageWorld(DrawingContext context, Bitmap? image, Point pivotWorld, Point tipWorld, Point directionWorld, double mmPerPixel)
+    private void DrawNozzleImageWorld(DrawingContext context, Bitmap? image, Point pivotWorld, Point directionWorld, double mmPerPixel)
     {
         if (image is null)
             return;
 
         var baseWidthMm = image.Size.Width * mmPerPixel;
         var baseHeightMm = image.Size.Height * mmPerPixel;
-        var baseTipDistanceMm = Math.Max(1e-6, (Math.Clamp(NozzlePivotAnchorX, 0.0, 1.0) - Math.Clamp(NozzleAnchorX, 0.0, 1.0)) * baseWidthMm);
-        var requiredTipDistanceMm = Math.Sqrt(
-            (tipWorld.X - pivotWorld.X) * (tipWorld.X - pivotWorld.X)
-            + (tipWorld.Y - pivotWorld.Y) * (tipWorld.Y - pivotWorld.Y));
-        var stretch = Math.Clamp(requiredTipDistanceMm / baseTipDistanceMm, NozzleMinStretch, NozzleMaxStretch);
-        var widthPx = Math.Abs(baseWidthMm * stretch * _scale);
+        var widthPx = Math.Abs(baseWidthMm * _scale);
         var heightPx = Math.Abs(baseHeightMm * _scale);
         if (widthPx < 1 || heightPx < 1)
             return;
@@ -688,13 +921,13 @@ public sealed class SimulationBlueprint2DControl : Control
 
     private double ToVisualX(double x) => InvertHorizontal ? -x : x;
 
-    private static (Point Position, Point Direction, int SegmentIndex) Interpolate(IList<Point> pts, double progress)
+    private static (Point Position, Point Direction, int SegmentIndex, double SegmentT) Interpolate(IReadOnlyList<Point> pts, double progress)
     {
         if (pts.Count == 0)
-            return (default, new Point(1, 0), 0);
+            return (default, new Point(1, 0), 0, 0);
 
         if (pts.Count == 1)
-            return (pts[0], new Point(1, 0), 0);
+            return (pts[0], new Point(1, 0), 0, 0);
 
         progress = Math.Clamp(progress, 0, 1);
         var seg = new double[pts.Count - 1];
@@ -721,7 +954,8 @@ public sealed class SimulationBlueprint2DControl : Control
                         pts[i].X + (pts[i + 1].X - pts[i].X) * t,
                         pts[i].Y + (pts[i + 1].Y - pts[i].Y) * t),
                     new Point(pts[i + 1].X - pts[i].X, pts[i + 1].Y - pts[i].Y),
-                    i);
+                    i,
+                    t);
             }
 
             acc = next;
@@ -730,21 +964,14 @@ public sealed class SimulationBlueprint2DControl : Control
         return (
             pts[^1],
             new Point(pts[^1].X - pts[^2].X, pts[^1].Y - pts[^2].Y),
-            pts.Count - 2);
+            pts.Count - 2,
+            1.0);
     }
 
     private static List<RecipePoint> SelectRenderablePoints(List<RecipePoint> source)
     {
-        var activeRobot = source.Where(p => p.Act && !p.Hidden && HasRenderableGeometry(p)).ToList();
-        if (activeRobot.Count > 0)
-            return activeRobot;
-
-        var activeVisible = source.Where(p => p.Act && !p.Hidden).ToList();
-        if (activeVisible.Count > 0)
-            return activeVisible;
-
-        var active = source.Where(p => p.Act).ToList();
-        return active.Count > 0 ? active : source;
+        // 2D view consumes animation points as-is so Safe transitions are preserved.
+        return source;
     }
 
     private static List<RecipePoint> SelectPathSource(List<RecipePoint> source)
@@ -767,6 +994,46 @@ public sealed class SimulationBlueprint2DControl : Control
             .ToList();
     }
 
+    private List<Point> ApplyTrajectoryOffsets(IReadOnlyList<Point> source)
+    {
+        if (source.Count == 0)
+            return new List<Point>();
+
+        var verticalOffset = VerticalOffsetMm;
+        if (Math.Abs(verticalOffset) <= 1e-6)
+            return source.ToList();
+
+        return source.Select(p => new Point(p.X, p.Y + verticalOffset)).ToList();
+    }
+
+    private static List<Point> BuildRenderPath(
+        IReadOnlyList<Point> sourcePath,
+        double thresholdMm)
+    {
+        if (sourcePath.Count < 2 || thresholdMm <= 1e-6)
+            return sourcePath.ToList();
+
+        var densePath = new List<Point> { sourcePath[0] };
+
+        for (var i = 0; i < sourcePath.Count - 1; i++)
+        {
+            var a = sourcePath[i];
+            var b = sourcePath[i + 1];
+            var dx = b.X - a.X;
+            var dy = b.Y - a.Y;
+            var dist = Math.Sqrt(dx * dx + dy * dy);
+            var pieces = Math.Max(1, (int)Math.Ceiling(dist / thresholdMm));
+
+            for (var piece = 1; piece <= pieces; piece++)
+            {
+                var t = piece / (double)pieces;
+                densePath.Add(new Point(a.X + dx * t, a.Y + dy * t));
+            }
+        }
+
+        return densePath;
+    }
+
     private Point ResolveNozzleDirection(Point fallbackDirection)
     {
         // For 2D overlay, orient nozzle by trajectory tangent (same visual logic as chart).
@@ -774,34 +1041,24 @@ public sealed class SimulationBlueprint2DControl : Control
         return len <= 1e-6 ? new Point(1, 0) : new Point(fallbackDirection.X / len, fallbackDirection.Y / len);
     }
 
-    private static double ResolveApproachOffsetX(Rect partRect, double progress)
-    {
-        // Approach from right to left during first 15% of animation, then process along path.
-        var approachDistance = partRect.Width * 0.45;
-        var phase = 0.15;
-        var t = 1.0 - Math.Clamp(progress / phase, 0.0, 1.0);
-        return approachDistance * t;
-    }
+    private static double ResolveApproachDistance(Rect partRect)
+        => Math.Max(160, partRect.Width * ApproachDistanceFactor);
 
-    private Point ResolveNozzlePivot(Point tipWorld, Point direction, Bitmap? nozzleImage, double mmPerPixel)
+    private Point ResolveNozzlePivot(Point tipWorld, Point direction, double mmPerPixel)
     {
-        if (nozzleImage is null || nozzleImage.Size.Width <= 0)
-            return tipWorld;
-
-        var tipAnchor = Math.Clamp(NozzleAnchorX, 0.0, 1.0);
-        var pivotAnchor = Math.Clamp(NozzlePivotAnchorX, 0.0, 1.0);
-        var widthMm = nozzleImage.Size.Width * mmPerPixel;
-        var delta = Math.Max(0, (pivotAnchor - tipAnchor) * widthMm);
+        var delta = ResolveNozzleTipDistanceMm(mmPerPixel);
         return new Point(tipWorld.X + direction.X * delta, tipWorld.Y + direction.Y * delta);
     }
 
-    private static bool HasRenderableGeometry(RecipePoint p)
+    private double ResolveNozzleTipDistanceMm(double mmPerPixel)
     {
-        const double eps = 1e-6;
-        return Math.Abs(p.RCrd) > eps
-            || Math.Abs(p.ZCrd) > eps
-            || Math.Abs(p.Xr0 + p.DX) > eps
-            || Math.Abs(p.Zr0 + p.DZ) > eps;
+        if (_nozzleImage is null || _nozzleImage.Size.Width <= 0)
+            return 120;
+
+        var tipAnchor = Math.Clamp(NozzleAnchorX, 0.0, 1.0);
+        var pivotAnchor = Math.Clamp(NozzlePivotAnchorX, 0.0, 1.0);
+        var widthMm = _nozzleImage.Size.Width * mmPerPixel;
+        return Math.Max(1e-6, (pivotAnchor - tipAnchor) * widthMm);
     }
 
     private void MarkRefit()
@@ -810,124 +1067,142 @@ public sealed class SimulationBlueprint2DControl : Control
         InvalidateVisual();
     }
 
-    private List<Point> BuildNozzlePivotPath(IReadOnlyList<Point> tipPath, double mmPerPixel)
+    private List<Point> BuildManipulatorFollowPath(IReadOnlyList<Point> tipPath, Point initialPivot, double mmPerPixel, double centerY)
     {
+        var pivots = new List<Point>(tipPath.Count);
         if (tipPath.Count == 0)
-            return new List<Point>();
+            return pivots;
 
-        if (tipPath.Count == 1)
-            return new List<Point> { tipPath[0] };
-
-        var result = new List<Point>(tipPath.Count);
+        var currentPivot = initialPivot;
+        var nozzleTipDistanceMm = ResolveNozzleTipDistanceMm(mmPerPixel);
         for (var i = 0; i < tipPath.Count; i++)
         {
-            Point dir;
-            if (i == 0)
-                dir = new Point(tipPath[1].X - tipPath[0].X, tipPath[1].Y - tipPath[0].Y);
-            else if (i == tipPath.Count - 1)
-                dir = new Point(tipPath[i].X - tipPath[i - 1].X, tipPath[i].Y - tipPath[i - 1].Y);
-            else
-                dir = new Point(tipPath[i + 1].X - tipPath[i - 1].X, tipPath[i + 1].Y - tipPath[i - 1].Y);
-
-            result.Add(ResolveNozzlePivot(tipPath[i], ResolveNozzleDirection(dir), _nozzleImage, mmPerPixel));
+            var tip = tipPath[i];
+            var upperBlend = ResolveUpperZoneBlend(tip.Y, centerY);
+            var dir = ResolvePivotDirection(upperBlend);
+            var rightShift = upperBlend * UpperZoneExtraPivotRightMm;
+            var extraDrop = upperBlend * UpperZoneExtraPivotDropMm;
+            var targetPivot = new Point(
+                tip.X + dir.X * nozzleTipDistanceMm + rightShift,
+                tip.Y + dir.Y * nozzleTipDistanceMm - BasePivotDropMm - extraDrop);
+            currentPivot = LerpPoint(currentPivot, targetPivot, PivotFollowSmoothing);
+            pivots.Add(currentPivot);
         }
+
+        return pivots;
+    }
+
+    private static double ResolveUpperZoneBlend(double tipY, double centerY)
+    {
+        var start = centerY + UpperZoneBlendStartMm;
+        var t = (tipY - start) / Math.Max(1e-6, UpperZoneBlendSpanMm);
+        return Math.Clamp(t, 0.0, 1.0);
+    }
+
+    private Point ResolvePivotDirection(double upperBlend)
+    {
+        var lowerDir = new Point(1.0, 0.0);
+        // In upper zone rotate nozzle downward while keeping pivot on the right side.
+        var upperDir = new Point(0.28, -0.96);
+        var blended = new Point(
+            lowerDir.X + (upperDir.X - lowerDir.X) * upperBlend,
+            lowerDir.Y + (upperDir.Y - lowerDir.Y) * upperBlend);
+        return ResolveNozzleDirection(blended);
+    }
+
+    private static (Point Tip, Point Pivot, bool IsProcessing, int ProcessSegmentIndex, double ProcessSegmentT) ResolveMotionState(
+        double timelineProgress,
+        IReadOnlyList<Point> processTipPath,
+        IReadOnlyList<Point> processPivotPath,
+        Point centerTip,
+        Point centerPivot,
+        Point approachStartTip,
+        Point approachStartPivot)
+    {
+        var progress = Math.Clamp(timelineProgress, 0.0, 1.0);
+        if (progress <= ApproachPhase + 1e-6)
+        {
+            var t = ApproachPhase <= 1e-6 ? 1.0 : progress / ApproachPhase;
+            return (
+                LerpPoint(approachStartTip, centerTip, t),
+                LerpPoint(approachStartPivot, centerPivot, t),
+                false,
+                0,
+                0);
+        }
+
+        if (processTipPath.Count == 0 || processPivotPath.Count == 0)
+            return (centerTip, centerPivot, false, 0, 0);
+
+        var transferEnd = Math.Min(1.0, ApproachPhase + CenterTransferPhase);
+        if (progress <= transferEnd + 1e-6)
+        {
+            var transferSpan = Math.Max(1e-6, transferEnd - ApproachPhase);
+            var t = (progress - ApproachPhase) / transferSpan;
+            return (
+                LerpPoint(centerTip, processTipPath[0], t),
+                LerpPoint(centerPivot, processPivotPath[0], t),
+                false,
+                0,
+                t);
+        }
+
+        var processProgress = transferEnd >= 1.0
+            ? 1.0
+            : (progress - transferEnd) / (1.0 - transferEnd);
+        var processState = Interpolate(processTipPath, processProgress);
+        var pivot = InterpolateBySegment(processPivotPath, processState.SegmentIndex, processState.SegmentT);
+        return (processState.Position, pivot, true, processState.SegmentIndex, processState.SegmentT);
+    }
+
+    private static Point InterpolateBySegment(IReadOnlyList<Point> path, int segmentIndex, double segmentT)
+    {
+        if (path.Count == 0)
+            return default;
+
+        if (path.Count == 1)
+            return path[0];
+
+        var seg = Math.Clamp(segmentIndex, 0, path.Count - 2);
+        var t = Math.Clamp(segmentT, 0.0, 1.0);
+        return LerpPoint(path[seg], path[seg + 1], t);
+    }
+
+    private static List<Point> BuildMotionPath(IReadOnlyList<Point> processPath, Point centerPoint, Point approachStartPoint)
+    {
+        var result = new List<Point>
+        {
+            approachStartPoint,
+            centerPoint
+        };
+
+        if (processPath.Count == 0)
+            return result;
+
+        result.Add(processPath[0]);
+        for (var i = 1; i < processPath.Count; i++)
+            result.Add(processPath[i]);
 
         return result;
     }
 
-    private static List<bool> BuildSegmentSafety(IReadOnlyList<RecipePoint> source)
+    private static List<Point> BuildPassedPath(IReadOnlyList<Point> path, int segmentIndex, double segmentT, Point currentTip)
     {
-        if (source.Count < 2)
-            return new List<bool>();
-
-        var flags = new List<bool>(source.Count - 1);
-        for (var i = 0; i < source.Count - 1; i++)
-            flags.Add(source[i].Safe || source[i + 1].Safe);
-
-        return flags;
-    }
-
-    private Point ResolveManipulatorPivot(
-        double timelineProgress,
-        double approachPhase,
-        Point startNozzlePivot,
-        Point approachOffset,
-        (Point Position, Point Direction, int SegmentIndex) state,
-        IReadOnlyList<Point> path,
-        IReadOnlyList<RecipePoint> source,
-        IReadOnlyList<bool> segmentSafety,
-        double mmPerPixel)
-    {
-        if (timelineProgress <= approachPhase)
-            return new Point(startNozzlePivot.X + approachOffset.X, startNozzlePivot.Y + approachOffset.Y);
-
-        var seg = Math.Clamp(state.SegmentIndex, 0, Math.Max(0, path.Count - 2));
-        var isSafeSegment = seg < segmentSafety.Count && segmentSafety[seg];
-
-        var tip = state.Position;
-        var dir = ResolveNozzleDirection(state.Direction);
-        if (isSafeSegment)
-            return ResolveNozzlePivot(tip, dir, _nozzleImage, mmPerPixel);
-
-        var blockStartSeg = seg;
-        while (blockStartSeg > 0 && blockStartSeg - 1 < segmentSafety.Count && !segmentSafety[blockStartSeg - 1])
-            blockStartSeg--;
-
-        if (blockStartSeg >= path.Count)
-            return ResolveNozzlePivot(tip, dir, _nozzleImage, mmPerPixel);
-
-        var blockStartTip = path[blockStartSeg];
-        var blockDir = blockStartSeg < path.Count - 1
-            ? ResolveNozzleDirection(new Point(path[blockStartSeg + 1].X - path[blockStartSeg].X, path[blockStartSeg + 1].Y - path[blockStartSeg].Y))
-            : dir;
-
-        return ResolveNozzlePivot(blockStartTip, blockDir, _nozzleImage, mmPerPixel);
-    }
-
-    private List<Point> BuildManipulatorPivotPath(
-        IReadOnlyList<Point> path,
-        IReadOnlyList<RecipePoint> source,
-        IReadOnlyList<bool> segmentSafety,
-        Point startNozzlePivot,
-        double approachOffsetX,
-        double mmPerPixel)
-    {
-        var pivots = new List<Point>();
-        pivots.Add(new Point(startNozzlePivot.X + approachOffsetX, startNozzlePivot.Y));
-        pivots.Add(startNozzlePivot);
-
         if (path.Count < 2)
-            return pivots;
+            return new List<Point>();
 
-        for (var i = 0; i < path.Count - 1; i++)
-        {
-            var tip = path[i];
-            var dir = ResolveNozzleDirection(new Point(path[i + 1].X - path[i].X, path[i + 1].Y - path[i].Y));
-            var tipPivot = ResolveNozzlePivot(tip, dir, _nozzleImage, mmPerPixel);
-            var isSafeSegment = i < segmentSafety.Count && segmentSafety[i];
+        var seg = Math.Clamp(segmentIndex, 0, path.Count - 2);
+        var passed = path.Take(seg + 1).ToList();
+        var exact = LerpPoint(path[seg], path[seg + 1], segmentT);
+        passed.Add(double.IsFinite(currentTip.X) && double.IsFinite(currentTip.Y) ? currentTip : exact);
+        return passed;
+    }
 
-            if (isSafeSegment)
-            {
-                pivots.Add(tipPivot);
-                continue;
-            }
-
-            var blockStartSeg = i;
-            while (blockStartSeg > 0 && blockStartSeg - 1 < segmentSafety.Count && !segmentSafety[blockStartSeg - 1])
-                blockStartSeg--;
-
-            if (blockStartSeg < path.Count - 1)
-            {
-                var blockTip = path[blockStartSeg];
-                var blockDir = ResolveNozzleDirection(new Point(path[blockStartSeg + 1].X - path[blockStartSeg].X, path[blockStartSeg + 1].Y - path[blockStartSeg].Y));
-                pivots.Add(ResolveNozzlePivot(blockTip, blockDir, _nozzleImage, mmPerPixel));
-            }
-            else
-            {
-                pivots.Add(tipPivot);
-            }
-        }
-
-        return pivots;
+    private static Point LerpPoint(Point a, Point b, double t)
+    {
+        var tt = Math.Clamp(t, 0.0, 1.0);
+        return new Point(
+            a.X + (b.X - a.X) * tt,
+            a.Y + (b.Y - a.Y) * tt);
     }
 }

@@ -432,6 +432,16 @@ public sealed partial class SimulationView : UserControl
         View2DPlot.ManipulatorAnchorX = Controls.SimulationBlueprint2DControl.DefaultManipulatorAnchorX;
         View2DPlot.ManipulatorAnchorY = Controls.SimulationBlueprint2DControl.DefaultManipulatorAnchorY;
         View2DPlot.VerticalOffsetMm = Controls.SimulationBlueprint2DControl.DefaultVerticalOffsetMm;
+        View2DPlot.HorizontalOffsetMm = Controls.SimulationBlueprint2DControl.DefaultHorizontalOffsetMm;
+        View2DPlot.ReversePath = false;
+        View2DPlot.AutoAlignCalibration();
+    }
+
+    private void AutoAlign2DCalibration_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        View2DPlot.AutoAlignCalibration();
+        View2DPlot.ResetZoom();
+        UpdateView2DZoomText();
     }
 
     private void UpdateZoomText()
