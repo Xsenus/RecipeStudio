@@ -107,6 +107,7 @@ public sealed class SimulationPanelsSettings
     public PanelPlacementSettings TopView { get; set; } = new() { IsVisible = false };
     public PanelPlacementSettings View2D { get; set; } = new() { IsVisible = false };
     public PanelPlacementSettings View2DFact { get; set; } = new() { IsVisible = false };
+    public PanelPlacementSettings View2DPair { get; set; } = new() { IsVisible = false };
     public PanelPlacementSettings View3D { get; set; } = new();
 }
 

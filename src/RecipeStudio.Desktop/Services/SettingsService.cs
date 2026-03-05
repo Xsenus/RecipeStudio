@@ -126,6 +126,7 @@ public sealed class SettingsService
         Settings.SimulationPanels.TopView ??= new PanelPlacementSettings();
         Settings.SimulationPanels.View2D ??= new PanelPlacementSettings { IsVisible = false };
         Settings.SimulationPanels.View2DFact ??= new PanelPlacementSettings { IsVisible = false };
+        Settings.SimulationPanels.View2DPair ??= new PanelPlacementSettings { IsVisible = false };
         Settings.SimulationPanels.View3D ??= new PanelPlacementSettings();
         Settings.EditorGridColumns ??= new();
 
