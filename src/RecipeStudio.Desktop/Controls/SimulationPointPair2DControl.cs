@@ -70,6 +70,9 @@ public sealed class SimulationPointPair2DControl : Control
         AvaloniaProperty.Register<SimulationPointPair2DControl, double>(nameof(ManipulatorAnchorY), SimulationBlueprint2DControl.DefaultManipulatorAnchorY);
 
     private const double Pad = 20;
+    private const double NozzleStartAnchorX = 0.04;
+    private const double NozzleEndAnchorX = 0.84;
+    private const double NozzleAnchorY = 0.50;
     private Rect _fitWorldBounds;
     private Rect _worldBounds;
     private double _scale;
@@ -85,6 +88,7 @@ public sealed class SimulationPointPair2DControl : Control
 
     private readonly Bitmap? _partImage;
     private readonly Bitmap? _manipulatorImage;
+    private readonly Bitmap? _nozzleImage;
 
     public IList<RecipePoint>? Points
     {
@@ -224,6 +228,7 @@ public sealed class SimulationPointPair2DControl : Control
         ClipToBounds = true;
         _partImage = TryLoadBitmap("avares://RecipeStudio.Desktop/Assets/Images/H340_KAMA_1.fw.png");
         _manipulatorImage = TryLoadBitmap("avares://RecipeStudio.Desktop/Assets/Images/manipulator.fw.png");
+        _nozzleImage = TryLoadBitmap("avares://RecipeStudio.Desktop/Assets/Images/soplo.fw.png");
     }
 
     public void ZoomIn()
@@ -328,7 +333,8 @@ public sealed class SimulationPointPair2DControl : Control
 
         var (point1, point2) = ResolvePairPoints();
         var manipRectWorld = CreateManipulatorRectFromAnchor(point2, _manipulatorImage, mmPerPixel);
-        var worldBounds = ComputeWorldBounds(partRectWorld, manipRectWorld, point1, point2);
+        var nozzleRectWorld = CreateNozzleEnvelopeRect(point1, point2, _nozzleImage, mmPerPixel);
+        var worldBounds = ComputeWorldBounds(partRectWorld, manipRectWorld, point1, point2, nozzleRectWorld);
 
         if (_lastRenderSize != Bounds.Size)
         {
@@ -355,8 +361,9 @@ public sealed class SimulationPointPair2DControl : Control
             DrawImageWorld(context, _partImage, partRectWorld);
             DrawImageWorld(context, _manipulatorImage, manipRectWorld);
 
-            // Keep pair overlay above manipulator so points 1/2 and red link are always visible.
+            // Keep red pair link as reference, then overlay nozzle image directly on top of it.
             DrawPairLink(context, point1, point2);
+            DrawNozzleBetweenPoints(context, point1, point2, mmPerPixel);
             DrawPointMarker(context, point1, "1");
             DrawPointMarker(context, point2, "2");
         }
@@ -638,18 +645,41 @@ public sealed class SimulationPointPair2DControl : Control
         return x * x * (3 - 2 * x);
     }
 
-    private static Rect ComputeWorldBounds(Rect partRect, Rect manipRect, Point point1, Point point2)
+    private static Rect ComputeWorldBounds(
+        Rect partRect,
+        Rect manipRect,
+        Point point1,
+        Point point2,
+        Rect nozzleRect)
     {
         var minX = Math.Min(Math.Min(partRect.Left, manipRect.Left), Math.Min(point1.X, point2.X));
+        minX = Math.Min(minX, nozzleRect.Left);
         var maxX = Math.Max(Math.Max(partRect.Right, manipRect.Right), Math.Max(point1.X, point2.X));
+        maxX = Math.Max(maxX, nozzleRect.Right);
         var minZ = Math.Min(Math.Min(partRect.Top, manipRect.Top), Math.Min(point1.Y, point2.Y));
+        minZ = Math.Min(minZ, nozzleRect.Top);
         var maxZ = Math.Max(Math.Max(partRect.Bottom, manipRect.Bottom), Math.Max(point1.Y, point2.Y));
+        maxZ = Math.Max(maxZ, nozzleRect.Bottom);
 
         var w = Math.Max(1, maxX - minX);
         var h = Math.Max(1, maxZ - minZ);
         const double marginX = 220;
         const double marginZ = 420;
         return new Rect(minX - marginX, minZ - marginZ, w + marginX * 2, h + marginZ * 2);
+    }
+
+    private static Rect CreateNozzleEnvelopeRect(Point point1, Point point2, Bitmap? image, double mmPerPixel)
+    {
+        var minX = Math.Min(point1.X, point2.X);
+        var maxX = Math.Max(point1.X, point2.X);
+        var minZ = Math.Min(point1.Y, point2.Y);
+        var maxZ = Math.Max(point1.Y, point2.Y);
+
+        if (image is null || image.Size.Width <= 0 || image.Size.Height <= 0)
+            return new Rect(minX - 40, minZ - 40, (maxX - minX) + 80, (maxZ - minZ) + 80);
+
+        var h = Math.Max(20, image.Size.Height * mmPerPixel);
+        return new Rect(minX - h, minZ - h, (maxX - minX) + h * 2, (maxZ - minZ) + h * 2);
     }
 
     private void DrawGrid(DrawingContext context, Rect world, double stepMm)
@@ -687,6 +717,47 @@ public sealed class SimulationPointPair2DControl : Control
             image,
             new Rect(0, 0, image.Size.Width, image.Size.Height),
             dest);
+    }
+
+    private void DrawNozzleBetweenPoints(DrawingContext context, Point point1World, Point point2World, double mmPerPixel)
+    {
+        if (_nozzleImage is null || _nozzleImage.Size.Width <= 0 || _nozzleImage.Size.Height <= 0)
+            return;
+
+        var start = WorldToScreen(point1World);
+        var end = WorldToScreen(point2World);
+        var dx = end.X - start.X;
+        var dy = end.Y - start.Y;
+        var lengthPx = Math.Sqrt(dx * dx + dy * dy);
+        if (lengthPx <= 1e-3)
+            return;
+
+        var angle = Math.Atan2(dy, dx);
+
+        var widthMm = _nozzleImage.Size.Width * mmPerPixel;
+        var heightMm = _nozzleImage.Size.Height * mmPerPixel;
+        var widthPx = Math.Max(1, widthMm * _scale);
+        var heightPx = Math.Max(1, heightMm * _scale);
+
+        var startAnchorPx = NozzleStartAnchorX * widthPx;
+        var endAnchorPx = NozzleEndAnchorX * widthPx;
+        var anchorSpanPx = Math.Max(1e-3, endAnchorPx - startAnchorPx);
+        var stretchX = lengthPx / anchorSpanPx;
+        var anchorY = NozzleAnchorY * heightPx;
+
+        var transform =
+            Matrix.CreateTranslation(-startAnchorPx, -anchorY) *
+            Matrix.CreateScale(stretchX, 1.0) *
+            Matrix.CreateRotation(angle) *
+            Matrix.CreateTranslation(start.X, start.Y);
+
+        using (context.PushTransform(transform))
+        {
+            context.DrawImage(
+                _nozzleImage,
+                new Rect(0, 0, _nozzleImage.Size.Width, _nozzleImage.Size.Height),
+                new Rect(0, 0, widthPx, heightPx));
+        }
     }
 
     private void DrawPairLink(DrawingContext context, Point point1, Point point2)
