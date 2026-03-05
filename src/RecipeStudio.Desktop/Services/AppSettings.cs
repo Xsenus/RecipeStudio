@@ -107,8 +107,20 @@ public sealed class SimulationPanelsSettings
     public PanelPlacementSettings TopView { get; set; } = new() { IsVisible = false };
     public PanelPlacementSettings View2D { get; set; } = new() { IsVisible = false };
     public PanelPlacementSettings View2DFact { get; set; } = new() { IsVisible = false };
-    public PanelPlacementSettings View2DPair { get; set; } = new() { IsVisible = false };
-    public PanelPlacementSettings View3D { get; set; } = new();
+    public PanelPlacementSettings View2DPair { get; set; } = new() { IsVisible = true };
+    public PanelPlacementSettings View3D { get; set; } = new() { IsVisible = false };
+    public SimulationPanelsAccessSettings Access { get; set; } = new();
+}
+
+public sealed class SimulationPanelsAccessSettings
+{
+    public bool Plot { get; set; } = true;
+    public bool Telemetry { get; set; } = true;
+    public bool TopView { get; set; } = false;
+    public bool View2D { get; set; } = false;
+    public bool View2DFact { get; set; } = false;
+    public bool View2DPair { get; set; } = true;
+    public bool View3D { get; set; } = false;
 }
 
 public sealed class EditorGridColumnWidthSettings

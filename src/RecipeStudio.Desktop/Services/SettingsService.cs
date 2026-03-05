@@ -96,6 +96,25 @@ public sealed class SettingsService
         }
     }
 
+    public void SaveSection(Action<AppSettings> applySection)
+    {
+        try
+        {
+            var merged = Load(out _);
+            EnsureDefaults(merged);
+            applySection(merged);
+            EnsureDefaults(merged);
+
+            var json = JsonSerializer.Serialize(merged, _jsonOptions);
+            File.WriteAllText(SettingsPath, json);
+            _logger.Configure(Settings.LoggingEnabled, Settings.LogRetentionDays, Settings.LogMode, Settings.LogsFolder);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Ошибка сохранения раздела settings.json.", ex);
+        }
+    }
+
     public void ResetToDefaults()
     {
         Settings = new AppSettings();
@@ -104,44 +123,50 @@ public sealed class SettingsService
 
     private void EnsureDefaults()
     {
-        if (string.IsNullOrWhiteSpace(Settings.RecipesFolder))
+        EnsureDefaults(Settings);
+    }
+
+    private void EnsureDefaults(AppSettings settings)
+    {
+        if (string.IsNullOrWhiteSpace(settings.RecipesFolder))
         {
-            Settings.RecipesFolder = Path.Combine(AppDataRoot, "recipes");
+            settings.RecipesFolder = Path.Combine(AppDataRoot, "recipes");
         }
 
-        if (string.IsNullOrWhiteSpace(Settings.LogsFolder))
+        if (string.IsNullOrWhiteSpace(settings.LogsFolder))
         {
-            Settings.LogsFolder = Path.Combine(AppDataRoot, "logs");
+            settings.LogsFolder = Path.Combine(AppDataRoot, "logs");
         }
 
-        Settings.LogMode = NormalizeLogMode(Settings.LogMode);
-        Settings.LogRetentionDays = Math.Clamp(Settings.LogRetentionDays, 1, 3650);
-        Settings.EditorPanels ??= new EditorPanelsSettings();
-        Settings.EditorPanels.Parameters ??= new PanelPlacementSettings();
-        Settings.EditorPanels.Visualization ??= new PanelPlacementSettings();
-        Settings.EditorPanels.SelectedPoint ??= new PanelPlacementSettings();
-        Settings.SimulationPanels ??= new SimulationPanelsSettings();
-        Settings.SimulationPanels.Plot ??= new PanelPlacementSettings();
-        Settings.SimulationPanels.Telemetry ??= new PanelPlacementSettings();
-        Settings.SimulationPanels.TopView ??= new PanelPlacementSettings();
-        Settings.SimulationPanels.View2D ??= new PanelPlacementSettings { IsVisible = false };
-        Settings.SimulationPanels.View2DFact ??= new PanelPlacementSettings { IsVisible = false };
-        Settings.SimulationPanels.View2DPair ??= new PanelPlacementSettings { IsVisible = false };
-        Settings.SimulationPanels.View3D ??= new PanelPlacementSettings();
-        Settings.EditorGridColumns ??= new();
+        settings.LogMode = NormalizeLogMode(settings.LogMode);
+        settings.LogRetentionDays = Math.Clamp(settings.LogRetentionDays, 1, 3650);
+        settings.EditorPanels ??= new EditorPanelsSettings();
+        settings.EditorPanels.Parameters ??= new PanelPlacementSettings();
+        settings.EditorPanels.Visualization ??= new PanelPlacementSettings();
+        settings.EditorPanels.SelectedPoint ??= new PanelPlacementSettings();
+        settings.SimulationPanels ??= new SimulationPanelsSettings();
+        settings.SimulationPanels.Plot ??= new PanelPlacementSettings();
+        settings.SimulationPanels.Telemetry ??= new PanelPlacementSettings();
+        settings.SimulationPanels.TopView ??= new PanelPlacementSettings();
+        settings.SimulationPanels.View2D ??= new PanelPlacementSettings { IsVisible = false };
+        settings.SimulationPanels.View2DFact ??= new PanelPlacementSettings { IsVisible = false };
+        settings.SimulationPanels.View2DPair ??= new PanelPlacementSettings { IsVisible = true };
+        settings.SimulationPanels.View3D ??= new PanelPlacementSettings { IsVisible = false };
+        settings.SimulationPanels.Access ??= new SimulationPanelsAccessSettings();
+        settings.EditorGridColumns ??= new();
 
         try
         {
-            Directory.CreateDirectory(Settings.RecipesFolder);
-            Directory.CreateDirectory(Settings.LogsFolder);
+            Directory.CreateDirectory(settings.RecipesFolder);
+            Directory.CreateDirectory(settings.LogsFolder);
         }
         catch (Exception ex)
         {
             _logger.Error("Ошибка создания рабочих каталогов из настроек.", ex);
-            Settings.RecipesFolder = Path.Combine(AppDataRoot, "recipes");
-            Settings.LogsFolder = Path.Combine(AppDataRoot, "logs");
-            Directory.CreateDirectory(Settings.RecipesFolder);
-            Directory.CreateDirectory(Settings.LogsFolder);
+            settings.RecipesFolder = Path.Combine(AppDataRoot, "recipes");
+            settings.LogsFolder = Path.Combine(AppDataRoot, "logs");
+            Directory.CreateDirectory(settings.RecipesFolder);
+            Directory.CreateDirectory(settings.LogsFolder);
         }
     }
 

@@ -35,13 +35,54 @@ public sealed partial class SettingsView : UserControl
         if (_vm is not null)
         {
             _vm.RequestCreateSampleRecipe -= OnRequestCreateSampleRecipe;
+            _vm.SettingsSaved -= OnSettingsSaved;
         }
 
         _vm = DataContext as SettingsViewModel;
         if (_vm is not null)
         {
             _vm.RequestCreateSampleRecipe += OnRequestCreateSampleRecipe;
+            _vm.SettingsSaved += OnSettingsSaved;
         }
+    }
+
+    private async void OnSettingsSaved(string sectionTitle)
+    {
+        var owner = TopLevel.GetTopLevel(this) as Window;
+        if (owner is null)
+            return;
+
+        var info = new InfoDialog("Настройки", $"Сохранены настройки раздела: {sectionTitle}.", "OK");
+        await info.ShowDialog(owner);
+    }
+
+    private async void ResetSelectedSection_Click(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not SettingsViewModel vm)
+            return;
+
+        var owner = TopLevel.GetTopLevel(this) as Window;
+        if (owner is null)
+            return;
+
+        var sectionTitle = vm.CurrentSectionTitle;
+        var confirm = new ConfirmDialog(
+            "Подтверждение сброса",
+            $"Точно сбросить настройки раздела \"{sectionTitle}\" до стандартных?",
+            "Сбросить",
+            "Отмена");
+
+        var confirmed = await confirm.ShowDialog<bool>(owner);
+        if (!confirmed)
+            return;
+
+        vm.ResetSelectedSectionToDefaults();
+
+        var info = new InfoDialog(
+            "Сброс выполнен",
+            $"Настройки раздела \"{sectionTitle}\" сброшены только на форме. Чтобы применить изменения, нажмите «Сохранить».",
+            "OK");
+        await info.ShowDialog(owner);
     }
 
     private async void OnRequestCreateSampleRecipe()

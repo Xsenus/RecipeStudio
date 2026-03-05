@@ -11,6 +11,7 @@ public sealed class SettingsViewModel : ViewModelBase
     public const string SectionMachine = "machine";
     public const string SectionCoefficients = "coefficients";
     public const string SectionGraphics = "graphics";
+    public const string SectionSimulation = "simulation";
     public const string SectionLogging = "logging";
 
     private readonly SettingsService _settings;
@@ -35,6 +36,7 @@ public sealed class SettingsViewModel : ViewModelBase
     public RelayCommand CreateSampleRecipeCommand { get; }
 
     public event Action? RequestCreateSampleRecipe;
+    public event Action<string>? SettingsSaved;
 
     public string SelectedSection
     {
@@ -47,6 +49,7 @@ public sealed class SettingsViewModel : ViewModelBase
                 RaisePropertyChanged(nameof(IsMachineSection));
                 RaisePropertyChanged(nameof(IsCoefficientsSection));
                 RaisePropertyChanged(nameof(IsGraphicsSection));
+                RaisePropertyChanged(nameof(IsSimulationSection));
                 RaisePropertyChanged(nameof(IsLoggingSection));
                 RaisePropertyChanged(nameof(CurrentSectionTitle));
             }
@@ -57,6 +60,7 @@ public sealed class SettingsViewModel : ViewModelBase
     public bool IsMachineSection => SelectedSection == SectionMachine;
     public bool IsCoefficientsSection => SelectedSection == SectionCoefficients;
     public bool IsGraphicsSection => SelectedSection == SectionGraphics;
+    public bool IsSimulationSection => SelectedSection == SectionSimulation;
     public bool IsLoggingSection => SelectedSection == SectionLogging;
 
     public string CurrentSectionTitle => SelectedSection switch
@@ -65,6 +69,7 @@ public sealed class SettingsViewModel : ViewModelBase
         SectionMachine => "Параметры станка",
         SectionCoefficients => "Коэффициенты и импульсы",
         SectionGraphics => "Графика",
+        SectionSimulation => "Окна симуляции",
         SectionLogging => "Логирование",
         _ => "Настройки"
     };
@@ -181,6 +186,79 @@ public sealed class SettingsViewModel : ViewModelBase
         }
     }
 
+    private SimulationPanelsAccessSettings SimulationPanelsAccess =>
+        _settings.Settings.SimulationPanels.Access ??= new SimulationPanelsAccessSettings();
+
+    public bool SimAllowPlot
+    {
+        get => SimulationPanelsAccess.Plot;
+        set
+        {
+            SimulationPanelsAccess.Plot = value;
+            RaisePropertyChanged();
+        }
+    }
+
+    public bool SimAllowTelemetry
+    {
+        get => SimulationPanelsAccess.Telemetry;
+        set
+        {
+            SimulationPanelsAccess.Telemetry = value;
+            RaisePropertyChanged();
+        }
+    }
+
+    public bool SimAllowTopView
+    {
+        get => SimulationPanelsAccess.TopView;
+        set
+        {
+            SimulationPanelsAccess.TopView = value;
+            RaisePropertyChanged();
+        }
+    }
+
+    public bool SimAllowView2D
+    {
+        get => SimulationPanelsAccess.View2D;
+        set
+        {
+            SimulationPanelsAccess.View2D = value;
+            RaisePropertyChanged();
+        }
+    }
+
+    public bool SimAllowView2DFact
+    {
+        get => SimulationPanelsAccess.View2DFact;
+        set
+        {
+            SimulationPanelsAccess.View2DFact = value;
+            RaisePropertyChanged();
+        }
+    }
+
+    public bool SimAllowView2DPair
+    {
+        get => SimulationPanelsAccess.View2DPair;
+        set
+        {
+            SimulationPanelsAccess.View2DPair = value;
+            RaisePropertyChanged();
+        }
+    }
+
+    public bool SimAllowView3D
+    {
+        get => SimulationPanelsAccess.View3D;
+        set
+        {
+            SimulationPanelsAccess.View3D = value;
+            RaisePropertyChanged();
+        }
+    }
+
     // Logging
     public bool LoggingEnabled
     {
@@ -241,9 +319,138 @@ public sealed class SettingsViewModel : ViewModelBase
         return _createSampleRecipe();
     }
 
+    public void ResetSelectedSectionToDefaults()
+    {
+        var defaults = CreateDefaultSettings();
+
+        switch (SelectedSection)
+        {
+            case SectionStorage:
+                _settings.Settings.RecipesFolder = defaults.RecipesFolder;
+                _settings.Settings.AutoCreateSampleRecipeOnEmpty = defaults.AutoCreateSampleRecipeOnEmpty;
+                RaisePropertyChanged(nameof(RecipesFolder));
+                RaisePropertyChanged(nameof(DatabaseFilePath));
+                RaisePropertyChanged(nameof(AutoCreateSampleRecipeOnEmpty));
+                break;
+
+            case SectionMachine:
+                _settings.Settings.HZone = defaults.HZone;
+                _settings.Settings.HContMax = defaults.HContMax;
+                _settings.Settings.HBokMax = defaults.HBokMax;
+                _settings.Settings.HFreeZ = defaults.HFreeZ;
+                _settings.Settings.Xm = defaults.Xm;
+                _settings.Settings.Ym = defaults.Ym;
+                _settings.Settings.Zm = defaults.Zm;
+                _settings.Settings.Lz = defaults.Lz;
+                _settings.Settings.NozzleOrientationMode = defaults.NozzleOrientationMode;
+                _settings.Settings.AlfaMinDeg = defaults.AlfaMinDeg;
+                _settings.Settings.AlfaMaxDeg = defaults.AlfaMaxDeg;
+                _settings.Settings.BettaMinDeg = defaults.BettaMinDeg;
+                _settings.Settings.BettaMaxDeg = defaults.BettaMaxDeg;
+                RaisePropertyChanged(nameof(HZone));
+                RaisePropertyChanged(nameof(HContMax));
+                RaisePropertyChanged(nameof(HBokMax));
+                RaisePropertyChanged(nameof(HFreeZ));
+                RaisePropertyChanged(nameof(Xm));
+                RaisePropertyChanged(nameof(Ym));
+                RaisePropertyChanged(nameof(Zm));
+                RaisePropertyChanged(nameof(Lz));
+                RaisePropertyChanged(nameof(NozzleOrientationMode));
+                RaisePropertyChanged(nameof(NozzleOrientationModeDescription));
+                RaisePropertyChanged(nameof(AlfaMinDeg));
+                RaisePropertyChanged(nameof(AlfaMaxDeg));
+                RaisePropertyChanged(nameof(BettaMinDeg));
+                RaisePropertyChanged(nameof(BettaMaxDeg));
+                break;
+
+            case SectionCoefficients:
+                _settings.Settings.PulseX = defaults.PulseX;
+                _settings.Settings.PulseY = defaults.PulseY;
+                _settings.Settings.PulseZ = defaults.PulseZ;
+                _settings.Settings.PulseA = defaults.PulseA;
+                _settings.Settings.PulseB = defaults.PulseB;
+                _settings.Settings.PulseTop = defaults.PulseTop;
+                _settings.Settings.PulseLow = defaults.PulseLow;
+                _settings.Settings.PulseClamp = defaults.PulseClamp;
+                RaisePropertyChanged(nameof(PulseX));
+                RaisePropertyChanged(nameof(PulseY));
+                RaisePropertyChanged(nameof(PulseZ));
+                RaisePropertyChanged(nameof(PulseA));
+                RaisePropertyChanged(nameof(PulseB));
+                RaisePropertyChanged(nameof(PulseTop));
+                RaisePropertyChanged(nameof(PulseLow));
+                RaisePropertyChanged(nameof(PulseClamp));
+                break;
+
+            case SectionGraphics:
+                _settings.Settings.PlotOpacity = defaults.PlotOpacity;
+                _settings.Settings.PlotStrokeThickness = defaults.PlotStrokeThickness;
+                _settings.Settings.PlotPointRadius = defaults.PlotPointRadius;
+                _settings.Settings.PlotShowPolyline = defaults.PlotShowPolyline;
+                _settings.Settings.PlotShowSmooth = defaults.PlotShowSmooth;
+                _settings.Settings.PlotShowTargetPoints = defaults.PlotShowTargetPoints;
+                _settings.Settings.PlotEnableDrag = defaults.PlotEnableDrag;
+                _settings.Settings.PlotColorWorkingZone = defaults.PlotColorWorkingZone;
+                _settings.Settings.PlotColorSafetyZone = defaults.PlotColorSafetyZone;
+                _settings.Settings.PlotColorRobotPath = defaults.PlotColorRobotPath;
+                _settings.Settings.PlotColorPairLinks = defaults.PlotColorPairLinks;
+                _settings.Settings.PlotColorTool = defaults.PlotColorTool;
+                _settings.Settings.SmoothSegmentsPerSpan = defaults.SmoothSegmentsPerSpan;
+                RaisePropertyChanged(nameof(PlotOpacity));
+                RaisePropertyChanged(nameof(PlotOpacityDisplay));
+                RaisePropertyChanged(nameof(PlotStrokeThickness));
+                RaisePropertyChanged(nameof(PlotPointRadius));
+                RaisePropertyChanged(nameof(PlotShowPolyline));
+                RaisePropertyChanged(nameof(PlotShowSmooth));
+                RaisePropertyChanged(nameof(PlotShowTargetPoints));
+                RaisePropertyChanged(nameof(PlotEnableDrag));
+                RaisePropertyChanged(nameof(PlotColorWorkingZone));
+                RaisePropertyChanged(nameof(PlotColorSafetyZone));
+                RaisePropertyChanged(nameof(PlotColorRobotPath));
+                RaisePropertyChanged(nameof(PlotColorPairLinks));
+                RaisePropertyChanged(nameof(PlotColorTool));
+                RaisePropertyChanged(nameof(SmoothSegmentsPerSpan));
+                break;
+
+            case SectionSimulation:
+                _settings.Settings.SimulationPanels.Access = new SimulationPanelsAccessSettings
+                {
+                    Plot = defaults.SimulationPanels.Access.Plot,
+                    Telemetry = defaults.SimulationPanels.Access.Telemetry,
+                    TopView = defaults.SimulationPanels.Access.TopView,
+                    View2D = defaults.SimulationPanels.Access.View2D,
+                    View2DFact = defaults.SimulationPanels.Access.View2DFact,
+                    View2DPair = defaults.SimulationPanels.Access.View2DPair,
+                    View3D = defaults.SimulationPanels.Access.View3D
+                };
+                RaisePropertyChanged(nameof(SimAllowPlot));
+                RaisePropertyChanged(nameof(SimAllowTelemetry));
+                RaisePropertyChanged(nameof(SimAllowTopView));
+                RaisePropertyChanged(nameof(SimAllowView2D));
+                RaisePropertyChanged(nameof(SimAllowView2DFact));
+                RaisePropertyChanged(nameof(SimAllowView2DPair));
+                RaisePropertyChanged(nameof(SimAllowView3D));
+                break;
+
+            case SectionLogging:
+                _settings.Settings.LoggingEnabled = defaults.LoggingEnabled;
+                _settings.Settings.LogRetentionDays = defaults.LogRetentionDays;
+                _settings.Settings.LogsFolder = defaults.LogsFolder;
+                _settings.Settings.LogMode = defaults.LogMode;
+                RaisePropertyChanged(nameof(LoggingEnabled));
+                RaisePropertyChanged(nameof(LogRetentionDays));
+                RaisePropertyChanged(nameof(LogsFolder));
+                RaisePropertyChanged(nameof(LogMode));
+                RaisePropertyChanged(nameof(LogModeDescription));
+                RaisePropertyChanged(nameof(LogFilePath));
+                break;
+        }
+    }
+
     private void Save()
     {
-        _settings.Save();
+        _settings.SaveSection(target => CopySelectedSection(_settings.Settings, target));
+        SettingsSaved?.Invoke(CurrentSectionTitle);
         _onChanged();
         RaisePropertyChanged(nameof(SettingsFilePath));
         RaisePropertyChanged(nameof(DatabaseFilePath));
@@ -252,10 +459,95 @@ public sealed class SettingsViewModel : ViewModelBase
 
     private void ResetToDefaults()
     {
-        _settings.ResetToDefaults();
-        RaiseAllSettingsPropertiesChanged();
-        _settings.Save();
-        _onChanged();
+        ResetSelectedSectionToDefaults();
+    }
+
+    private AppSettings CreateDefaultSettings()
+    {
+        var defaults = new AppSettings
+        {
+            RecipesFolder = Path.Combine(_settings.AppDataRoot, "recipes"),
+            LogsFolder = Path.Combine(_settings.AppDataRoot, "logs"),
+            LogMode = LogSeverity.Info
+        };
+
+        defaults.SimulationPanels.Access = new SimulationPanelsAccessSettings();
+        return defaults;
+    }
+
+    private void CopySelectedSection(AppSettings source, AppSettings target)
+    {
+        switch (SelectedSection)
+        {
+            case SectionStorage:
+                target.RecipesFolder = source.RecipesFolder;
+                target.AutoCreateSampleRecipeOnEmpty = source.AutoCreateSampleRecipeOnEmpty;
+                break;
+
+            case SectionMachine:
+                target.HZone = source.HZone;
+                target.HContMax = source.HContMax;
+                target.HBokMax = source.HBokMax;
+                target.HFreeZ = source.HFreeZ;
+                target.Xm = source.Xm;
+                target.Ym = source.Ym;
+                target.Zm = source.Zm;
+                target.Lz = source.Lz;
+                target.NozzleOrientationMode = source.NozzleOrientationMode;
+                target.AlfaMinDeg = source.AlfaMinDeg;
+                target.AlfaMaxDeg = source.AlfaMaxDeg;
+                target.BettaMinDeg = source.BettaMinDeg;
+                target.BettaMaxDeg = source.BettaMaxDeg;
+                break;
+
+            case SectionCoefficients:
+                target.PulseX = source.PulseX;
+                target.PulseY = source.PulseY;
+                target.PulseZ = source.PulseZ;
+                target.PulseA = source.PulseA;
+                target.PulseB = source.PulseB;
+                target.PulseTop = source.PulseTop;
+                target.PulseLow = source.PulseLow;
+                target.PulseClamp = source.PulseClamp;
+                break;
+
+            case SectionGraphics:
+                target.PlotOpacity = source.PlotOpacity;
+                target.PlotStrokeThickness = source.PlotStrokeThickness;
+                target.PlotPointRadius = source.PlotPointRadius;
+                target.PlotShowPolyline = source.PlotShowPolyline;
+                target.PlotShowSmooth = source.PlotShowSmooth;
+                target.PlotShowTargetPoints = source.PlotShowTargetPoints;
+                target.PlotEnableDrag = source.PlotEnableDrag;
+                target.PlotColorWorkingZone = source.PlotColorWorkingZone;
+                target.PlotColorSafetyZone = source.PlotColorSafetyZone;
+                target.PlotColorRobotPath = source.PlotColorRobotPath;
+                target.PlotColorPairLinks = source.PlotColorPairLinks;
+                target.PlotColorTool = source.PlotColorTool;
+                target.SmoothSegmentsPerSpan = source.SmoothSegmentsPerSpan;
+                break;
+
+            case SectionSimulation:
+                source.SimulationPanels ??= new SimulationPanelsSettings();
+                source.SimulationPanels.Access ??= new SimulationPanelsAccessSettings();
+                target.SimulationPanels ??= new SimulationPanelsSettings();
+                target.SimulationPanels.Access ??= new SimulationPanelsAccessSettings();
+                target.SimulationPanels.Access.Plot = source.SimulationPanels.Access.Plot;
+                target.SimulationPanels.Access.Telemetry = source.SimulationPanels.Access.Telemetry;
+                target.SimulationPanels.Access.TopView = source.SimulationPanels.Access.TopView;
+                target.SimulationPanels.Access.View2D = source.SimulationPanels.Access.View2D;
+                target.SimulationPanels.Access.View2DFact = source.SimulationPanels.Access.View2DFact;
+                target.SimulationPanels.Access.View2DPair = source.SimulationPanels.Access.View2DPair;
+                target.SimulationPanels.Access.View3D = source.SimulationPanels.Access.View3D;
+                break;
+
+            case SectionLogging:
+                target.LoggingEnabled = source.LoggingEnabled;
+                target.LogRetentionDays = source.LogRetentionDays;
+                target.LogsFolder = source.LogsFolder;
+                target.LogMode = source.LogMode;
+                break;
+        }
     }
 
     private void RaiseAllSettingsPropertiesChanged()
@@ -302,6 +594,14 @@ public sealed class SettingsViewModel : ViewModelBase
         RaisePropertyChanged(nameof(PlotColorPairLinks));
         RaisePropertyChanged(nameof(PlotColorTool));
         RaisePropertyChanged(nameof(SmoothSegmentsPerSpan));
+
+        RaisePropertyChanged(nameof(SimAllowPlot));
+        RaisePropertyChanged(nameof(SimAllowTelemetry));
+        RaisePropertyChanged(nameof(SimAllowTopView));
+        RaisePropertyChanged(nameof(SimAllowView2D));
+        RaisePropertyChanged(nameof(SimAllowView2DFact));
+        RaisePropertyChanged(nameof(SimAllowView2DPair));
+        RaisePropertyChanged(nameof(SimAllowView3D));
 
         RaisePropertyChanged(nameof(LoggingEnabled));
         RaisePropertyChanged(nameof(LogRetentionDays));

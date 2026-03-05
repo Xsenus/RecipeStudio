@@ -214,6 +214,30 @@
     <Setter Property="CornerRadius" Value="8" />
   </Style>
 
+  <Style Selector="Border.panel-launcher-strip">
+    <Setter Property="Padding" Value="8,6" />
+  </Style>
+
+  <Style Selector="Button.panel-launch-btn">
+    <Setter Property="MinWidth" Value="72" />
+    <Setter Property="Height" Value="34" />
+    <Setter Property="Padding" Value="10,0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+
+  <Style Selector="Button.panel-launch-reset-btn">
+    <Setter Property="Width" Value="34" />
+    <Setter Property="Height" Value="34" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+
   <Style Selector="Button.panel-close-btn">
     <Setter Property="Width" Value="28" />
     <Setter Property="Height" Value="28" />

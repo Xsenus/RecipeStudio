@@ -133,6 +133,7 @@ public sealed partial class SimulationView : UserControl
         ApplyPanelLayout(View3DPanel, saved?.View3D, View3DPanelDefaultPosition);
 
         _panelsInitialized = true;
+        ApplyPanelsAccessRestrictions();
         UpdateResizeHandlePositions();
     }
 
@@ -159,16 +160,19 @@ public sealed partial class SimulationView : UserControl
     private Point PlotPanelDefaultPosition(Border panel)
     {
         var canvasWidth = GetCanvasWidth();
-        var canvasHeight = GetCanvasHeight();
-        return new(
-            Math.Max(PanelMargin, canvasWidth - panel.Width - PanelMargin),
-            Math.Max(TopUiReserve, canvasHeight - panel.Height - PanelMargin));
+        var maxLeft = Math.Max(PanelMargin, canvasWidth - panel.Width - PanelMargin);
+        var desiredLeft = PanelMargin + View2DPairPanel.Width + PanelMargin;
+        return new(Math.Clamp(desiredLeft, PanelMargin, maxLeft), TopUiReserve);
     }
 
     private Point TelemetryPanelDefaultPosition(Border panel)
     {
         var canvasWidth = GetCanvasWidth();
-        return new(Math.Max(PanelMargin, canvasWidth - panel.Width - PanelMargin), TopUiReserve);
+        var canvasHeight = GetCanvasHeight();
+        var maxLeft = Math.Max(PanelMargin, canvasWidth - panel.Width - PanelMargin);
+        var maxTop = Math.Max(TopUiReserve, canvasHeight - panel.Height - PanelMargin);
+        var desiredTop = TopUiReserve + 58;
+        return new(maxLeft, Math.Clamp(desiredTop, TopUiReserve, maxTop));
     }
 
     private Point TopViewPanelDefaultPosition(Border panel)
@@ -195,13 +199,66 @@ public sealed partial class SimulationView : UserControl
 
     private Point View2DPairPanelDefaultPosition(Border panel)
     {
-        var canvasWidth = GetCanvasWidth();
-        return new(
-            Math.Max(PanelMargin, canvasWidth - panel.Width - PanelMargin),
-            TopUiReserve + 170);
+        return new(PanelMargin, TopUiReserve);
     }
 
     private Point View3DPanelDefaultPosition(Border _) => new(PanelMargin, TopUiReserve);
+
+    private SimulationPanelsAccessSettings GetPanelsAccess()
+    {
+        if (_vm is null)
+            return new SimulationPanelsAccessSettings();
+
+        _vm.AppSettings.SimulationPanels.Access ??= new SimulationPanelsAccessSettings();
+        return _vm.AppSettings.SimulationPanels.Access;
+    }
+
+    private bool IsPanelAllowed(Border panel)
+    {
+        var access = GetPanelsAccess();
+        if (ReferenceEquals(panel, PlotPanel))
+            return access.Plot;
+
+        if (ReferenceEquals(panel, TelemetryPanel))
+            return access.Telemetry;
+
+        if (ReferenceEquals(panel, TopViewPanel))
+            return access.TopView;
+
+        if (ReferenceEquals(panel, View2DPanel))
+            return access.View2D;
+
+        if (ReferenceEquals(panel, View2DFactPanel))
+            return access.View2DFact;
+
+        if (ReferenceEquals(panel, View2DPairPanel))
+            return access.View2DPair;
+
+        if (ReferenceEquals(panel, View3DPanel))
+            return access.View3D;
+
+        return true;
+    }
+
+    private void ApplyPanelsAccessRestrictions()
+    {
+        ApplyPanelAccess(PlotPanel, PlotResizeHandle, IsPanelAllowed(PlotPanel));
+        ApplyPanelAccess(TelemetryPanel, TelemetryResizeHandle, IsPanelAllowed(TelemetryPanel));
+        ApplyPanelAccess(TopViewPanel, TopViewResizeHandle, IsPanelAllowed(TopViewPanel));
+        ApplyPanelAccess(View2DPanel, View2DResizeHandle, IsPanelAllowed(View2DPanel));
+        ApplyPanelAccess(View2DFactPanel, View2DFactResizeHandle, IsPanelAllowed(View2DFactPanel));
+        ApplyPanelAccess(View2DPairPanel, View2DPairResizeHandle, IsPanelAllowed(View2DPairPanel));
+        ApplyPanelAccess(View3DPanel, View3DResizeHandle, IsPanelAllowed(View3DPanel));
+    }
+
+    private static void ApplyPanelAccess(Border panel, Border handle, bool isAllowed)
+    {
+        if (isAllowed)
+            return;
+
+        panel.IsVisible = false;
+        handle.IsVisible = false;
+    }
 
     private void ApplyDefaultPanelsLayout()
     {
@@ -464,6 +521,14 @@ public sealed partial class SimulationView : UserControl
 
     private void TogglePanel(Border panel, Border handle)
     {
+        if (!IsPanelAllowed(panel))
+        {
+            panel.IsVisible = false;
+            handle.IsVisible = false;
+            PersistPanelsLayout();
+            return;
+        }
+
         panel.IsVisible = !panel.IsVisible;
         handle.IsVisible = panel.IsVisible;
         if (panel.IsVisible)
@@ -553,36 +618,32 @@ public sealed partial class SimulationView : UserControl
 
     private void ResetPanels_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        PlotPanel.Width = 460;
-        PlotPanel.Height = 390;
-        TelemetryPanel.Width = 290;
-        TelemetryPanel.Height = 325;
+        var access = GetPanelsAccess();
+
+        PlotPanel.Width = 700;
+        PlotPanel.Height = 640;
+        TelemetryPanel.Width = 320;
+        TelemetryPanel.Height = 335;
         TopViewPanel.Width = 560;
         TopViewPanel.Height = 320;
         View2DPanel.Width = 740;
         View2DPanel.Height = 470;
         View2DFactPanel.Width = 700;
         View2DFactPanel.Height = 420;
-        View2DPairPanel.Width = 700;
-        View2DPairPanel.Height = 430;
+        View2DPairPanel.Width = 820;
+        View2DPairPanel.Height = 640;
         View3DPanel.Width = 1160;
         View3DPanel.Height = 640;
 
-        PlotPanel.IsVisible = true;
-        TelemetryPanel.IsVisible = true;
+        PlotPanel.IsVisible = access.Plot;
+        TelemetryPanel.IsVisible = access.Telemetry;
         TopViewPanel.IsVisible = false;
         View2DPanel.IsVisible = false;
         View2DFactPanel.IsVisible = false;
-        View2DPairPanel.IsVisible = false;
-        View3DPanel.IsVisible = true;
+        View2DPairPanel.IsVisible = access.View2DPair;
+        View3DPanel.IsVisible = false;
 
-        PlotResizeHandle.IsVisible = true;
-        TelemetryResizeHandle.IsVisible = true;
-        TopViewResizeHandle.IsVisible = false;
-        View2DResizeHandle.IsVisible = false;
-        View2DFactResizeHandle.IsVisible = false;
-        View2DPairResizeHandle.IsVisible = false;
-        View3DResizeHandle.IsVisible = true;
+        ApplyPanelsAccessRestrictions();
 
         RecipePlot.ResetZoom();
         TopViewPlot.ResetZoom();

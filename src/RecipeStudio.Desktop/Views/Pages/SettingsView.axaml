@@ -16,6 +16,7 @@
               <TreeViewItem Header="Параметры станка" Tag="machine" />
               <TreeViewItem Header="Коэффициенты" Tag="coefficients" />
               <TreeViewItem Header="Графика" Tag="graphics" />
+              <TreeViewItem Header="Симуляция (окна)" Tag="simulation" />
               <TreeViewItem Header="Логирование" Tag="logging" />
             </TreeViewItem>
           </TreeView>
@@ -41,8 +42,8 @@
       <Border Grid.Row="0" Classes="card">
         <Grid ColumnDefinitions="*,Auto,Auto" VerticalAlignment="Center">
           <TextBlock Text="{Binding CurrentSectionTitle}" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
-          <Button Grid.Column="1" Command="{Binding ResetToDefaultsCommand}" Classes="ghost" Margin="0,0,8,0" ToolTip.Tip="Сбросить все настройки к стандартным значениям">Сбросить</Button>
-          <Button Grid.Column="2" Command="{Binding SaveCommand}" Classes="accent" ToolTip.Tip="Сохранить все изменения">Сохранить</Button>
+          <Button Grid.Column="1" Click="ResetSelectedSection_Click" Classes="ghost" Margin="0,0,8,0" ToolTip.Tip="Сбросить текущий раздел к стандартным значениям">Сбросить</Button>
+          <Button Grid.Column="2" Command="{Binding SaveCommand}" Classes="accent" ToolTip.Tip="Сохранить изменения текущего раздела">Сохранить</Button>
         </Grid>
       </Border>
 
@@ -287,6 +288,61 @@
                   </Grid>
                 </StackPanel>
               </Border>
+            </StackPanel>
+          </Border>
+
+          <Border Classes="card" IsVisible="{Binding IsSimulationSection}">
+            <StackPanel Spacing="12">
+              <TextBlock Text="Управление окнами на странице симуляции" FontSize="16" FontWeight="SemiBold" />
+              <TextBlock Text="Выберите, какие кнопки и соответствующие окна доступны в строке запуска. После изменения нажмите «Сохранить»." Classes="muted" TextWrapping="Wrap" />
+
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+                <StackPanel Spacing="8">
+                  <StackPanel Spacing="2">
+                    <CheckBox IsChecked="{Binding SimAllowPlot}" ToolTip.Tip="Профиль (R-Z)">Профайлер (R-Z)</CheckBox>
+                    <TextBlock Classes="muted tiny" Margin="24,0,0,0" TextWrapping="Wrap"
+                               Text="Показывает профиль рецепта: рабочую и безопасную зоны, траекторию робота, связи Xp/Zp ↔ Xr/Zr и маркер текущего инструмента." />
+                  </StackPanel>
+
+                  <StackPanel Spacing="2">
+                    <CheckBox IsChecked="{Binding SimAllowView2DPair}" ToolTip.Tip="Обычная 2D-визуализация без сопла">2D без сопла (Pair)</CheckBox>
+                    <TextBlock Classes="muted tiny" Margin="24,0,0,0" TextWrapping="Wrap"
+                               Text="Базовая 2D-сцена для сравнения точки 1 и точки 2 на пресс-форме: красный отрезок между точками и манипулятор, привязанный к точке 2." />
+                  </StackPanel>
+
+                  <StackPanel Spacing="2">
+                    <CheckBox IsChecked="{Binding SimAllowView2DFact}" ToolTip.Tip="2D визуализация по фактической телеметрии">2D факт</CheckBox>
+                    <TextBlock Classes="muted tiny" Margin="24,0,0,0" TextWrapping="Wrap"
+                               Text="2D-визуализация по фактическим координатам из телеметрии (для сравнения расчётной и реальной позиции инструмента)." />
+                  </StackPanel>
+
+                  <StackPanel Spacing="2">
+                    <CheckBox IsChecked="{Binding SimAllowView3D}" ToolTip.Tip="Окно 3D-сцены">3D</CheckBox>
+                    <TextBlock Classes="muted tiny" Margin="24,0,0,0" TextWrapping="Wrap"
+                               Text="Полная 3D-сцена станка и траектории движения с текущей ориентацией инструмента." />
+                  </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Spacing="8">
+                  <StackPanel Spacing="2">
+                    <CheckBox IsChecked="{Binding SimAllowTelemetry}" ToolTip.Tip="Панель текущих координат">Телеметрия</CheckBox>
+                    <TextBlock Classes="muted tiny" Margin="24,0,0,0" TextWrapping="Wrap"
+                               Text="Текущие значения R/Z/X/Y, углы α/β и импульсы Xp/Yp/Zp для текущего шага симуляции." />
+                  </StackPanel>
+
+                  <StackPanel Spacing="2">
+                    <CheckBox IsChecked="{Binding SimAllowView2D}" ToolTip.Tip="Расширенная 2D-визуализация с соплом">2D с соплом</CheckBox>
+                    <TextBlock Classes="muted tiny" Margin="24,0,0,0" TextWrapping="Wrap"
+                               Text="Расширенная 2D-сцена с соплом: калибровка анкеров, смещения по X/Z, reverse-path и анимация движения по траектории." />
+                  </StackPanel>
+
+                  <StackPanel Spacing="2">
+                    <CheckBox IsChecked="{Binding SimAllowTopView}" ToolTip.Tip="Панель вида сверху">Вид сверху (X-Y)</CheckBox>
+                    <TextBlock Classes="muted tiny" Margin="24,0,0,0" TextWrapping="Wrap"
+                               Text="Плоский вид сверху в координатах X-Y для контроля геометрии траектории на плане." />
+                  </StackPanel>
+                </StackPanel>
+              </Grid>
             </StackPanel>
           </Border>
 
