@@ -120,6 +120,12 @@ public sealed class SettingsService
         Settings.EditorPanels.Parameters ??= new PanelPlacementSettings();
         Settings.EditorPanels.Visualization ??= new PanelPlacementSettings();
         Settings.EditorPanels.SelectedPoint ??= new PanelPlacementSettings();
+        Settings.SimulationPanels ??= new SimulationPanelsSettings();
+        Settings.SimulationPanels.Plot ??= new PanelPlacementSettings();
+        Settings.SimulationPanels.Telemetry ??= new PanelPlacementSettings();
+        Settings.SimulationPanels.TopView ??= new PanelPlacementSettings();
+        Settings.SimulationPanels.View2D ??= new PanelPlacementSettings { IsVisible = false };
+        Settings.SimulationPanels.View3D ??= new PanelPlacementSettings();
         Settings.EditorGridColumns ??= new();
 
         try

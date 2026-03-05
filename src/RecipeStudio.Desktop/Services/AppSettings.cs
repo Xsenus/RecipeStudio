@@ -105,6 +105,7 @@ public sealed class SimulationPanelsSettings
     public PanelPlacementSettings Plot { get; set; } = new();
     public PanelPlacementSettings Telemetry { get; set; } = new();
     public PanelPlacementSettings TopView { get; set; } = new() { IsVisible = false };
+    public PanelPlacementSettings View2D { get; set; } = new() { IsVisible = false };
     public PanelPlacementSettings View3D { get; set; } = new();
 }
 

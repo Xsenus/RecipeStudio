@@ -125,6 +125,65 @@
         <Border x:Name="TopViewResizeHandle" Classes="panel-resize-handle"
                 PointerPressed="ResizeHandle_PointerPressed" PointerMoved="ResizeHandle_PointerMoved" PointerReleased="ResizeHandle_PointerReleased" />
 
+        <Border x:Name="View2DPanel" Classes="card floating-panel" Width="740" Height="470" MinWidth="520" MinHeight="300"
+                PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+          <Grid RowDefinitions="Auto,Auto,*" RowSpacing="8">
+            <Grid x:Name="View2DPanelHeader" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+              <TextBlock Text="2D View (mm)" Classes="muted" VerticalAlignment="Center" />
+              <Button Grid.Column="1" Classes="ghost" ToolTip.Tip="Zoom In" Click="ZoomIn2DView_Click">+</Button>
+              <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
+                <Button Classes="ghost" ToolTip.Tip="Zoom Out" Click="ZoomOut2DView_Click">-</Button>
+                <Button Classes="ghost" ToolTip.Tip="Fit To Window" Click="Fit2DView_Click">Fit</Button>
+                <TextBlock x:Name="View2DZoomText" Text="x1.00" Classes="muted" VerticalAlignment="Center" />
+                <Button Classes="ghost panel-close-btn" Click="HideView2DPanel_Click">✕</Button>
+              </StackPanel>
+            </Grid>
+
+            <Border Grid.Row="1" Classes="card" Padding="8,6">
+              <StackPanel Spacing="6">
+                <Grid ColumnDefinitions="Auto,90,Auto,90,Auto,90,Auto,90,Auto" ColumnSpacing="8">
+                  <TextBlock Text="Nozzle X" Classes="muted" VerticalAlignment="Center" />
+                  <Slider Grid.Column="1" Minimum="0.00" Maximum="0.99"
+                          Value="{Binding ElementName=View2DPlot, Path=NozzleAnchorX, Mode=TwoWay}" />
+
+                  <TextBlock Grid.Column="2" Text="Nozzle Y" Classes="muted" VerticalAlignment="Center" />
+                  <Slider Grid.Column="3" Minimum="0.00" Maximum="0.99"
+                          Value="{Binding ElementName=View2DPlot, Path=NozzleAnchorY, Mode=TwoWay}" />
+
+                  <TextBlock Grid.Column="4" Text="Manip X" Classes="muted" VerticalAlignment="Center" />
+                  <Slider Grid.Column="5" Minimum="0.00" Maximum="0.70"
+                          Value="{Binding ElementName=View2DPlot, Path=ManipulatorAnchorX, Mode=TwoWay}" />
+
+                  <TextBlock Grid.Column="6" Text="Manip Y" Classes="muted" VerticalAlignment="Center" />
+                  <Slider Grid.Column="7" Minimum="0.00" Maximum="0.99"
+                          Value="{Binding ElementName=View2DPlot, Path=ManipulatorAnchorY, Mode=TwoWay}" />
+
+                  <Button Grid.Column="8" Classes="ghost" Click="Reset2DCalibration_Click">Reset Cal</Button>
+                </Grid>
+
+                <Grid ColumnDefinitions="Auto,260" ColumnSpacing="8">
+                  <TextBlock Text="Offset Z (mm)" Classes="muted" VerticalAlignment="Center" />
+                  <Slider Grid.Column="1" Minimum="-5000" Maximum="5000"
+                          Value="{Binding ElementName=View2DPlot, Path=VerticalOffsetMm, Mode=TwoWay}" />
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <controls:SimulationBlueprint2DControl Grid.Row="2" x:Name="View2DPlot"
+                                                   Points="{Binding PointsForAnimation}"
+                                                   Progress="{Binding Progress}"
+                                                   Settings="{Binding AppSettings}"
+                                                   CurrentAlfa="{Binding CurrentAlfa}"
+                                                   ToolXRaw="{Binding ToolXRaw}"
+                                                   ToolZRaw="{Binding ToolZRaw}"
+                                                   TargetXRaw="{Binding CurrentTargetX}"
+                                                   TargetZRaw="{Binding CurrentTargetZ}"
+                                                   ShowGrid="{Binding ShowGrid}" />
+          </Grid>
+        </Border>
+        <Border x:Name="View2DResizeHandle" Classes="panel-resize-handle"
+                PointerPressed="ResizeHandle_PointerPressed" PointerMoved="ResizeHandle_PointerMoved" PointerReleased="ResizeHandle_PointerReleased" />
+
         <Border x:Name="View3DPanel" Classes="card floating-panel" Width="1160" Height="640" MinWidth="420" MinHeight="240" ClipToBounds="True"
                 PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
           <Grid RowDefinitions="Auto,*" RowSpacing="8">
@@ -153,6 +212,7 @@
         <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать/скрыть график" Click="ShowPlotPanel_Click">📈</Button>
         <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать/скрыть телеметрию" Click="ShowTelemetryPanel_Click">🧾</Button>
         <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать/скрыть вид сверху" Click="ShowTopViewPanel_Click">⬒</Button>
+        <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать/скрыть 2D" Click="ShowView2DPanel_Click">2D</Button>
         <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать/скрыть 3D" Click="ShowView3DPanel_Click">◪</Button>
         <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Сбросить окна" Click="ResetPanels_Click">↺</Button>
       </StackPanel>

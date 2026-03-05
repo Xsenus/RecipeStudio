@@ -61,9 +61,12 @@ public sealed partial class SimulationView : UserControl
         RecipePlot.ZoomChanged += OnRecipePlotZoomChanged;
         TopViewPlot.ZoomChanged -= OnTopViewZoomChanged;
         TopViewPlot.ZoomChanged += OnTopViewZoomChanged;
+        View2DPlot.ZoomChanged -= OnView2DZoomChanged;
+        View2DPlot.ZoomChanged += OnView2DZoomChanged;
 
         UpdateZoomText();
         UpdateTopViewZoomText();
+        UpdateView2DZoomText();
     }
 
     private void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
@@ -71,6 +74,7 @@ public sealed partial class SimulationView : UserControl
         PanelsCanvas.SizeChanged -= OnPanelsCanvasSizeChanged;
         RecipePlot.ZoomChanged -= OnRecipePlotZoomChanged;
         TopViewPlot.ZoomChanged -= OnTopViewZoomChanged;
+        View2DPlot.ZoomChanged -= OnView2DZoomChanged;
         PersistPanelsLayout(force: false);
         _panelsInitialized = false;
     }
@@ -83,6 +87,7 @@ public sealed partial class SimulationView : UserControl
 
     private void OnRecipePlotZoomChanged(double _) => UpdateZoomText();
     private void OnTopViewZoomChanged(double _) => UpdateTopViewZoomText();
+    private void OnView2DZoomChanged(double _) => UpdateView2DZoomText();
 
     private void OnPanelsCanvasSizeChanged(object? sender, SizeChangedEventArgs e)
     {
@@ -96,6 +101,7 @@ public sealed partial class SimulationView : UserControl
         ClampPanelToCanvas(PlotPanel);
         ClampPanelToCanvas(TelemetryPanel);
         ClampPanelToCanvas(TopViewPanel);
+        ClampPanelToCanvas(View2DPanel);
         ClampPanelToCanvas(View3DPanel);
         UpdateResizeHandlePositions();
     }
@@ -109,6 +115,7 @@ public sealed partial class SimulationView : UserControl
         ApplyPanelLayout(PlotPanel, saved?.Plot, PlotPanelDefaultPosition);
         ApplyPanelLayout(TelemetryPanel, saved?.Telemetry, TelemetryPanelDefaultPosition);
         ApplyPanelLayout(TopViewPanel, saved?.TopView, TopViewPanelDefaultPosition);
+        ApplyPanelLayout(View2DPanel, saved?.View2D, View2DPanelDefaultPosition);
         ApplyPanelLayout(View3DPanel, saved?.View3D, View3DPanelDefaultPosition);
 
         _panelsInitialized = true;
@@ -156,6 +163,14 @@ public sealed partial class SimulationView : UserControl
         return new(PanelMargin, Math.Max(TopUiReserve, canvasHeight - panel.Height - PanelMargin));
     }
 
+    private Point View2DPanelDefaultPosition(Border panel)
+    {
+        var canvasWidth = GetCanvasWidth();
+        return new(
+            Math.Max(PanelMargin, canvasWidth - panel.Width - PanelMargin),
+            TopUiReserve);
+    }
+
     private Point View3DPanelDefaultPosition(Border _) => new(PanelMargin, TopUiReserve);
 
     private void ApplyDefaultPanelsLayout()
@@ -172,6 +187,10 @@ public sealed partial class SimulationView : UserControl
         Canvas.SetLeft(TopViewPanel, topPos.X);
         Canvas.SetTop(TopViewPanel, topPos.Y);
 
+        var view2DPos = View2DPanelDefaultPosition(View2DPanel);
+        Canvas.SetLeft(View2DPanel, view2DPos.X);
+        Canvas.SetTop(View2DPanel, view2DPos.Y);
+
         var view3DPos = View3DPanelDefaultPosition(View3DPanel);
         Canvas.SetLeft(View3DPanel, view3DPos.X);
         Canvas.SetTop(View3DPanel, view3DPos.Y);
@@ -179,6 +198,7 @@ public sealed partial class SimulationView : UserControl
         ClampPanelToCanvas(PlotPanel);
         ClampPanelToCanvas(TelemetryPanel);
         ClampPanelToCanvas(TopViewPanel);
+        ClampPanelToCanvas(View2DPanel);
         ClampPanelToCanvas(View3DPanel);
     }
 
@@ -189,6 +209,7 @@ public sealed partial class SimulationView : UserControl
         if (TelemetryPanel.IsVisible) BringPanelToFront(TelemetryPanel);
         if (PlotPanel.IsVisible) BringPanelToFront(PlotPanel);
         if (TopViewPanel.IsVisible) BringPanelToFront(TopViewPanel);
+        if (View2DPanel.IsVisible) BringPanelToFront(View2DPanel);
     }
 
     private void BringPanelToFront(Border panel)
@@ -241,6 +262,9 @@ public sealed partial class SimulationView : UserControl
         if (ReferenceEquals(panel, TopViewPanel))
             return TopViewPanelHeader;
 
+        if (ReferenceEquals(panel, View2DPanel))
+            return View2DPanelHeader;
+
         if (ReferenceEquals(panel, View3DPanel))
             return View3DPanelHeader;
 
@@ -283,6 +307,7 @@ public sealed partial class SimulationView : UserControl
             Border handle when ReferenceEquals(handle, PlotResizeHandle) => PlotPanel,
             Border handle when ReferenceEquals(handle, TelemetryResizeHandle) => TelemetryPanel,
             Border handle when ReferenceEquals(handle, TopViewResizeHandle) => TopViewPanel,
+            Border handle when ReferenceEquals(handle, View2DResizeHandle) => View2DPanel,
             Border handle when ReferenceEquals(handle, View3DResizeHandle) => View3DPanel,
             _ => null
         };
@@ -351,6 +376,13 @@ public sealed partial class SimulationView : UserControl
         PersistPanelsLayout();
     }
 
+    private void HideView2DPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        View2DPanel.IsVisible = false;
+        View2DResizeHandle.IsVisible = false;
+        PersistPanelsLayout();
+    }
+
     private void HideView3DPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         View3DPanel.IsVisible = false;
@@ -361,6 +393,7 @@ public sealed partial class SimulationView : UserControl
     private void ShowPlotPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => TogglePanel(PlotPanel, PlotResizeHandle);
     private void ShowTelemetryPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => TogglePanel(TelemetryPanel, TelemetryResizeHandle);
     private void ShowTopViewPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => TogglePanel(TopViewPanel, TopViewResizeHandle);
+    private void ShowView2DPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => TogglePanel(View2DPanel, View2DResizeHandle);
     private void ShowView3DPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => TogglePanel(View3DPanel, View3DResizeHandle);
 
     private void TogglePanel(Border panel, Border handle)
@@ -371,6 +404,12 @@ public sealed partial class SimulationView : UserControl
         {
             BringPanelToFront(panel);
             UpdateResizeHandleFor(panel);
+            if (ReferenceEquals(panel, View2DPanel))
+            {
+                // Always start 2D panel from a stable frame when it is opened.
+                View2DPlot.ResetZoom();
+                UpdateView2DZoomText();
+            }
         }
 
         PersistPanelsLayout();
@@ -383,6 +422,17 @@ public sealed partial class SimulationView : UserControl
     private void ZoomInTopView_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => TopViewPlot.ZoomIn();
     private void ZoomOutTopView_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => TopViewPlot.ZoomOut();
     private void FitTopView_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => TopViewPlot.ResetZoom();
+    private void ZoomIn2DView_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => View2DPlot.ZoomIn();
+    private void ZoomOut2DView_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => View2DPlot.ZoomOut();
+    private void Fit2DView_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => View2DPlot.ResetZoom();
+    private void Reset2DCalibration_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        View2DPlot.NozzleAnchorX = Controls.SimulationBlueprint2DControl.DefaultNozzleAnchorX;
+        View2DPlot.NozzleAnchorY = Controls.SimulationBlueprint2DControl.DefaultNozzleAnchorY;
+        View2DPlot.ManipulatorAnchorX = Controls.SimulationBlueprint2DControl.DefaultManipulatorAnchorX;
+        View2DPlot.ManipulatorAnchorY = Controls.SimulationBlueprint2DControl.DefaultManipulatorAnchorY;
+        View2DPlot.VerticalOffsetMm = Controls.SimulationBlueprint2DControl.DefaultVerticalOffsetMm;
+    }
 
     private void UpdateZoomText()
     {
@@ -394,6 +444,11 @@ public sealed partial class SimulationView : UserControl
         TopViewZoomText.Text = $"x{TopViewPlot.ZoomFactor.ToString("0.00", CultureInfo.InvariantCulture)}";
     }
 
+    private void UpdateView2DZoomText()
+    {
+        View2DZoomText.Text = $"x{View2DPlot.ZoomFactor.ToString("0.00", CultureInfo.InvariantCulture)}";
+    }
+
     private void ResetPanels_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         PlotPanel.Width = 460;
@@ -402,21 +457,26 @@ public sealed partial class SimulationView : UserControl
         TelemetryPanel.Height = 325;
         TopViewPanel.Width = 560;
         TopViewPanel.Height = 320;
+        View2DPanel.Width = 740;
+        View2DPanel.Height = 470;
         View3DPanel.Width = 1160;
         View3DPanel.Height = 640;
 
         PlotPanel.IsVisible = true;
         TelemetryPanel.IsVisible = true;
         TopViewPanel.IsVisible = false;
+        View2DPanel.IsVisible = false;
         View3DPanel.IsVisible = true;
 
         PlotResizeHandle.IsVisible = true;
         TelemetryResizeHandle.IsVisible = true;
         TopViewResizeHandle.IsVisible = false;
+        View2DResizeHandle.IsVisible = false;
         View3DResizeHandle.IsVisible = true;
 
         RecipePlot.ResetZoom();
         TopViewPlot.ResetZoom();
+        View2DPlot.ResetZoom();
 
         ApplyDefaultPanelsLayout();
         InitializePanelZOrder();
@@ -435,6 +495,7 @@ public sealed partial class SimulationView : UserControl
         _vm.AppSettings.SimulationPanels.Plot = ToLayout(PlotPanel, _vm.AppSettings.SimulationPanels.Plot);
         _vm.AppSettings.SimulationPanels.Telemetry = ToLayout(TelemetryPanel, _vm.AppSettings.SimulationPanels.Telemetry);
         _vm.AppSettings.SimulationPanels.TopView = ToLayout(TopViewPanel, _vm.AppSettings.SimulationPanels.TopView);
+        _vm.AppSettings.SimulationPanels.View2D = ToLayout(View2DPanel, _vm.AppSettings.SimulationPanels.View2D);
         _vm.AppSettings.SimulationPanels.View3D = ToLayout(View3DPanel, _vm.AppSettings.SimulationPanels.View3D);
         _vm.SaveAppSettings();
     }
@@ -491,6 +552,7 @@ public sealed partial class SimulationView : UserControl
         UpdateResizeHandleFor(PlotPanel);
         UpdateResizeHandleFor(TelemetryPanel);
         UpdateResizeHandleFor(TopViewPanel);
+        UpdateResizeHandleFor(View2DPanel);
         UpdateResizeHandleFor(View3DPanel);
     }
 
@@ -502,7 +564,9 @@ public sealed partial class SimulationView : UserControl
                 ? TelemetryResizeHandle
                 : panel == TopViewPanel
                     ? TopViewResizeHandle
-                    : View3DResizeHandle;
+                    : panel == View2DPanel
+                        ? View2DResizeHandle
+                        : View3DResizeHandle;
 
         if (!panel.IsVisible)
         {
