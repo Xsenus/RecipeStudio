@@ -90,6 +90,9 @@ public sealed class SimulationBlueprint2DControl : Control
     public static readonly StyledProperty<bool> ReversePathProperty =
         AvaloniaProperty.Register<SimulationBlueprint2DControl, bool>(nameof(ReversePath));
 
+    public static readonly StyledProperty<bool> UseFactTelemetryProperty =
+        AvaloniaProperty.Register<SimulationBlueprint2DControl, bool>(nameof(UseFactTelemetry));
+
     private const double Pad = 20;
     private Rect _fitWorldBounds;
     private Rect _worldBounds;
@@ -103,6 +106,8 @@ public sealed class SimulationBlueprint2DControl : Control
     private Point _panStartScreen;
     private Point _panStartOffset;
     private bool _panWithRightButton;
+    private bool _hasFactPivot;
+    private Point _factPivotWorld;
 
     private readonly Bitmap? _partImage;
     private readonly Bitmap? _manipulatorImage;
@@ -224,6 +229,12 @@ public sealed class SimulationBlueprint2DControl : Control
         set => SetValue(ReversePathProperty, value);
     }
 
+    public bool UseFactTelemetry
+    {
+        get => GetValue(UseFactTelemetryProperty);
+        set => SetValue(UseFactTelemetryProperty, value);
+    }
+
     public double ZoomFactor => _zoomFactor;
     public event Action<double>? ZoomChanged;
 
@@ -247,6 +258,7 @@ public sealed class SimulationBlueprint2DControl : Control
         VerticalOffsetMmProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.MarkRefit());
         HorizontalOffsetMmProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.MarkRefit());
         ReversePathProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.MarkRefit());
+        UseFactTelemetryProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.MarkRefit());
     }
 
     public SimulationBlueprint2DControl()
@@ -359,6 +371,41 @@ public sealed class SimulationBlueprint2DControl : Control
 
         var nozzlePoseWorld = motion.Tip;
         var nozzlePivotWorld = motion.Pivot;
+        var passedSegmentIndex = motion.ProcessSegmentIndex;
+        var passedSegmentT = motion.ProcessSegmentT;
+        var showPassedPath = motion.IsProcessing;
+        if (UseFactTelemetry)
+        {
+            nozzlePoseWorld = ResolveFactTipWorld(motion.Tip);
+            var nearest = FindNearestPathSample(path, nozzlePoseWorld);
+            if (nearest.IsValid)
+            {
+                passedSegmentIndex = nearest.SegmentIndex;
+                passedSegmentT = nearest.SegmentT;
+                showPassedPath = true;
+                var targetPivot = ResolvePivotFromTip(nozzlePoseWorld, nearest.Position, mmPerPixel, centerTip.Y);
+                _factPivotWorld = _hasFactPivot
+                    ? LerpPoint(_factPivotWorld, targetPivot, PivotFollowSmoothing)
+                    : targetPivot;
+                _hasFactPivot = true;
+                nozzlePivotWorld = _factPivotWorld;
+            }
+            else
+            {
+                showPassedPath = false;
+                var targetPivot = ResolvePivotFromTip(nozzlePoseWorld, nozzlePoseWorld, mmPerPixel, centerTip.Y);
+                _factPivotWorld = _hasFactPivot
+                    ? LerpPoint(_factPivotWorld, targetPivot, PivotFollowSmoothing)
+                    : targetPivot;
+                _hasFactPivot = true;
+                nozzlePivotWorld = _factPivotWorld;
+            }
+        }
+        else
+        {
+            _hasFactPivot = false;
+        }
+
         var nozzleWorkDirection = ResolveNozzleDirection(new Point(nozzlePivotWorld.X - nozzlePoseWorld.X, nozzlePivotWorld.Y - nozzlePoseWorld.Y));
         var manipRectWorld = CreateManipulatorRectFromNozzlePivot(nozzlePivotWorld, _manipulatorImage, mmPerPixel);
 
@@ -380,7 +427,9 @@ public sealed class SimulationBlueprint2DControl : Control
             tipMotionPath.Count > 0 ? tipMotionPath : path,
             partRectWorld,
             manipEnvelope,
-            nozzleEnvelope);
+            nozzleEnvelope,
+            new Rect(nozzlePoseWorld.X - 1.0, nozzlePoseWorld.Y - 1.0, 2.0, 2.0),
+            new Rect(nozzlePivotWorld.X - 1.0, nozzlePivotWorld.Y - 1.0, 2.0, 2.0));
         if (worldBounds.Width <= 0 || worldBounds.Height <= 0)
             return;
 
@@ -411,9 +460,9 @@ public sealed class SimulationBlueprint2DControl : Control
             if (path.Count >= 2)
             {
                 DrawPolyline(context, path, new Pen(new SolidColorBrush(Color.FromRgb(96, 165, 250)), 1.7));
-                if (motion.IsProcessing)
+                if (showPassedPath)
                 {
-                    var passed = BuildPassedPath(path, motion.ProcessSegmentIndex, motion.ProcessSegmentT, motion.Tip);
+                    var passed = BuildPassedPath(path, passedSegmentIndex, passedSegmentT, nozzlePoseWorld);
                     DrawPolyline(context, passed, new Pen(new SolidColorBrush(Color.FromRgb(52, 211, 153)), 2.4));
                 }
             }
@@ -920,6 +969,69 @@ public sealed class SimulationBlueprint2DControl : Control
     }
 
     private double ToVisualX(double x) => InvertHorizontal ? -x : x;
+
+    private readonly record struct PathSample(bool IsValid, int SegmentIndex, double SegmentT, Point Position);
+
+    private Point ResolveFactTipWorld(Point fallback)
+    {
+        if (!double.IsFinite(ToolXRaw) || !double.IsFinite(ToolZRaw))
+            return fallback;
+
+        return new Point(ToVisualX(ToolXRaw), ToolZRaw + VerticalOffsetMm);
+    }
+
+    private Point ResolvePivotFromTip(Point tipWorld, Point referencePathPoint, double mmPerPixel, double centerY)
+    {
+        var upperBlend = ResolveUpperZoneBlend(referencePathPoint.Y, centerY);
+        var dir = ResolvePivotDirection(upperBlend);
+        var nozzleTipDistanceMm = ResolveNozzleTipDistanceMm(mmPerPixel);
+        var rightShift = upperBlend * UpperZoneExtraPivotRightMm;
+        var extraDrop = upperBlend * UpperZoneExtraPivotDropMm;
+        return new Point(
+            tipWorld.X + dir.X * nozzleTipDistanceMm + rightShift,
+            tipWorld.Y + dir.Y * nozzleTipDistanceMm - BasePivotDropMm - extraDrop);
+    }
+
+    private static PathSample FindNearestPathSample(IReadOnlyList<Point> path, Point query)
+    {
+        if (path.Count < 2)
+            return new PathSample(false, 0, 0.0, default);
+
+        var bestDist2 = double.PositiveInfinity;
+        var bestIndex = 0;
+        var bestT = 0.0;
+        var bestPoint = path[0];
+
+        for (var i = 0; i < path.Count - 1; i++)
+        {
+            var a = path[i];
+            var b = path[i + 1];
+            var dx = b.X - a.X;
+            var dy = b.Y - a.Y;
+            var len2 = dx * dx + dy * dy;
+            if (len2 <= 1e-9)
+                continue;
+
+            var t = ((query.X - a.X) * dx + (query.Y - a.Y) * dy) / len2;
+            t = Math.Clamp(t, 0.0, 1.0);
+            var px = a.X + dx * t;
+            var py = a.Y + dy * t;
+            var qx = query.X - px;
+            var qy = query.Y - py;
+            var dist2 = qx * qx + qy * qy;
+            if (dist2 >= bestDist2)
+                continue;
+
+            bestDist2 = dist2;
+            bestIndex = i;
+            bestT = t;
+            bestPoint = new Point(px, py);
+        }
+
+        return double.IsFinite(bestDist2)
+            ? new PathSample(true, bestIndex, bestT, bestPoint)
+            : new PathSample(false, 0, 0.0, default);
+    }
 
     private static (Point Position, Point Direction, int SegmentIndex, double SegmentT) Interpolate(IReadOnlyList<Point> pts, double progress)
     {

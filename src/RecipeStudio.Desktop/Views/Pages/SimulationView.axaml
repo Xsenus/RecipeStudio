@@ -197,6 +197,44 @@
         <Border x:Name="View2DResizeHandle" Classes="panel-resize-handle"
                 PointerPressed="ResizeHandle_PointerPressed" PointerMoved="ResizeHandle_PointerMoved" PointerReleased="ResizeHandle_PointerReleased" />
 
+        <Border x:Name="View2DFactPanel" Classes="card floating-panel" Width="700" Height="420" MinWidth="500" MinHeight="280"
+                PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased" IsVisible="False">
+          <Grid RowDefinitions="Auto,*" RowSpacing="8">
+            <Grid x:Name="View2DFactPanelHeader" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+              <TextBlock Text="2D Fact (mm)" Classes="muted" VerticalAlignment="Center" />
+              <Button Grid.Column="1" Classes="ghost" ToolTip.Tip="Zoom In" Click="ZoomIn2DFactView_Click">+</Button>
+              <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
+                <Button Classes="ghost" ToolTip.Tip="Zoom Out" Click="ZoomOut2DFactView_Click">-</Button>
+                <Button Classes="ghost" ToolTip.Tip="Fit To Window" Click="Fit2DFactView_Click">Fit</Button>
+                <TextBlock x:Name="View2DFactZoomText" Text="x1.00" Classes="muted" VerticalAlignment="Center" />
+                <Button Classes="ghost panel-close-btn" Click="HideView2DFactPanel_Click">X</Button>
+              </StackPanel>
+            </Grid>
+
+            <controls:SimulationBlueprint2DControl Grid.Row="1" x:Name="View2DFactPlot"
+                                                   UseFactTelemetry="True"
+                                                   Points="{Binding PointsForAnimation}"
+                                                   Progress="{Binding Progress}"
+                                                   Settings="{Binding AppSettings}"
+                                                   CurrentAlfa="{Binding CurrentAlfa}"
+                                                   ToolXRaw="{Binding ToolXRaw}"
+                                                   ToolZRaw="{Binding ToolZRaw}"
+                                                   TargetXRaw="{Binding CurrentTargetX}"
+                                                   TargetZRaw="{Binding CurrentTargetZ}"
+                                                   ShowGrid="{Binding ShowGrid}"
+                                                   NozzleAnchorX="{Binding ElementName=View2DPlot, Path=NozzleAnchorX}"
+                                                   NozzleAnchorY="{Binding ElementName=View2DPlot, Path=NozzleAnchorY}"
+                                                   ManipulatorAnchorX="{Binding ElementName=View2DPlot, Path=ManipulatorAnchorX}"
+                                                   ManipulatorAnchorY="{Binding ElementName=View2DPlot, Path=ManipulatorAnchorY}"
+                                                   VerticalOffsetMm="{Binding ElementName=View2DPlot, Path=VerticalOffsetMm}"
+                                                   HorizontalOffsetMm="{Binding ElementName=View2DPlot, Path=HorizontalOffsetMm}"
+                                                   ReversePath="{Binding ElementName=View2DPlot, Path=ReversePath}" />
+          </Grid>
+        </Border>
+        <Border x:Name="View2DFactResizeHandle" Classes="panel-resize-handle"
+                PointerPressed="ResizeHandle_PointerPressed" PointerMoved="ResizeHandle_PointerMoved" PointerReleased="ResizeHandle_PointerReleased"
+                IsVisible="False" />
+
         <Border x:Name="View3DPanel" Classes="card floating-panel" Width="1160" Height="640" MinWidth="420" MinHeight="240" ClipToBounds="True"
                 PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
           <Grid RowDefinitions="Auto,*" RowSpacing="8">
@@ -226,6 +264,7 @@
         <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать/скрыть телеметрию" Click="ShowTelemetryPanel_Click">🧾</Button>
         <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать/скрыть вид сверху" Click="ShowTopViewPanel_Click">⬒</Button>
         <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать/скрыть 2D" Click="ShowView2DPanel_Click">2D</Button>
+        <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Show/hide 2D fact" Click="ShowView2DFactPanel_Click">2D F</Button>
         <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать/скрыть 3D" Click="ShowView3DPanel_Click">◪</Button>
         <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Сбросить окна" Click="ResetPanels_Click">↺</Button>
       </StackPanel>
