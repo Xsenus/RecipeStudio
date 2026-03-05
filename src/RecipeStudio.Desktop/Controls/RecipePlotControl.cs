@@ -64,6 +64,9 @@ public sealed class RecipePlotControl : Control
     public static readonly StyledProperty<bool> ShowGridProperty =
         AvaloniaProperty.Register<RecipePlotControl, bool>(nameof(ShowGrid), true);
 
+    public static readonly StyledProperty<bool> InvertHorizontalProperty =
+        AvaloniaProperty.Register<RecipePlotControl, bool>(nameof(InvertHorizontal));
+
     private INotifyCollectionChanged? _collectionChanged;
     private readonly Dictionary<RecipePoint, PropertyChangedEventHandler> _pointHandlers = new();
 
@@ -178,6 +181,12 @@ public sealed class RecipePlotControl : Control
         set => SetValue(ShowGridProperty, value);
     }
 
+    public bool InvertHorizontal
+    {
+        get => GetValue(InvertHorizontalProperty);
+        set => SetValue(InvertHorizontalProperty, value);
+    }
+
     static RecipePlotControl()
     {
         // Avoid relying on GetObservable/AffectsRender helpers (can vary between Avalonia versions).
@@ -200,6 +209,7 @@ public sealed class RecipePlotControl : Control
         ShowLegendProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         ShowPairLinksProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         ShowGridProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
+        InvertHorizontalProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
     }
 
     public RecipePlotControl()
@@ -333,14 +343,14 @@ public sealed class RecipePlotControl : Control
         foreach (var p in points)
         {
             var (xp, zp) = p.GetTargetPoint(settings.HZone);
-            target.Add(new Point(xp, zp));
+            target.Add(new Point(ToVisualX(xp), zp));
         }
 
         var robotPoints = points.Where(p => !p.Safe).ToList();
         if (robotPoints.Count == 0)
             robotPoints = points;
         var absoluteRobot = RobotCoordinateResolver.BuildAbsolutePositions(robotPoints);
-        var tool = absoluteRobot.Select(v => new Point(v.X, v.Z)).ToList();
+        var tool = absoluteRobot.Select(v => new Point(ToVisualX(v.X), v.Z)).ToList();
         var robotToolMap = robotPoints.Select((p, i) => new { p, pt = tool[i] }).ToDictionary(x => x.p, x => x.pt);
 
         // Separate set for animation: must match the timeline source (including Safe points when enabled).
@@ -352,17 +362,17 @@ public sealed class RecipePlotControl : Control
         {
             var p = animSrc[idx];
             var (xp, zp) = p.GetTargetPoint(settings.HZone);
-            animTarget.Add(new Point(xp, zp));
+            animTarget.Add(new Point(ToVisualX(xp), zp));
 
             if (idx < animAbsolute.Count)
             {
                 var abs = animAbsolute[idx];
-                animTool.Add(new Point(abs.X, abs.Z));
+                animTool.Add(new Point(ToVisualX(abs.X), abs.Z));
             }
             else
             {
                 var abs = RobotCoordinateResolver.BuildAbsolutePositions(new List<RecipePoint> { p })[0];
-                animTool.Add(new Point(abs.X, abs.Z));
+                animTool.Add(new Point(ToVisualX(abs.X), abs.Z));
             }
         }
 
@@ -475,16 +485,18 @@ public sealed class RecipePlotControl : Control
             var toolState = GetToolState(animTool, animTarget, Progress, CurrentSegmentIndex, CurrentSegmentT);
             var markerTool = toolState.ToolPosition;
             if (double.IsFinite(ToolXRaw) && double.IsFinite(ToolZRaw))
-                markerTool = new Point(ToolXRaw, ToolZRaw);
+                markerTool = new Point(ToVisualX(ToolXRaw), ToolZRaw);
 
             var markerTarget = toolState.TargetPosition;
             if (double.IsFinite(TargetXRaw) && double.IsFinite(TargetZRaw))
-                markerTarget = new Point(TargetXRaw, TargetZRaw);
+                markerTarget = new Point(ToVisualX(TargetXRaw), TargetZRaw);
 
             var markerDirection = new Point(markerTarget.X - markerTool.X, markerTarget.Y - markerTool.Y);
             if (NozzleOrientationPolicy.UsePhysicalOrientation(settings.NozzleOrientationMode))
             {
                 markerDirection = ApplyTransitionLiftOrientation(animSrc, animTool, toolState, settings);
+                if (InvertHorizontal)
+                    markerDirection = new Point(-markerDirection.X, markerDirection.Y);
                 var nozzleLength = Math.Clamp(Math.Abs(settings.Lz), 20, 600);
                 markerTarget = new Point(
                     markerTool.X + markerDirection.X * nozzleLength,
@@ -636,7 +648,7 @@ public sealed class RecipePlotControl : Control
         foreach (var p in points)
         {
             var (xp, zp) = p.GetTargetPoint(hZone);
-            var sp = WorldToScreen(new Point(xp, zp));
+            var sp = WorldToScreen(new Point(ToVisualX(xp), zp));
 
             // Working vs safety colors
             var color = p.Safe
@@ -675,13 +687,13 @@ public sealed class RecipePlotControl : Control
     /// <summary>
     /// Builds target polyline points for a specific (Safe, Place) series.
     /// </summary>
-    private static List<Point> SelectTarget(IList<RecipePoint> points, double hZone, bool safe, int place)
+    private List<Point> SelectTarget(IList<RecipePoint> points, double hZone, bool safe, int place)
         => points
             .Where(p => p.Safe == safe && p.Place == place)
             .Select(p =>
             {
                 var (xp, zp) = p.GetTargetPoint(hZone);
-                return new Point(xp, zp);
+                return new Point(ToVisualX(xp), zp);
             })
             .ToList();
 
@@ -711,7 +723,7 @@ public sealed class RecipePlotControl : Control
 
             var (x1, z1) = prev.GetTargetPoint(hZone);
             var (x2, z2) = cur.GetTargetPoint(hZone);
-            ctx.DrawLine(pen, WorldToScreen(new Point(x1, z1)), WorldToScreen(new Point(x2, z2)));
+            ctx.DrawLine(pen, WorldToScreen(new Point(ToVisualX(x1), z1)), WorldToScreen(new Point(ToVisualX(x2), z2)));
         }
     }
 
@@ -726,7 +738,7 @@ public sealed class RecipePlotControl : Control
             if (!robotToolMap.TryGetValue(p, out var toolPoint))
                 continue;
 
-            ctx.DrawLine(pen, WorldToScreen(new Point(xp, zp)), WorldToScreen(toolPoint));
+            ctx.DrawLine(pen, WorldToScreen(new Point(ToVisualX(xp), zp)), WorldToScreen(toolPoint));
         }
     }
 
@@ -821,7 +833,7 @@ public sealed class RecipePlotControl : Control
     {
         var x = (s.X - _pad) / _scale + _worldBounds.Left;
         var y = _worldBounds.Bottom - (s.Y - _pad) / _scale;
-        return new Point(x, y);
+        return new Point(InvertHorizontal ? -x : x, y);
     }
 
     private static (Point ToolPosition, Point TargetPosition, Point Direction, Point ToolSegmentDirection, int SegmentIndex, double SegmentT) GetToolState(
@@ -1123,7 +1135,7 @@ public sealed class RecipePlotControl : Control
         foreach (var p in Points)
         {
             var (xp, zp) = p.GetTargetPoint(settings.HZone);
-            var sp = WorldToScreen(new Point(xp, zp));
+            var sp = WorldToScreen(new Point(ToVisualX(xp), zp));
             var dx = sp.X - screen.X;
             var dy = sp.Y - screen.Y;
             var d2 = dx * dx + dy * dy;
@@ -1135,6 +1147,8 @@ public sealed class RecipePlotControl : Control
 
         return best.p;
     }
+
+    private double ToVisualX(double x) => InvertHorizontal ? -x : x;
 
     private static class Spline
     {
