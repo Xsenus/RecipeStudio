@@ -22,6 +22,7 @@ public sealed partial class SimulationView : UserControl
     private Point _resizeStart;
     private Size _resizeStartSize;
     private bool _panelsInitialized;
+    private bool _calibrationLoaded;
     private int _zOrderCounter;
 
     public SimulationView()
@@ -42,6 +43,7 @@ public sealed partial class SimulationView : UserControl
             _vm.PropertyChanged -= OnVmPropertyChanged;
 
         _vm = DataContext as SimulationViewModel;
+        _calibrationLoaded = false;
         if (_vm is not null)
             _vm.PropertyChanged += OnVmPropertyChanged;
     }
@@ -55,6 +57,7 @@ public sealed partial class SimulationView : UserControl
         if (HasUsableCanvasSize())
             InitializePanelsLayout();
 
+        ApplySaved2DCalibration();
         InitializePanelZOrder();
 
         RecipePlot.ZoomChanged -= OnRecipePlotZoomChanged;
@@ -578,6 +581,7 @@ public sealed partial class SimulationView : UserControl
         View2DPlot.NozzleAnchorY = Controls.SimulationBlueprint2DControl.DefaultNozzleAnchorY;
         View2DPlot.ManipulatorAnchorX = Controls.SimulationBlueprint2DControl.DefaultManipulatorAnchorX;
         View2DPlot.ManipulatorAnchorY = Controls.SimulationBlueprint2DControl.DefaultManipulatorAnchorY;
+        View2DPlot.ReferenceHeightMm = 1309.49;
         View2DPlot.VerticalOffsetMm = Controls.SimulationBlueprint2DControl.DefaultVerticalOffsetMm;
         View2DPlot.HorizontalOffsetMm = Controls.SimulationBlueprint2DControl.DefaultHorizontalOffsetMm;
         View2DPlot.ReversePath = false;
@@ -589,6 +593,11 @@ public sealed partial class SimulationView : UserControl
         View2DPlot.AutoAlignCalibration();
         View2DPlot.ResetZoom();
         UpdateView2DZoomText();
+    }
+
+    private void Save2DCalibration_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        Persist2DCalibrationDefaults();
     }
 
     private void UpdateZoomText()
@@ -672,6 +681,39 @@ public sealed partial class SimulationView : UserControl
         _vm.AppSettings.SimulationPanels.View2DFact = ToLayout(View2DFactPanel, _vm.AppSettings.SimulationPanels.View2DFact);
         _vm.AppSettings.SimulationPanels.View2DPair = ToLayout(View2DPairPanel, _vm.AppSettings.SimulationPanels.View2DPair);
         _vm.AppSettings.SimulationPanels.View3D = ToLayout(View3DPanel, _vm.AppSettings.SimulationPanels.View3D);
+        _vm.SaveAppSettings();
+    }
+
+    private void ApplySaved2DCalibration()
+    {
+        if (_calibrationLoaded || _vm is null)
+            return;
+
+        _vm.AppSettings.SimulationPanels ??= new SimulationPanelsSettings();
+        var calibration = _vm.AppSettings.SimulationPanels.Calibration2D ??= new Simulation2DCalibrationSettings();
+
+        View2DPlot.ReferenceHeightMm = calibration.ReferenceHeightMm;
+        View2DPlot.ManipulatorAnchorX = calibration.ManipulatorAnchorX;
+        View2DPlot.ManipulatorAnchorY = calibration.ManipulatorAnchorY;
+        View2DPlot.VerticalOffsetMm = calibration.VerticalOffsetMm;
+        View2DPlot.HorizontalOffsetMm = calibration.HorizontalOffsetMm;
+        View2DPlot.ReversePath = calibration.ReversePath;
+        _calibrationLoaded = true;
+    }
+
+    private void Persist2DCalibrationDefaults()
+    {
+        if (_vm is null)
+            return;
+
+        _vm.AppSettings.SimulationPanels ??= new SimulationPanelsSettings();
+        var calibration = _vm.AppSettings.SimulationPanels.Calibration2D ??= new Simulation2DCalibrationSettings();
+        calibration.ReferenceHeightMm = View2DPlot.ReferenceHeightMm;
+        calibration.ManipulatorAnchorX = View2DPlot.ManipulatorAnchorX;
+        calibration.ManipulatorAnchorY = View2DPlot.ManipulatorAnchorY;
+        calibration.VerticalOffsetMm = View2DPlot.VerticalOffsetMm;
+        calibration.HorizontalOffsetMm = View2DPlot.HorizontalOffsetMm;
+        calibration.ReversePath = View2DPlot.ReversePath;
         _vm.SaveAppSettings();
     }
 

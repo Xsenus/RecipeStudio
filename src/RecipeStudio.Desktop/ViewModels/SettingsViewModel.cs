@@ -259,6 +259,16 @@ public sealed class SettingsViewModel : ViewModelBase
         }
     }
 
+    public bool SimShowCalibrationControls
+    {
+        get => SimulationPanelsAccess.ShowCalibrationControls;
+        set
+        {
+            SimulationPanelsAccess.ShowCalibrationControls = value;
+            RaisePropertyChanged();
+        }
+    }
+
     // Logging
     public bool LoggingEnabled
     {
@@ -421,7 +431,17 @@ public sealed class SettingsViewModel : ViewModelBase
                     View2D = defaults.SimulationPanels.Access.View2D,
                     View2DFact = defaults.SimulationPanels.Access.View2DFact,
                     View2DPair = defaults.SimulationPanels.Access.View2DPair,
-                    View3D = defaults.SimulationPanels.Access.View3D
+                    View3D = defaults.SimulationPanels.Access.View3D,
+                    ShowCalibrationControls = defaults.SimulationPanels.Access.ShowCalibrationControls
+                };
+                _settings.Settings.SimulationPanels.Calibration2D = new Simulation2DCalibrationSettings
+                {
+                    ReferenceHeightMm = defaults.SimulationPanels.Calibration2D.ReferenceHeightMm,
+                    VerticalOffsetMm = defaults.SimulationPanels.Calibration2D.VerticalOffsetMm,
+                    HorizontalOffsetMm = defaults.SimulationPanels.Calibration2D.HorizontalOffsetMm,
+                    ManipulatorAnchorX = defaults.SimulationPanels.Calibration2D.ManipulatorAnchorX,
+                    ManipulatorAnchorY = defaults.SimulationPanels.Calibration2D.ManipulatorAnchorY,
+                    ReversePath = defaults.SimulationPanels.Calibration2D.ReversePath
                 };
                 RaisePropertyChanged(nameof(SimAllowPlot));
                 RaisePropertyChanged(nameof(SimAllowTelemetry));
@@ -430,6 +450,7 @@ public sealed class SettingsViewModel : ViewModelBase
                 RaisePropertyChanged(nameof(SimAllowView2DFact));
                 RaisePropertyChanged(nameof(SimAllowView2DPair));
                 RaisePropertyChanged(nameof(SimAllowView3D));
+                RaisePropertyChanged(nameof(SimShowCalibrationControls));
                 break;
 
             case SectionLogging:
@@ -472,6 +493,7 @@ public sealed class SettingsViewModel : ViewModelBase
         };
 
         defaults.SimulationPanels.Access = new SimulationPanelsAccessSettings();
+        defaults.SimulationPanels.Calibration2D = new Simulation2DCalibrationSettings();
         return defaults;
     }
 
@@ -530,8 +552,10 @@ public sealed class SettingsViewModel : ViewModelBase
             case SectionSimulation:
                 source.SimulationPanels ??= new SimulationPanelsSettings();
                 source.SimulationPanels.Access ??= new SimulationPanelsAccessSettings();
+                source.SimulationPanels.Calibration2D ??= new Simulation2DCalibrationSettings();
                 target.SimulationPanels ??= new SimulationPanelsSettings();
                 target.SimulationPanels.Access ??= new SimulationPanelsAccessSettings();
+                target.SimulationPanels.Calibration2D ??= new Simulation2DCalibrationSettings();
                 target.SimulationPanels.Access.Plot = source.SimulationPanels.Access.Plot;
                 target.SimulationPanels.Access.Telemetry = source.SimulationPanels.Access.Telemetry;
                 target.SimulationPanels.Access.TopView = source.SimulationPanels.Access.TopView;
@@ -539,6 +563,13 @@ public sealed class SettingsViewModel : ViewModelBase
                 target.SimulationPanels.Access.View2DFact = source.SimulationPanels.Access.View2DFact;
                 target.SimulationPanels.Access.View2DPair = source.SimulationPanels.Access.View2DPair;
                 target.SimulationPanels.Access.View3D = source.SimulationPanels.Access.View3D;
+                target.SimulationPanels.Access.ShowCalibrationControls = source.SimulationPanels.Access.ShowCalibrationControls;
+                target.SimulationPanels.Calibration2D.ReferenceHeightMm = source.SimulationPanels.Calibration2D.ReferenceHeightMm;
+                target.SimulationPanels.Calibration2D.VerticalOffsetMm = source.SimulationPanels.Calibration2D.VerticalOffsetMm;
+                target.SimulationPanels.Calibration2D.HorizontalOffsetMm = source.SimulationPanels.Calibration2D.HorizontalOffsetMm;
+                target.SimulationPanels.Calibration2D.ManipulatorAnchorX = source.SimulationPanels.Calibration2D.ManipulatorAnchorX;
+                target.SimulationPanels.Calibration2D.ManipulatorAnchorY = source.SimulationPanels.Calibration2D.ManipulatorAnchorY;
+                target.SimulationPanels.Calibration2D.ReversePath = source.SimulationPanels.Calibration2D.ReversePath;
                 break;
 
             case SectionLogging:
@@ -602,6 +633,7 @@ public sealed class SettingsViewModel : ViewModelBase
         RaisePropertyChanged(nameof(SimAllowView2DFact));
         RaisePropertyChanged(nameof(SimAllowView2DPair));
         RaisePropertyChanged(nameof(SimAllowView3D));
+        RaisePropertyChanged(nameof(SimShowCalibrationControls));
 
         RaisePropertyChanged(nameof(LoggingEnabled));
         RaisePropertyChanged(nameof(LogRetentionDays));

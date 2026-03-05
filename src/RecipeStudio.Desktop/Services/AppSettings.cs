@@ -110,6 +110,7 @@ public sealed class SimulationPanelsSettings
     public PanelPlacementSettings View2DPair { get; set; } = new() { IsVisible = true };
     public PanelPlacementSettings View3D { get; set; } = new() { IsVisible = false };
     public SimulationPanelsAccessSettings Access { get; set; } = new();
+    public Simulation2DCalibrationSettings Calibration2D { get; set; } = new();
 }
 
 public sealed class SimulationPanelsAccessSettings
@@ -121,6 +122,17 @@ public sealed class SimulationPanelsAccessSettings
     public bool View2DFact { get; set; } = false;
     public bool View2DPair { get; set; } = true;
     public bool View3D { get; set; } = false;
+    public bool ShowCalibrationControls { get; set; } = false;
+}
+
+public sealed class Simulation2DCalibrationSettings
+{
+    public double ReferenceHeightMm { get; set; } = 1309.49;
+    public double VerticalOffsetMm { get; set; } = 155.0;
+    public double HorizontalOffsetMm { get; set; } = -55.0;
+    public double ManipulatorAnchorX { get; set; } = 0.04;
+    public double ManipulatorAnchorY { get; set; } = 0.90;
+    public bool ReversePath { get; set; }
 }
 
 public sealed class EditorGridColumnWidthSettings

@@ -153,6 +153,12 @@ public sealed class SettingsService
         settings.SimulationPanels.View2DPair ??= new PanelPlacementSettings { IsVisible = true };
         settings.SimulationPanels.View3D ??= new PanelPlacementSettings { IsVisible = false };
         settings.SimulationPanels.Access ??= new SimulationPanelsAccessSettings();
+        settings.SimulationPanels.Calibration2D ??= new Simulation2DCalibrationSettings();
+        settings.SimulationPanels.Calibration2D.ReferenceHeightMm = Math.Clamp(settings.SimulationPanels.Calibration2D.ReferenceHeightMm, 100, 5000);
+        settings.SimulationPanels.Calibration2D.VerticalOffsetMm = Math.Clamp(settings.SimulationPanels.Calibration2D.VerticalOffsetMm, -10000, 10000);
+        settings.SimulationPanels.Calibration2D.HorizontalOffsetMm = Math.Clamp(settings.SimulationPanels.Calibration2D.HorizontalOffsetMm, -10000, 10000);
+        settings.SimulationPanels.Calibration2D.ManipulatorAnchorX = Math.Clamp(settings.SimulationPanels.Calibration2D.ManipulatorAnchorX, 0, 1);
+        settings.SimulationPanels.Calibration2D.ManipulatorAnchorY = Math.Clamp(settings.SimulationPanels.Calibration2D.ManipulatorAnchorY, 0, 1);
         settings.EditorGridColumns ??= new();
 
         try
@@ -246,6 +252,18 @@ public sealed class SettingsService
             if (!ValidatePanel(panels.Parameters) || !ValidatePanel(panels.Visualization) || !ValidatePanel(panels.SelectedPoint))
             {
                 error = "EditorPanels содержит недопустимые значения.";
+                return false;
+            }
+        }
+
+        var simPanels = s.SimulationPanels;
+        if (simPanels?.Calibration2D is not null)
+        {
+            var c = simPanels.Calibration2D;
+            if (!IsFinite(c.ReferenceHeightMm) || !IsFinite(c.VerticalOffsetMm) || !IsFinite(c.HorizontalOffsetMm) ||
+                !IsFinite(c.ManipulatorAnchorX) || !IsFinite(c.ManipulatorAnchorY))
+            {
+                error = "SimulationPanels.Calibration2D содержит нечисловые значения.";
                 return false;
             }
         }

@@ -143,7 +143,8 @@
               </StackPanel>
             </Grid>
 
-            <Border Grid.Row="1" Classes="card" Padding="8,6">
+            <Border Grid.Row="1" Classes="card" Padding="8,6"
+                    IsVisible="{Binding AppSettings.SimulationPanels.Access.ShowCalibrationControls}">
               <StackPanel Spacing="6">
                 <Grid ColumnDefinitions="Auto,90,Auto,90,Auto,90,Auto,90,Auto,Auto" ColumnSpacing="8">
                   <TextBlock Text="Nozzle X" Classes="muted" VerticalAlignment="Center" />
@@ -166,14 +167,32 @@
                   <Button Grid.Column="9" Classes="ghost" Click="AutoAlign2DCalibration_Click">Auto Cal</Button>
                 </Grid>
 
-                <Grid ColumnDefinitions="Auto,220,Auto,220" ColumnSpacing="8">
+                <Grid ColumnDefinitions="Auto,*,96,Auto,*,96" ColumnSpacing="8">
                   <TextBlock Text="Offset Z (mm)" Classes="muted" VerticalAlignment="Center" />
                   <Slider Grid.Column="1" Minimum="-5000" Maximum="5000"
                           Value="{Binding ElementName=View2DPlot, Path=VerticalOffsetMm, Mode=TwoWay}" />
+                  <TextBox Grid.Column="2"
+                           Width="96"
+                           HorizontalContentAlignment="Right"
+                           Text="{Binding ElementName=View2DPlot, Path=VerticalOffsetMm, Mode=TwoWay, StringFormat={}{0:F1}}" />
 
-                  <TextBlock Grid.Column="2" Text="Offset X (mm)" Classes="muted" VerticalAlignment="Center" />
-                  <Slider Grid.Column="3" Minimum="-5000" Maximum="5000"
+                  <TextBlock Grid.Column="3" Text="Offset X (mm)" Classes="muted" VerticalAlignment="Center" />
+                  <Slider Grid.Column="4" Minimum="-5000" Maximum="5000"
                           Value="{Binding ElementName=View2DPlot, Path=HorizontalOffsetMm, Mode=TwoWay}" />
+                  <TextBox Grid.Column="5"
+                           Width="96"
+                           HorizontalContentAlignment="Right"
+                           Text="{Binding ElementName=View2DPlot, Path=HorizontalOffsetMm, Mode=TwoWay, StringFormat={}{0:F1}}" />
+                </Grid>
+
+                <Grid ColumnDefinitions="Auto,*,96" ColumnSpacing="8">
+                  <TextBlock Text="Model Height (mm)" Classes="muted" VerticalAlignment="Center" />
+                  <Slider Grid.Column="1" Minimum="900" Maximum="1800"
+                          Value="{Binding ElementName=View2DPlot, Path=ReferenceHeightMm, Mode=TwoWay}" />
+                  <TextBox Grid.Column="2"
+                           Width="96"
+                           HorizontalContentAlignment="Right"
+                           Text="{Binding ElementName=View2DPlot, Path=ReferenceHeightMm, Mode=TwoWay, StringFormat={}{0:F2}}" />
                 </Grid>
 
                 <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="8">
@@ -183,6 +202,9 @@
                                 Classes="ghost"
                                 VerticalAlignment="Center">Right → Left</ToggleButton>
                 </Grid>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                  <Button Classes="ghost" Click="Save2DCalibration_Click">Save Cal</Button>
+                </StackPanel>
               </StackPanel>
             </Border>
 
@@ -241,7 +263,7 @@
 
         <Border x:Name="View2DPairPanel" Classes="card floating-panel" Width="820" Height="640" MinWidth="500" MinHeight="300"
                 PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased" IsVisible="False">
-          <Grid RowDefinitions="Auto,*" RowSpacing="8">
+          <Grid RowDefinitions="Auto,Auto,*" RowSpacing="8">
             <Grid x:Name="View2DPairPanelHeader" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
               <TextBlock Text="2D Pair (1-2)" Classes="muted" VerticalAlignment="Center" />
               <Button Grid.Column="1" Classes="ghost" ToolTip.Tip="Zoom In" Click="ZoomIn2DPairView_Click">+</Button>
@@ -253,18 +275,61 @@
               </StackPanel>
             </Grid>
 
-            <controls:SimulationPointPair2DControl Grid.Row="1" x:Name="View2DPairPlot"
+            <Border Grid.Row="1" Classes="card" Padding="8,6"
+                    IsVisible="{Binding AppSettings.SimulationPanels.Access.ShowCalibrationControls}">
+              <StackPanel Spacing="8">
+                <Grid ColumnDefinitions="Auto,*,96" ColumnSpacing="8">
+                  <TextBlock Text="Offset Z (mm)" Classes="muted" VerticalAlignment="Center" />
+                  <Slider Grid.Column="1" Minimum="-5000" Maximum="5000"
+                          Value="{Binding ElementName=View2DPlot, Path=VerticalOffsetMm, Mode=TwoWay}" />
+                  <TextBox Grid.Column="2"
+                           Width="96"
+                           HorizontalContentAlignment="Right"
+                           Text="{Binding ElementName=View2DPlot, Path=VerticalOffsetMm, Mode=TwoWay, StringFormat={}{0:F1}}" />
+                </Grid>
+
+                <Grid ColumnDefinitions="Auto,*,96" ColumnSpacing="8">
+                  <TextBlock Text="Offset X (mm)" Classes="muted" VerticalAlignment="Center" />
+                  <Slider Grid.Column="1" Minimum="-5000" Maximum="5000"
+                          Value="{Binding ElementName=View2DPlot, Path=HorizontalOffsetMm, Mode=TwoWay}" />
+                  <TextBox Grid.Column="2"
+                           Width="96"
+                           HorizontalContentAlignment="Right"
+                           Text="{Binding ElementName=View2DPlot, Path=HorizontalOffsetMm, Mode=TwoWay, StringFormat={}{0:F1}}" />
+                </Grid>
+
+                <Grid ColumnDefinitions="Auto,*,96" ColumnSpacing="8">
+                  <TextBlock Text="Model Height (mm)" Classes="muted" VerticalAlignment="Center" />
+                  <Slider Grid.Column="1" Minimum="900" Maximum="1800"
+                          Value="{Binding ElementName=View2DPlot, Path=ReferenceHeightMm, Mode=TwoWay}" />
+                  <TextBox Grid.Column="2"
+                           Width="96"
+                           HorizontalContentAlignment="Right"
+                           Text="{Binding ElementName=View2DPlot, Path=ReferenceHeightMm, Mode=TwoWay, StringFormat={}{0:F2}}" />
+                </Grid>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                  <Button Classes="ghost" Click="Save2DCalibration_Click">Save Cal</Button>
+                  <Button Classes="ghost" Click="Reset2DCalibration_Click">Reset Cal</Button>
+                  <Button Classes="ghost" Click="AutoAlign2DCalibration_Click">Auto Cal</Button>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <controls:SimulationPointPair2DControl Grid.Row="2" x:Name="View2DPairPlot"
                                                    Points="{Binding PointsForAnimation}"
                                                    Progress="{Binding Progress}"
                                                    CurrentSegmentIndex="{Binding CurrentSegmentIndex}"
                                                    CurrentSegmentT="{Binding CurrentSegmentT}"
                                                    Settings="{Binding AppSettings}"
+                                                   CurrentAlfa="{Binding CurrentAlfa}"
+                                                   CurrentBetta="{Binding CurrentBetta}"
                                                    ToolXRaw="{Binding ToolXRaw}"
                                                    ToolZRaw="{Binding ToolZRaw}"
                                                    TargetXRaw="{Binding CurrentTargetX}"
                                                    TargetZRaw="{Binding CurrentTargetZ}"
                                                    ShowGrid="{Binding ShowGrid}"
-                                                   InvertHorizontal="{Binding ElementName=View2DPlot, Path=InvertHorizontal}"
+                                                   InvertHorizontal="{Binding ElementName=RecipePlot, Path=InvertHorizontal}"
                                                    ReferenceHeightMm="{Binding ElementName=View2DPlot, Path=ReferenceHeightMm}"
                                                    ManipulatorAnchorX="{Binding ElementName=View2DPlot, Path=ManipulatorAnchorX}"
                                                    ManipulatorAnchorY="{Binding ElementName=View2DPlot, Path=ManipulatorAnchorY}"
@@ -336,3 +401,4 @@
     </Grid>
   </Grid>
 </UserControl>
+

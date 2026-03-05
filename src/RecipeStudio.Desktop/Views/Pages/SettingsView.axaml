@@ -337,6 +337,12 @@
                   </StackPanel>
 
                   <StackPanel Spacing="2">
+                    <CheckBox IsChecked="{Binding SimShowCalibrationControls}" ToolTip.Tip="Показывать или скрывать блок калибровки в окнах 2D">Показывать калибровку 2D</CheckBox>
+                    <TextBlock Classes="muted tiny" Margin="24,0,0,0" TextWrapping="Wrap"
+                               Text="Включает отображение блока калибровки (Offset X/Z, Reset Cal, Auto Cal) в окнах 2D с соплом и 2D Pair. По умолчанию отключено." />
+                  </StackPanel>
+
+                  <StackPanel Spacing="2">
                     <CheckBox IsChecked="{Binding SimAllowTopView}" ToolTip.Tip="Панель вида сверху">Вид сверху (X-Y)</CheckBox>
                     <TextBlock Classes="muted tiny" Margin="24,0,0,0" TextWrapping="Wrap"
                                Text="Плоский вид сверху в координатах X-Y для контроля геометрии траектории на плане." />

@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -41,6 +42,12 @@ public sealed class SimulationPointPair2DControl : Control
     public static readonly StyledProperty<AppSettings?> SettingsProperty =
         AvaloniaProperty.Register<SimulationPointPair2DControl, AppSettings?>(nameof(Settings));
 
+    public static readonly StyledProperty<double> CurrentAlfaProperty =
+        AvaloniaProperty.Register<SimulationPointPair2DControl, double>(nameof(CurrentAlfa));
+
+    public static readonly StyledProperty<double> CurrentBettaProperty =
+        AvaloniaProperty.Register<SimulationPointPair2DControl, double>(nameof(CurrentBetta));
+
     public static readonly StyledProperty<double> ReferenceHeightMmProperty =
         AvaloniaProperty.Register<SimulationPointPair2DControl, double>(nameof(ReferenceHeightMm), 1309.49);
 
@@ -70,6 +77,11 @@ public sealed class SimulationPointPair2DControl : Control
     private double _zoomFactor = 1.0;
     private bool _needsRefit = true;
     private Size _lastRenderSize;
+    private Point _panOffset;
+    private bool _isPanning;
+    private Point _panStartScreen;
+    private Point _panStartOffset;
+    private bool _panWithRightButton;
 
     private readonly Bitmap? _partImage;
     private readonly Bitmap? _manipulatorImage;
@@ -128,6 +140,18 @@ public sealed class SimulationPointPair2DControl : Control
         set => SetValue(SettingsProperty, value);
     }
 
+    public double CurrentAlfa
+    {
+        get => GetValue(CurrentAlfaProperty);
+        set => SetValue(CurrentAlfaProperty, value);
+    }
+
+    public double CurrentBetta
+    {
+        get => GetValue(CurrentBettaProperty);
+        set => SetValue(CurrentBettaProperty, value);
+    }
+
     public double ReferenceHeightMm
     {
         get => GetValue(ReferenceHeightMmProperty);
@@ -184,6 +208,8 @@ public sealed class SimulationPointPair2DControl : Control
         TargetXRawProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
         TargetZRawProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
         SettingsProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
+        CurrentAlfaProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
+        CurrentBettaProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
         ReferenceHeightMmProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
         InvertHorizontalProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
         ShowGridProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
@@ -203,6 +229,7 @@ public sealed class SimulationPointPair2DControl : Control
     public void ZoomIn()
     {
         _zoomFactor = Math.Clamp(_zoomFactor * 1.2, 0.2, 20.0);
+        ClampPanOffset();
         InvalidateVisual();
         ZoomChanged?.Invoke(_zoomFactor);
     }
@@ -210,6 +237,7 @@ public sealed class SimulationPointPair2DControl : Control
     public void ZoomOut()
     {
         _zoomFactor = Math.Clamp(_zoomFactor / 1.2, 0.2, 20.0);
+        ClampPanOffset();
         InvalidateVisual();
         ZoomChanged?.Invoke(_zoomFactor);
     }
@@ -217,9 +245,76 @@ public sealed class SimulationPointPair2DControl : Control
     public void ResetZoom()
     {
         _zoomFactor = 1.0;
+        _panOffset = default;
         _needsRefit = true;
         InvalidateVisual();
         ZoomChanged?.Invoke(_zoomFactor);
+    }
+
+    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    {
+        base.OnPointerPressed(e);
+
+        var props = e.GetCurrentPoint(this).Properties;
+        if (!props.IsLeftButtonPressed && !props.IsRightButtonPressed)
+            return;
+
+        _panWithRightButton = props.IsRightButtonPressed && !props.IsLeftButtonPressed;
+        _isPanning = true;
+        _panStartScreen = e.GetPosition(this);
+        _panStartOffset = _panOffset;
+        e.Pointer.Capture(this);
+        e.Handled = true;
+    }
+
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        base.OnPointerMoved(e);
+
+        if (!_isPanning)
+            return;
+
+        var props = e.GetCurrentPoint(this).Properties;
+        var panPressed = _panWithRightButton ? props.IsRightButtonPressed : props.IsLeftButtonPressed;
+        if (!panPressed)
+        {
+            _isPanning = false;
+            e.Pointer.Capture(null);
+            return;
+        }
+
+        var p = e.GetPosition(this);
+        var dx = p.X - _panStartScreen.X;
+        var dy = p.Y - _panStartScreen.Y;
+        var worldDx = _scale <= 1e-6 ? 0 : dx / _scale;
+        var worldDy = _scale <= 1e-6 ? 0 : -dy / _scale;
+
+        _panOffset = new Point(_panStartOffset.X - worldDx, _panStartOffset.Y - worldDy);
+        ClampPanOffset();
+        InvalidateVisual();
+    }
+
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        base.OnPointerReleased(e);
+
+        if (!_isPanning)
+            return;
+
+        _isPanning = false;
+        e.Pointer.Capture(null);
+    }
+
+    protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
+    {
+        base.OnPointerWheelChanged(e);
+
+        if (e.Delta.Y > 0)
+            ZoomIn();
+        else if (e.Delta.Y < 0)
+            ZoomOut();
+
+        e.Handled = true;
     }
 
     public override void Render(DrawingContext context)
@@ -231,8 +326,7 @@ public sealed class SimulationPointPair2DControl : Control
         var mmPerPixel = ResolveMmPerPixel(referenceHeightMm);
         var partRectWorld = CreateWorldRectCenteredAtX(HorizontalOffsetMm, 0, _partImage, mmPerPixel, referenceHeightMm);
 
-        var point1 = ResolvePoint1World();
-        var point2 = ResolvePoint2World(point1);
+        var (point1, point2) = ResolvePairPoints();
         var manipRectWorld = CreateManipulatorRectFromAnchor(point2, _manipulatorImage, mmPerPixel);
         var worldBounds = ComputeWorldBounds(partRectWorld, manipRectWorld, point1, point2);
 
@@ -259,10 +353,12 @@ public sealed class SimulationPointPair2DControl : Control
                 DrawGrid(context, worldBounds, 100);
 
             DrawImageWorld(context, _partImage, partRectWorld);
+            DrawImageWorld(context, _manipulatorImage, manipRectWorld);
+
+            // Keep pair overlay above manipulator so points 1/2 and red link are always visible.
             DrawPairLink(context, point1, point2);
             DrawPointMarker(context, point1, "1");
             DrawPointMarker(context, point2, "2");
-            DrawImageWorld(context, _manipulatorImage, manipRectWorld);
         }
     }
 
@@ -311,42 +407,235 @@ public sealed class SimulationPointPair2DControl : Control
         return new Rect(left, bottom, w, h);
     }
 
-    private Point ResolvePoint1World()
-    {
-        if (double.IsFinite(TargetXRaw) && double.IsFinite(TargetZRaw))
-            return new Point(ToVisualX(TargetXRaw), TargetZRaw + VerticalOffsetMm);
-
-        return EvaluateTargetBySegment();
-    }
-
-    private Point ResolvePoint2World(Point fallback)
-    {
-        if (double.IsFinite(ToolXRaw) && double.IsFinite(ToolZRaw))
-            return new Point(ToVisualX(ToolXRaw), ToolZRaw + VerticalOffsetMm);
-
-        return fallback;
-    }
-
-    private Point EvaluateTargetBySegment()
+    private (Point Point1, Point Point2) ResolvePairPoints()
     {
         var source = Points?.ToList() ?? new List<RecipePoint>();
-        if (source.Count == 0)
-            return new Point(ToVisualX(0), VerticalOffsetMm);
+        var settings = Settings ?? new AppSettings();
+        var hZone = settings.HZone;
+        var absoluteRobot = RobotCoordinateResolver.BuildAbsolutePositions(source);
+        var animTarget = new List<Point>();
+        var animTool = new List<Point>();
 
-        var hZone = Settings?.HZone ?? 1200;
-        if (source.Count == 1)
+        for (var idx = 0; idx < source.Count; idx++)
         {
-            var only = source[0].GetTargetPoint(hZone);
-            return new Point(ToVisualX(only.Xp), only.Zp + VerticalOffsetMm);
+            var p = source[idx];
+            var (xp, zp) = p.GetTargetPoint(hZone);
+            animTarget.Add(new Point(ToVisualX(xp), zp));
+
+            var toolX = p.Xr0 + p.DX;
+            var toolZ = p.Zr0 + p.DZ;
+            if (idx < absoluteRobot.Count)
+            {
+                var abs = absoluteRobot[idx];
+                toolX = abs.X;
+                toolZ = abs.Z;
+            }
+
+            animTool.Add(new Point(ToVisualX(toolX), toolZ));
         }
 
-        var seg = Math.Clamp(CurrentSegmentIndex, 0, source.Count - 2);
-        var t = Math.Clamp(CurrentSegmentT, 0.0, 1.0);
-        var a = source[seg].GetTargetPoint(hZone);
-        var b = source[seg + 1].GetTargetPoint(hZone);
-        var x = a.Xp + (b.Xp - a.Xp) * t;
-        var z = a.Zp + (b.Zp - a.Zp) * t;
-        return new Point(ToVisualX(x), z + VerticalOffsetMm);
+        var toolState = GetToolState(animTool, animTarget, Progress, CurrentSegmentIndex, CurrentSegmentT);
+
+        var point2 = toolState.ToolPosition;
+        if (double.IsFinite(ToolXRaw) && double.IsFinite(ToolZRaw))
+            point2 = new Point(ToVisualX(ToolXRaw), ToolZRaw);
+
+        var point1 = toolState.TargetPosition;
+        if (double.IsFinite(TargetXRaw) && double.IsFinite(TargetZRaw))
+            point1 = new Point(ToVisualX(TargetXRaw), TargetZRaw);
+
+        var direction = new Point(point1.X - point2.X, point1.Y - point2.Y);
+        if (NozzleOrientationPolicy.UsePhysicalOrientation(settings.NozzleOrientationMode))
+        {
+            direction = ApplyTransitionLiftOrientation(source, animTool, toolState, settings);
+            if (InvertHorizontal)
+                direction = new Point(-direction.X, direction.Y);
+
+            var nozzleLength = Math.Clamp(Math.Abs(settings.Lz), 20, 600);
+            point1 = new Point(
+                point2.X + direction.X * nozzleLength,
+                point2.Y + direction.Y * nozzleLength);
+        }
+
+        point1 = new Point(point1.X, point1.Y + VerticalOffsetMm);
+        point2 = new Point(point2.X, point2.Y + VerticalOffsetMm);
+        return (point1, point2);
+    }
+
+    private static (Point ToolPosition, Point TargetPosition, Point Direction, Point ToolSegmentDirection, int SegmentIndex, double SegmentT) GetToolState(
+        IList<Point> tool,
+        IList<Point> targetPts,
+        double progress,
+        int segmentIndexHint,
+        double segmentTHint)
+    {
+        var pairCount = Math.Min(tool.Count, targetPts.Count);
+        if (pairCount == 0)
+            return (default, default, new Point(1, 0), new Point(1, 0), 0, 0);
+
+        if (pairCount == 1)
+            return (tool[0], targetPts[0], new Point(1, 0), new Point(1, 0), 0, 0);
+
+        var maxSeg = pairCount - 2;
+        if (segmentIndexHint >= 0 && maxSeg >= 0)
+        {
+            var seg = Math.Clamp(segmentIndexHint, 0, maxSeg);
+            var t = Math.Clamp(segmentTHint, 0.0, 1.0);
+            var x = tool[seg].X + (tool[seg + 1].X - tool[seg].X) * t;
+            var y = tool[seg].Y + (tool[seg + 1].Y - tool[seg].Y) * t;
+            var tx = targetPts[seg].X + (targetPts[seg + 1].X - targetPts[seg].X) * t;
+            var ty = targetPts[seg].Y + (targetPts[seg + 1].Y - targetPts[seg].Y) * t;
+            var dir = new Point(tx - x, ty - y);
+            var travel = new Point(tool[seg + 1].X - tool[seg].X, tool[seg + 1].Y - tool[seg].Y);
+            return (new Point(x, y), new Point(tx, ty), dir, travel, seg, t);
+        }
+
+        progress = Math.Clamp(progress, 0.0, 1.0);
+        double total = 0;
+        var segLengths = new double[pairCount - 1];
+        for (var i = 0; i < pairCount - 1; i++)
+        {
+            var dx = tool[i + 1].X - tool[i].X;
+            var dy = tool[i + 1].Y - tool[i].Y;
+            var d = Math.Sqrt(dx * dx + dy * dy);
+            segLengths[i] = d;
+            total += d;
+        }
+
+        if (total <= 1e-9)
+        {
+            var tail = pairCount - 1;
+            var fallbackTravel = new Point(tool[tail].X - tool[0].X, tool[tail].Y - tool[0].Y);
+            return (tool[0], targetPts[0], fallbackTravel, fallbackTravel, 0, 0);
+        }
+
+        var targetLen = total * progress;
+        double acc = 0;
+        for (var i = 0; i < segLengths.Length; i++)
+        {
+            var next = acc + segLengths[i];
+            if (targetLen <= next)
+            {
+                var t = (targetLen - acc) / Math.Max(1e-9, segLengths[i]);
+                var x = tool[i].X + (tool[i + 1].X - tool[i].X) * t;
+                var y = tool[i].Y + (tool[i + 1].Y - tool[i].Y) * t;
+                var tx = targetPts[i].X + (targetPts[i + 1].X - targetPts[i].X) * t;
+                var ty = targetPts[i].Y + (targetPts[i + 1].Y - targetPts[i].Y) * t;
+                var dir = new Point(tx - x, ty - y);
+                var travel = new Point(tool[i + 1].X - tool[i].X, tool[i + 1].Y - tool[i].Y);
+                return (new Point(x, y), new Point(tx, ty), dir, travel, i, t);
+            }
+
+            acc = next;
+        }
+
+        var last = pairCount - 1;
+        var fallbackDir = new Point(targetPts[last].X - tool[last].X, targetPts[last].Y - tool[last].Y);
+        var fallbackTravelDir = new Point(tool[last].X - tool[last - 1].X, tool[last].Y - tool[last - 1].Y);
+        return (tool[last], targetPts[last], fallbackDir, fallbackTravelDir, Math.Max(0, pairCount - 2), 1);
+    }
+
+    private Point ApplyTransitionLiftOrientation(
+        IList<RecipePoint> animSrc,
+        IList<Point> animTool,
+        (Point ToolPosition, Point TargetPosition, Point Direction, Point ToolSegmentDirection, int SegmentIndex, double SegmentT) toolState,
+        AppSettings settings)
+    {
+        var currentPlace = ResolveCurrentPlace(animSrc, toolState.SegmentIndex, toolState.SegmentT);
+        var alphaDir = GetPhysicalAlphaDirection(settings, CurrentAlfa, CurrentBetta, currentPlace);
+        var transition = IsTransitionSegment(animSrc, animTool, toolState.SegmentIndex);
+        if (!transition)
+            return alphaDir;
+
+        if (toolState.SegmentIndex < 0 || toolState.SegmentIndex >= animSrc.Count - 1)
+            return alphaDir;
+
+        var a = animSrc[toolState.SegmentIndex];
+        var b = animSrc[toolState.SegmentIndex + 1];
+        var startDir = GetPhysicalAlphaDirection(settings, a.Alfa, a.Betta, a.Place);
+        var endDir = GetPhysicalAlphaDirection(settings, b.Alfa, b.Betta, b.Place);
+
+        var t = SmoothStep(Math.Clamp(toolState.SegmentT, 0.0, 1.0));
+        var blended = InterpolateDirectionByAngle(startDir, endDir, t);
+        return NormalizeDirection(blended, alphaDir);
+    }
+
+    private static int ResolveCurrentPlace(IList<RecipePoint> animSrc, int segmentIndex, double segmentT)
+    {
+        if (animSrc.Count == 0)
+            return 0;
+
+        var seg = Math.Clamp(segmentIndex, 0, Math.Max(0, animSrc.Count - 2));
+        if (seg >= animSrc.Count - 1)
+            return animSrc[^1].Place;
+
+        return segmentT >= 0.5 ? animSrc[seg + 1].Place : animSrc[seg].Place;
+    }
+
+    private static Point GetPhysicalAlphaDirection(AppSettings settings, double alfaDeg, double bettaDeg, int place)
+    {
+        var limits = NozzleOrientationPolicy.GetLimits(settings);
+        var (alfa, betta) = limits.Clamp(alfaDeg, bettaDeg);
+        var a = alfa * Math.PI / 180.0;
+        var b = betta * Math.PI / 180.0;
+        var x = Math.Cos(b) * Math.Cos(a);
+        var zSign = place == 0 ? -1.0 : 1.0;
+        var z = zSign * Math.Cos(b) * Math.Sin(a);
+        return NormalizeDirection(new Point(x, z), new Point(1, 0));
+    }
+
+    private static bool IsTransitionSegment(IList<RecipePoint> animSrc, IList<Point> animTool, int segmentIndex)
+    {
+        if (segmentIndex < 0)
+            return false;
+
+        if (segmentIndex >= animSrc.Count - 1 || segmentIndex >= animTool.Count - 1)
+            return false;
+
+        var a = animSrc[segmentIndex];
+        var b = animSrc[segmentIndex + 1];
+        if (a.Place != b.Place || a.Safe != b.Safe)
+            return true;
+
+        var dx = animTool[segmentIndex + 1].X - animTool[segmentIndex].X;
+        var dz = animTool[segmentIndex + 1].Y - animTool[segmentIndex].Y;
+        return Math.Sqrt(dx * dx + dz * dz) >= 180;
+    }
+
+    private static Point NormalizeDirection(Point dir, Point fallback)
+    {
+        var len = Math.Sqrt(dir.X * dir.X + dir.Y * dir.Y);
+        if (len <= 1e-6)
+            return fallback;
+
+        return new Point(dir.X / len, dir.Y / len);
+    }
+
+    private static Point InterpolateDirectionByAngle(Point from, Point to, double t)
+    {
+        var a = NormalizeDirection(from, new Point(1, 0));
+        var b = NormalizeDirection(to, a);
+        var a0 = Math.Atan2(a.Y, a.X);
+        var a1 = Math.Atan2(b.Y, b.X);
+        var d = NormalizeRadiansPi(a1 - a0);
+        var angle = a0 + d * t;
+        return new Point(Math.Cos(angle), Math.Sin(angle));
+    }
+
+    private static double NormalizeRadiansPi(double angle)
+    {
+        while (angle > Math.PI)
+            angle -= Math.PI * 2;
+
+        while (angle < -Math.PI)
+            angle += Math.PI * 2;
+
+        return angle;
+    }
+
+    private static double SmoothStep(double x)
+    {
+        return x * x * (3 - 2 * x);
     }
 
     private static Rect ComputeWorldBounds(Rect partRect, Rect manipRect, Point point1, Point point2)
@@ -433,6 +722,7 @@ public sealed class SimulationPointPair2DControl : Control
         _fitScale = Math.Min(sx, sy);
         _scale = _fitScale;
         _fitWorldBounds = safe;
+        ClampPanOffset();
         ApplyCurrentView();
     }
 
@@ -441,12 +731,26 @@ public sealed class SimulationPointPair2DControl : Control
         if (_fitWorldBounds.Width <= 0 || _fitWorldBounds.Height <= 0)
             return;
 
-        var centerX = _fitWorldBounds.Center.X;
-        var centerZ = _fitWorldBounds.Center.Y;
+        var centerX = _fitWorldBounds.Center.X + _panOffset.X;
+        var centerZ = _fitWorldBounds.Center.Y + _panOffset.Y;
         var zoomedWidth = _fitWorldBounds.Width / _zoomFactor;
         var zoomedHeight = _fitWorldBounds.Height / _zoomFactor;
         _worldBounds = new Rect(centerX - zoomedWidth / 2.0, centerZ - zoomedHeight / 2.0, zoomedWidth, zoomedHeight);
         _scale = _fitScale * _zoomFactor;
+    }
+
+    private void ClampPanOffset()
+    {
+        if (_fitWorldBounds.Width <= 0 || _fitWorldBounds.Height <= 0)
+            return;
+
+        var zoomedWidth = _fitWorldBounds.Width / _zoomFactor;
+        var zoomedHeight = _fitWorldBounds.Height / _zoomFactor;
+        var maxPanX = Math.Max(0, (_fitWorldBounds.Width - zoomedWidth) * 0.5);
+        var maxPanY = Math.Max(0, (_fitWorldBounds.Height - zoomedHeight) * 0.5);
+        _panOffset = new Point(
+            Math.Clamp(_panOffset.X, -maxPanX, maxPanX),
+            Math.Clamp(_panOffset.Y, -maxPanY, maxPanY));
     }
 
     private Point WorldToScreen(Point p)

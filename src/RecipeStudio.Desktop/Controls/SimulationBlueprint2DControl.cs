@@ -19,8 +19,8 @@ public sealed class SimulationBlueprint2DControl : Control
     public const double DefaultNozzleAnchorY = 0.50;
     public const double DefaultManipulatorAnchorX = 0.04;
     public const double DefaultManipulatorAnchorY = 0.90;
-    public const double DefaultVerticalOffsetMm = 240.0;
-    public const double DefaultHorizontalOffsetMm = 0.0;
+    public const double DefaultVerticalOffsetMm = 155.0;
+    public const double DefaultHorizontalOffsetMm = -55.0;
     private const double NozzlePivotAnchorX = 0.84;
     private const double ApproachPhase = 0.15;
     private const double CenterTransferPhase = 0.10;
