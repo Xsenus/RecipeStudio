@@ -481,7 +481,7 @@ public sealed class SimulationPointPair2DControl : Control
             if (InvertHorizontal)
                 direction = new Point(-direction.X, direction.Y);
 
-            var nozzleLength = Math.Clamp(Math.Abs(settings.Lz), 20, 600);
+            var nozzleLength = ResolveEffectiveNozzleLengthMm(source, toolState, settings);
             point1 = new Point(
                 point2.X + direction.X * nozzleLength,
                 point2.Y + direction.Y * nozzleLength);
@@ -572,22 +572,24 @@ public sealed class SimulationPointPair2DControl : Control
         AppSettings settings)
     {
         var currentPlace = ResolveCurrentPlace(animSrc, toolState.SegmentIndex, toolState.SegmentT);
-        var alphaDir = GetPhysicalAlphaDirection(settings, CurrentAlfa, CurrentBetta, currentPlace);
+        var currentProjected = GetPhysicalProjectedVector(settings, CurrentAlfa, CurrentBetta, currentPlace);
         var transition = IsTransitionSegment(animSrc, animTool, toolState.SegmentIndex);
         if (!transition)
-            return alphaDir;
+            return currentProjected;
 
         if (toolState.SegmentIndex < 0 || toolState.SegmentIndex >= animSrc.Count - 1)
-            return alphaDir;
+            return currentProjected;
 
         var a = animSrc[toolState.SegmentIndex];
         var b = animSrc[toolState.SegmentIndex + 1];
-        var startDir = GetPhysicalAlphaDirection(settings, a.Alfa, a.Betta, a.Place);
-        var endDir = GetPhysicalAlphaDirection(settings, b.Alfa, b.Betta, b.Place);
+        var startProjected = GetPhysicalProjectedVector(settings, a.Alfa, a.Betta, a.Place);
+        var endProjected = GetPhysicalProjectedVector(settings, b.Alfa, b.Betta, b.Place);
 
         var t = SmoothStep(Math.Clamp(toolState.SegmentT, 0.0, 1.0));
-        var blended = InterpolateDirectionByAngle(startDir, endDir, t);
-        return NormalizeDirection(blended, alphaDir);
+        var blendedDirection = InterpolateDirectionByAngle(startProjected, endProjected, t);
+        var blendedMagnitude = Lerp(VectorLength(startProjected), VectorLength(endProjected), t);
+        var blended = new Point(blendedDirection.X * blendedMagnitude, blendedDirection.Y * blendedMagnitude);
+        return VectorLength(blended) <= 1e-6 ? currentProjected : blended;
     }
 
     private static int ResolveCurrentPlace(IList<RecipePoint> animSrc, int segmentIndex, double segmentT)
@@ -602,16 +604,31 @@ public sealed class SimulationPointPair2DControl : Control
         return segmentT >= 0.5 ? animSrc[seg + 1].Place : animSrc[seg].Place;
     }
 
-    private static Point GetPhysicalAlphaDirection(AppSettings settings, double alfaDeg, double bettaDeg, int place)
+    private static Point GetPhysicalProjectedVector(AppSettings settings, double alfaDeg, double bettaDeg, int place)
     {
-        var limits = NozzleOrientationPolicy.GetLimits(settings);
-        var (alfa, betta) = limits.Clamp(alfaDeg, bettaDeg);
-        var a = alfa * Math.PI / 180.0;
-        var b = betta * Math.PI / 180.0;
+        var a = alfaDeg * Math.PI / 180.0;
+        var b = bettaDeg * Math.PI / 180.0;
         var x = Math.Cos(b) * Math.Cos(a);
         var zSign = place == 0 ? -1.0 : 1.0;
         var z = zSign * Math.Cos(b) * Math.Sin(a);
-        return NormalizeDirection(new Point(x, z), new Point(1, 0));
+        return new Point(x, z);
+    }
+
+    private static double ResolveEffectiveNozzleLengthMm(
+        IList<RecipePoint> animSrc,
+        (Point ToolPosition, Point TargetPosition, Point Direction, Point ToolSegmentDirection, int SegmentIndex, double SegmentT) toolState,
+        AppSettings settings)
+    {
+        if (animSrc.Count == 0)
+            return Math.Clamp(Math.Abs(settings.Lz), 20, 600);
+
+        if (animSrc.Count == 1)
+            return Math.Clamp(Math.Abs(settings.Lz + animSrc[0].ANozzle), 20, 600);
+
+        var seg = Math.Clamp(toolState.SegmentIndex, 0, animSrc.Count - 2);
+        var t = Math.Clamp(toolState.SegmentT, 0.0, 1.0);
+        var extraLength = Lerp(animSrc[seg].ANozzle, animSrc[seg + 1].ANozzle, t);
+        return Math.Clamp(Math.Abs(settings.Lz + extraLength), 20, 600);
     }
 
     private static bool IsTransitionSegment(IList<RecipePoint> animSrc, IList<Point> animTool, int segmentIndex)
@@ -667,6 +684,12 @@ public sealed class SimulationPointPair2DControl : Control
     {
         return x * x * (3 - 2 * x);
     }
+
+    private static double VectorLength(Point value)
+        => Math.Sqrt(value.X * value.X + value.Y * value.Y);
+
+    private static double Lerp(double a, double b, double t)
+        => a + (b - a) * t;
 
     private static Rect ComputeWorldBounds(
         Rect partRect,

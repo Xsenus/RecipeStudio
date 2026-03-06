@@ -982,7 +982,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     private Vector3 GetPhysicalDirection(int segmentIndex, float segmentT)
     {
         var currentPlace = ResolveCurrentPlace(segmentIndex, segmentT);
-        var angleDir = GetClampedAnglesDirection(CurrentAlfa, CurrentBetta, Settings, currentPlace);
+        var angleDir = GetPhysicalAnglesDirection(CurrentAlfa, CurrentBetta, Settings, currentPlace);
         if (!IsTransitionSegment(segmentIndex))
             return angleDir;
 
@@ -991,8 +991,8 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
 
         var a = _pathPoints[segmentIndex];
         var b = _pathPoints[segmentIndex + 1];
-        var start = GetClampedAnglesDirection(a.Alfa, a.Betta, Settings, a.Place);
-        var end = GetClampedAnglesDirection(b.Alfa, b.Betta, Settings, b.Place);
+        var start = GetPhysicalAnglesDirection(a.Alfa, a.Betta, Settings, a.Place);
+        var end = GetPhysicalAnglesDirection(b.Alfa, b.Betta, Settings, b.Place);
         var t = SmoothStep(Math.Clamp(segmentT, 0f, 1f));
         return SlerpDirection(start, end, t, angleDir);
     }
@@ -1061,10 +1061,9 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         return SafeNormalize(a * wa + b * wb, fallback);
     }
 
-    private static Vector3 GetClampedAnglesDirection(double alfaDeg, double bettaDeg, AppSettings? settings, int place)
+    private static Vector3 GetPhysicalAnglesDirection(double alfaDeg, double bettaDeg, AppSettings? settings, int place)
     {
-        var (alfa, betta) = NozzleOrientationPolicy.ClampForPhysicalOrientation(settings, alfaDeg, bettaDeg);
-        return AnglesToDirection(alfa, betta, place);
+        return AnglesToDirection(alfaDeg, bettaDeg, place);
     }
 
     private static Vector3 AnglesToDirection(double alfaDeg, double bettaDeg, int place)
