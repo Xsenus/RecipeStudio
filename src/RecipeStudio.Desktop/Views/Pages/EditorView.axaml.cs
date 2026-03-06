@@ -21,6 +21,7 @@ public sealed partial class EditorView : UserControl
     private const double PanelMargin = 20;
     private const double DefaultPanelsTopOffset = 42;
     private const double DefaultPanelGap = 16;
+    private const double ResizeBorderThickness = 8;
 
     public EditorView()
     {
@@ -38,10 +39,22 @@ public sealed partial class EditorView : UserControl
 
     private Border? _resizePanel;
     private Point _resizeStart;
+    private Point _resizeStartOrigin;
     private Size _resizeStartSize;
+    private PanelResizeDirection _resizeDirection;
     private int _zOrderCounter;
     private bool _isApplyingSavedColumnWidths;
     private bool _applyingTargetDisplayModes;
+
+    [Flags]
+    private enum PanelResizeDirection
+    {
+        None = 0,
+        Left = 1,
+        Top = 2,
+        Right = 4,
+        Bottom = 8
+    }
 
     private void HookVm()
     {
@@ -551,6 +564,13 @@ public sealed partial class EditorView : UserControl
 
         if (control is not Border panel) return;
 
+        var resizeDirection = GetResizeDirection(panel, e.GetPosition(panel));
+        if (resizeDirection != PanelResizeDirection.None)
+        {
+            StartPanelResize(panel, resizeDirection, e, panel);
+            return;
+        }
+
         _dragPanel = panel;
         BringPanelToFront(panel);
         var pos = e.GetPosition(PanelsCanvas);
@@ -575,6 +595,17 @@ public sealed partial class EditorView : UserControl
 
     private void Panel_PointerMoved(object? sender, PointerEventArgs e)
     {
+        if (sender is Border panel)
+        {
+            if (ReferenceEquals(_resizePanel, panel))
+            {
+                ResizeActivePanel(e, 0);
+                return;
+            }
+
+            UpdatePanelCursor(panel, e.GetPosition(panel));
+        }
+
         if (_dragPanel is null) return;
 
         var pos = e.GetPosition(PanelsCanvas);
@@ -591,6 +622,15 @@ public sealed partial class EditorView : UserControl
 
     private void Panel_PointerReleased(object? sender, PointerReleasedEventArgs e)
     {
+        if (_resizePanel is not null)
+        {
+            _resizePanel = null;
+            _resizeDirection = PanelResizeDirection.None;
+            e.Pointer.Capture(null);
+            PersistPanelsLayout();
+            return;
+        }
+
         if (_dragPanel is null) return;
 
         e.Pointer.Capture(null);
@@ -615,12 +655,7 @@ public sealed partial class EditorView : UserControl
         if (_resizePanel is null)
             return;
 
-        BringPanelToFront(_resizePanel);
-
-        _resizeStart = e.GetPosition(PanelsCanvas);
-        _resizeStartSize = new Size(_resizePanel.Width, _resizePanel.Height);
-        e.Pointer.Capture(sender as IInputElement);
-        e.Handled = true;
+        StartPanelResize(_resizePanel, PanelResizeDirection.Right | PanelResizeDirection.Bottom, e, sender as IInputElement);
     }
 
     private void ResizeHandle_PointerMoved(object? sender, PointerEventArgs e)
@@ -628,25 +663,7 @@ public sealed partial class EditorView : UserControl
         if (_resizePanel is null)
             return;
 
-        var pos = e.GetPosition(PanelsCanvas);
-        var deltaX = pos.X - _resizeStart.X;
-        var deltaY = pos.Y - _resizeStart.Y;
-
-        var minW = _resizePanel.MinWidth <= 0 ? 260 : _resizePanel.MinWidth;
-        var minH = _resizePanel.MinHeight <= 0 ? 160 : _resizePanel.MinHeight;
-
-        var left = Canvas.GetLeft(_resizePanel);
-        var top = Canvas.GetTop(_resizePanel);
-
-        var maxW = Math.Max(minW, PanelsCanvas.Bounds.Width - left);
-        var maxH = Math.Max(minH, PanelsCanvas.Bounds.Height - top);
-
-        var width = Math.Clamp(_resizeStartSize.Width + deltaX, minW, maxW);
-        var height = Math.Clamp(_resizeStartSize.Height + deltaY, minH, maxH);
-
-        _resizePanel.Width = width;
-        _resizePanel.Height = height;
-        UpdateResizeHandleFor(_resizePanel);
+        ResizeActivePanel(e, 0);
     }
 
     private void ResizeHandle_PointerReleased(object? sender, PointerReleasedEventArgs e)
@@ -655,8 +672,121 @@ public sealed partial class EditorView : UserControl
             return;
 
         _resizePanel = null;
+        _resizeDirection = PanelResizeDirection.None;
         e.Pointer.Capture(null);
         PersistPanelsLayout();
+    }
+
+    private void StartPanelResize(Border panel, PanelResizeDirection direction, PointerPressedEventArgs e, IInputElement? captureTarget)
+    {
+        _dragPanel = null;
+        _resizePanel = panel;
+        _resizeDirection = direction;
+        BringPanelToFront(panel);
+        _resizeStart = e.GetPosition(PanelsCanvas);
+        _resizeStartOrigin = new Point(Canvas.GetLeft(panel), Canvas.GetTop(panel));
+        var width = panel.Bounds.Width > 0 ? panel.Bounds.Width : panel.Width;
+        var height = panel.Bounds.Height > 0 ? panel.Bounds.Height : panel.Height;
+        _resizeStartSize = new Size(width, height);
+        e.Pointer.Capture(captureTarget ?? panel);
+        e.Handled = true;
+    }
+
+    private void ResizeActivePanel(PointerEventArgs e, double minTop)
+    {
+        if (_resizePanel is null || _resizeDirection == PanelResizeDirection.None)
+            return;
+
+        var pos = e.GetPosition(PanelsCanvas);
+        var deltaX = pos.X - _resizeStart.X;
+        var deltaY = pos.Y - _resizeStart.Y;
+
+        var minW = _resizePanel.MinWidth <= 0 ? 260 : _resizePanel.MinWidth;
+        var minH = _resizePanel.MinHeight <= 0 ? 160 : _resizePanel.MinHeight;
+        var canvasWidth = PanelsCanvas.Bounds.Width;
+        var canvasHeight = PanelsCanvas.Bounds.Height;
+
+        var left = _resizeStartOrigin.X;
+        var top = _resizeStartOrigin.Y;
+        var width = _resizeStartSize.Width;
+        var height = _resizeStartSize.Height;
+
+        if ((_resizeDirection & PanelResizeDirection.Left) != 0)
+        {
+            var maxWidth = Math.Max(minW, _resizeStartOrigin.X + _resizeStartSize.Width);
+            width = Math.Clamp(_resizeStartSize.Width - deltaX, minW, maxWidth);
+            left = _resizeStartOrigin.X + (_resizeStartSize.Width - width);
+        }
+
+        if ((_resizeDirection & PanelResizeDirection.Right) != 0)
+        {
+            var maxWidth = Math.Max(minW, canvasWidth - _resizeStartOrigin.X);
+            width = Math.Clamp(_resizeStartSize.Width + deltaX, minW, maxWidth);
+        }
+
+        if ((_resizeDirection & PanelResizeDirection.Top) != 0)
+        {
+            var maxHeight = Math.Max(minH, _resizeStartOrigin.Y - minTop + _resizeStartSize.Height);
+            height = Math.Clamp(_resizeStartSize.Height - deltaY, minH, maxHeight);
+            top = _resizeStartOrigin.Y + (_resizeStartSize.Height - height);
+        }
+
+        if ((_resizeDirection & PanelResizeDirection.Bottom) != 0)
+        {
+            var maxHeight = Math.Max(minH, canvasHeight - _resizeStartOrigin.Y);
+            height = Math.Clamp(_resizeStartSize.Height + deltaY, minH, maxHeight);
+        }
+
+        _resizePanel.Width = width;
+        _resizePanel.Height = height;
+        Canvas.SetLeft(_resizePanel, left);
+        Canvas.SetTop(_resizePanel, top);
+        UpdateResizeHandleFor(_resizePanel);
+    }
+
+    private static PanelResizeDirection GetResizeDirection(Border panel, Point point)
+    {
+        var width = panel.Bounds.Width > 0 ? panel.Bounds.Width : panel.Width;
+        var height = panel.Bounds.Height > 0 ? panel.Bounds.Height : panel.Height;
+        if (width <= 0 || height <= 0)
+            return PanelResizeDirection.None;
+
+        var direction = PanelResizeDirection.None;
+        if (point.X <= ResizeBorderThickness)
+            direction |= PanelResizeDirection.Left;
+        else if (point.X >= width - ResizeBorderThickness)
+            direction |= PanelResizeDirection.Right;
+
+        if (point.Y <= ResizeBorderThickness)
+            direction |= PanelResizeDirection.Top;
+        else if (point.Y >= height - ResizeBorderThickness)
+            direction |= PanelResizeDirection.Bottom;
+
+        return direction;
+    }
+
+    private static Cursor? GetResizeCursor(PanelResizeDirection direction)
+    {
+        return direction switch
+        {
+            PanelResizeDirection.Left => new Cursor(StandardCursorType.LeftSide),
+            PanelResizeDirection.Right => new Cursor(StandardCursorType.RightSide),
+            PanelResizeDirection.Top => new Cursor(StandardCursorType.TopSide),
+            PanelResizeDirection.Bottom => new Cursor(StandardCursorType.BottomSide),
+            PanelResizeDirection.Left | PanelResizeDirection.Top => new Cursor(StandardCursorType.TopLeftCorner),
+            PanelResizeDirection.Right | PanelResizeDirection.Top => new Cursor(StandardCursorType.TopRightCorner),
+            PanelResizeDirection.Left | PanelResizeDirection.Bottom => new Cursor(StandardCursorType.BottomLeftCorner),
+            PanelResizeDirection.Right | PanelResizeDirection.Bottom => new Cursor(StandardCursorType.BottomRightCorner),
+            _ => new Cursor(StandardCursorType.Arrow)
+        };
+    }
+
+    private void UpdatePanelCursor(Border panel, Point point)
+    {
+        if (_dragPanel is not null || (_resizePanel is not null && !ReferenceEquals(_resizePanel, panel)))
+            return;
+
+        panel.Cursor = GetResizeCursor(GetResizeDirection(panel, point));
     }
 
     private void HideParametersPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
