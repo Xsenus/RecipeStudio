@@ -75,6 +75,9 @@ public sealed class SimulationPointPair2DControl : Control
     public static readonly StyledProperty<double> ManipulatorAnchorYProperty =
         AvaloniaProperty.Register<SimulationPointPair2DControl, double>(nameof(ManipulatorAnchorY), SimulationBlueprint2DControl.DefaultManipulatorAnchorY);
 
+    public static readonly StyledProperty<string> TargetDisplayModeProperty =
+        AvaloniaProperty.Register<SimulationPointPair2DControl, string>(nameof(TargetDisplayMode), SimulationTargetDisplayModes.Full);
+
     private const double Pad = 20;
     private const double NozzleStartAnchorX = 0.04;
     private const double NozzleEndAnchorX = 0.84;
@@ -216,6 +219,12 @@ public sealed class SimulationPointPair2DControl : Control
         set => SetValue(ManipulatorAnchorYProperty, value);
     }
 
+    public string TargetDisplayMode
+    {
+        get => GetValue(TargetDisplayModeProperty);
+        set => SetValue(TargetDisplayModeProperty, value);
+    }
+
     public double ZoomFactor => _zoomFactor;
     public event Action<double>? ZoomChanged;
 
@@ -241,6 +250,7 @@ public sealed class SimulationPointPair2DControl : Control
         PartWidthScalePercentProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
         ManipulatorAnchorXProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
         ManipulatorAnchorYProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
+        TargetDisplayModeProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
     }
 
     public SimulationPointPair2DControl()
@@ -352,11 +362,13 @@ public sealed class SimulationPointPair2DControl : Control
         var mmPerPixel = ResolveMmPerPixel(referenceHeightMm);
         var partRectWorld = CreateWorldRectCenteredAtX(HorizontalOffsetMm, 0, _partImage, mmPerPixel, referenceHeightMm, ResolvePartWidthScaleFactor(PartWidthScalePercent));
         var workTargetPoints = BuildVisibleTargetPoints(settings, safe: false);
+        var safeTargetPoints = BuildVisibleTargetPoints(settings, safe: true);
+        var allTargetPoints = workTargetPoints.Concat(safeTargetPoints).ToList();
 
         var (point1, point2) = ResolvePairPoints();
         var manipRectWorld = CreateManipulatorRectFromAnchor(point2, _manipulatorImage, mmPerPixel);
         var nozzleRectWorld = CreateNozzleEnvelopeRect(point1, point2, _nozzleImage, mmPerPixel);
-        var worldBounds = ComputeWorldBounds(partRectWorld, manipRectWorld, point1, point2, nozzleRectWorld, workTargetPoints);
+        var worldBounds = ComputeWorldBounds(partRectWorld, manipRectWorld, point1, point2, nozzleRectWorld, allTargetPoints);
 
         if (_lastRenderSize != Bounds.Size)
         {
@@ -382,7 +394,8 @@ public sealed class SimulationPointPair2DControl : Control
 
             DrawImageWorld(context, _partImage, partRectWorld);
             DrawImageWorld(context, _manipulatorImage, manipRectWorld);
-            DrawTargetPoints(context, workTargetPoints, settings);
+            DrawTargetPoints(context, safeTargetPoints, settings, safe: true);
+            DrawTargetPoints(context, workTargetPoints, settings, safe: false);
 
             // Keep red pair link as reference, then overlay nozzle image directly on top of it.
             DrawPairLink(context, point1, point2);
@@ -825,13 +838,15 @@ public sealed class SimulationPointPair2DControl : Control
         context.DrawLine(pen, WorldToScreen(point1), WorldToScreen(point2));
     }
 
-    private void DrawTargetPoints(DrawingContext context, IList<Point> worldPoints, AppSettings settings)
+    private void DrawTargetPoints(DrawingContext context, IList<Point> worldPoints, AppSettings settings, bool safe)
     {
         if (worldPoints.Count == 0)
             return;
 
-        var workColor = ParseColorOrDefault(settings.PlotColorWorkingZone, Color.FromRgb(34, 197, 94));
-        var fill = new SolidColorBrush(Color.FromArgb(235, workColor.R, workColor.G, workColor.B));
+        var targetColor = safe
+            ? ParseColorOrDefault(settings.PlotColorSafetyZone, Color.FromRgb(156, 163, 175))
+            : ParseColorOrDefault(settings.PlotColorWorkingZone, Color.FromRgb(34, 197, 94));
+        var fill = new SolidColorBrush(Color.FromArgb(235, targetColor.R, targetColor.G, targetColor.B));
         var outline = new Pen(new SolidColorBrush(Color.FromRgb(226, 232, 240)), 1.1);
         var radius = Math.Max(3.2, settings.PlotPointRadius);
 
@@ -909,7 +924,8 @@ public sealed class SimulationPointPair2DControl : Control
         => Math.Clamp(partWidthScalePercent, 50.0, 150.0) / 100.0;
 
     private List<Point> BuildVisibleTargetPoints(AppSettings settings, bool safe)
-        => FilterRenderablePoints(PlotPoints ?? Points)
+    {
+        var points = FilterRenderablePoints(PlotPoints ?? Points)
             .Where(p => p.Safe == safe)
             .Select(p =>
             {
@@ -917,6 +933,43 @@ public sealed class SimulationPointPair2DControl : Control
                 return new Point(ToVisualX(xp), zp + VerticalOffsetMm);
             })
             .ToList();
+
+        return BuildDisplayedTargetPoints(points, HorizontalOffsetMm, TargetDisplayMode);
+    }
+
+    private static List<Point> BuildDisplayedTargetPoints(IList<Point> source, double mirrorAxisX, string mode)
+    {
+        var normalizedMode = SimulationTargetDisplayModes.Normalize(mode);
+        if (normalizedMode == SimulationTargetDisplayModes.Original)
+            return source.ToList();
+
+        if (normalizedMode == SimulationTargetDisplayModes.Mirrored)
+            return source.Select(point => new Point(mirrorAxisX * 2.0 - point.X, point.Y)).ToList();
+
+        var result = new List<Point>(source.Count * 2);
+        foreach (var point in source)
+            AddDistinctPoint(result, point);
+
+        foreach (var point in source)
+        {
+            var mirrored = new Point(mirrorAxisX * 2.0 - point.X, point.Y);
+            AddDistinctPoint(result, mirrored);
+        }
+
+        return result;
+    }
+
+    private static void AddDistinctPoint(List<Point> points, Point candidate)
+    {
+        const double eps = 1e-3;
+        foreach (var point in points)
+        {
+            if (Math.Abs(point.X - candidate.X) <= eps && Math.Abs(point.Y - candidate.Y) <= eps)
+                return;
+        }
+
+        points.Add(candidate);
+    }
 
     private static List<RecipePoint> FilterRenderablePoints(IList<RecipePoint>? source)
     {

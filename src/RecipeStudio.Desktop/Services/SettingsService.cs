@@ -152,6 +152,10 @@ public sealed class SettingsService
         settings.SimulationPanels.View2DFact ??= new PanelPlacementSettings { IsVisible = false };
         settings.SimulationPanels.View2DPair ??= new PanelPlacementSettings { IsVisible = true };
         settings.SimulationPanels.View3D ??= new PanelPlacementSettings { IsVisible = false };
+        settings.SimulationPanels.PlotTargetDisplayMode = SimulationTargetDisplayModes.Normalize(settings.SimulationPanels.PlotTargetDisplayMode);
+        settings.SimulationPanels.PlotTargetDisplaySide = SimulationTargetDisplayModes.NormalizeSide(settings.SimulationPanels.PlotTargetDisplaySide, settings.SimulationPanels.PlotTargetDisplayMode);
+        settings.SimulationPanels.View2DPairTargetDisplayMode = SimulationTargetDisplayModes.Normalize(settings.SimulationPanels.View2DPairTargetDisplayMode);
+        settings.SimulationPanels.View2DPairTargetDisplaySide = SimulationTargetDisplayModes.NormalizeSide(settings.SimulationPanels.View2DPairTargetDisplaySide, settings.SimulationPanels.View2DPairTargetDisplayMode);
         settings.SimulationPanels.Access ??= new SimulationPanelsAccessSettings();
         settings.SimulationPanels.Calibration2D ??= new Simulation2DCalibrationSettings();
         settings.SimulationPanels.Calibration2D.ReferenceHeightMm = Math.Clamp(settings.SimulationPanels.Calibration2D.ReferenceHeightMm, 100, 5000);
@@ -265,6 +269,33 @@ public sealed class SettingsService
                 !IsFinite(c.PartWidthScalePercent) || !IsFinite(c.ManipulatorAnchorX) || !IsFinite(c.ManipulatorAnchorY))
             {
                 error = "SimulationPanels.Calibration2D содержит нечисловые значения.";
+                return false;
+            }
+        }
+
+        if (simPanels is not null)
+        {
+            if (SimulationTargetDisplayModes.Normalize(simPanels.PlotTargetDisplayMode) != simPanels.PlotTargetDisplayMode)
+            {
+                error = "SimulationPanels.PlotTargetDisplayMode содержит недопустимое значение.";
+                return false;
+            }
+
+            if (SimulationTargetDisplayModes.NormalizeSide(simPanels.PlotTargetDisplaySide, simPanels.PlotTargetDisplayMode) != simPanels.PlotTargetDisplaySide)
+            {
+                error = "SimulationPanels.PlotTargetDisplaySide содержит недопустимое значение.";
+                return false;
+            }
+
+            if (SimulationTargetDisplayModes.Normalize(simPanels.View2DPairTargetDisplayMode) != simPanels.View2DPairTargetDisplayMode)
+            {
+                error = "SimulationPanels.View2DPairTargetDisplayMode содержит недопустимое значение.";
+                return false;
+            }
+
+            if (SimulationTargetDisplayModes.NormalizeSide(simPanels.View2DPairTargetDisplaySide, simPanels.View2DPairTargetDisplayMode) != simPanels.View2DPairTargetDisplaySide)
+            {
+                error = "SimulationPanels.View2DPairTargetDisplaySide содержит недопустимое значение.";
                 return false;
             }
         }

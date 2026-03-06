@@ -48,9 +48,14 @@
               <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
                 <Button Classes="ghost" ToolTip.Tip="Отдалить график" Click="ZoomOutPlot_Click">－</Button>
                 <Button Classes="ghost" ToolTip.Tip="Подогнать в окно" Click="FitPlot_Click">Fit</Button>
-                <ToggleButton Classes="ghost"
-                              ToolTip.Tip="Mirror left/right in profile"
-                              IsChecked="{Binding ElementName=RecipePlot, Path=InvertHorizontal, Mode=TwoWay}">Mirror X</ToggleButton>
+                <Button x:Name="PlotTargetSideButton"
+                        Classes="ghost"
+                        ToolTip.Tip="Переключить ориентацию вида: исходная или зеркальная"
+                        Click="PlotTargetSideButton_Click">Исходная</Button>
+                <Button x:Name="PlotTargetCoverageButton"
+                        Classes="ghost"
+                        ToolTip.Tip="Переключить отображение контура: полное или частичное"
+                        Click="PlotTargetCoverageButton_Click">Полная</Button>
                 <TextBlock x:Name="ZoomText" Text="x1.00" Classes="muted" VerticalAlignment="Center" />
                 <Button Classes="ghost panel-close-btn" Click="HidePlotPanel_Click">✕</Button>
               </StackPanel>
@@ -58,6 +63,7 @@
 
             <controls:RecipePlotControl Grid.Row="1" x:Name="RecipePlot"
                                         InvertHorizontal="True"
+                                        TargetDisplayMode="Full"
                                         Points="{Binding PointsForPlot}"
                                         AnimationPoints="{Binding PointsForAnimation}"
                                         Progress="{Binding Progress}"
@@ -211,6 +217,14 @@
               <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
                 <Button Classes="ghost" ToolTip.Tip="Zoom Out" Click="ZoomOut2DPairView_Click">-</Button>
                 <Button Classes="ghost" ToolTip.Tip="Fit To Window" Click="Fit2DPairView_Click">Fit</Button>
+                <Button x:Name="View2DPairTargetSideButton"
+                        Classes="ghost"
+                        ToolTip.Tip="Переключить ориентацию вида: исходная или зеркальная"
+                        Click="View2DPairTargetSideButton_Click">Исходная</Button>
+                <Button x:Name="View2DPairTargetCoverageButton"
+                        Classes="ghost"
+                        ToolTip.Tip="Переключить отображение контура: полное или частичное"
+                        Click="View2DPairTargetCoverageButton_Click">Полная</Button>
                 <Button Classes="ghost"
                         IsVisible="{Binding AppSettings.SimulationPanels.Access.ShowCalibrationControls}"
                         ToolTip.Tip="Open calibration window"
@@ -223,6 +237,7 @@
             <controls:SimulationPointPair2DControl Grid.Row="1" x:Name="View2DPairPlot"
                                                    Points="{Binding PointsForAnimation}"
                                                    PlotPoints="{Binding PointsForPlot}"
+                                                   TargetDisplayMode="Full"
                                                    Progress="{Binding Progress}"
                                                    CurrentSegmentIndex="{Binding CurrentSegmentIndex}"
                                                    CurrentSegmentT="{Binding CurrentSegmentT}"

@@ -109,8 +109,45 @@ public sealed class SimulationPanelsSettings
     public PanelPlacementSettings View2DFact { get; set; } = new() { IsVisible = false };
     public PanelPlacementSettings View2DPair { get; set; } = new() { IsVisible = true };
     public PanelPlacementSettings View3D { get; set; } = new() { IsVisible = false };
+    public bool TargetViewMirrored { get; set; } = true;
+    public string PlotTargetDisplayMode { get; set; } = SimulationTargetDisplayModes.Full;
+    public string PlotTargetDisplaySide { get; set; } = SimulationTargetDisplayModes.Original;
+    public string View2DPairTargetDisplayMode { get; set; } = SimulationTargetDisplayModes.Full;
+    public string View2DPairTargetDisplaySide { get; set; } = SimulationTargetDisplayModes.Original;
     public SimulationPanelsAccessSettings Access { get; set; } = new();
     public Simulation2DCalibrationSettings Calibration2D { get; set; } = new();
+}
+
+public static class SimulationTargetDisplayModes
+{
+    public const string Original = "original";
+    public const string Mirrored = "mirrored";
+    public const string Full = "full";
+
+    public static string Normalize(string? value)
+    {
+        if (string.Equals(value, Original, System.StringComparison.OrdinalIgnoreCase))
+            return Original;
+
+        if (string.Equals(value, Mirrored, System.StringComparison.OrdinalIgnoreCase))
+            return Mirrored;
+
+        return Full;
+    }
+
+    public static string NormalizeCoverage(string? value)
+        => Normalize(value) == Full ? Full : Original;
+
+    public static string NormalizeSide(string? value, string? mode = null)
+    {
+        if (string.Equals(value, Mirrored, System.StringComparison.OrdinalIgnoreCase))
+            return Mirrored;
+
+        if (string.Equals(value, Original, System.StringComparison.OrdinalIgnoreCase))
+            return Original;
+
+        return Normalize(mode) == Mirrored ? Mirrored : Original;
+    }
 }
 
 public sealed class SimulationPanelsAccessSettings

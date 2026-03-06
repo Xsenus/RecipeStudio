@@ -7,6 +7,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
+using RecipeStudio.Desktop.Controls;
 using RecipeStudio.Desktop.Services;
 using RecipeStudio.Desktop.ViewModels;
 using RecipeStudio.Desktop.Views.Dialogs;
@@ -26,6 +27,7 @@ public sealed partial class SimulationView : UserControl
     private Size _resizeStartSize;
     private bool _panelsInitialized;
     private bool _calibrationLoaded;
+    private bool _applyingTargetDisplayModes;
     private int _zOrderCounter;
 
     public SimulationView()
@@ -49,6 +51,9 @@ public sealed partial class SimulationView : UserControl
         _calibrationLoaded = false;
         if (_vm is not null)
             _vm.PropertyChanged += OnVmPropertyChanged;
+
+        if (VisualRoot is not null)
+            ApplySavedTargetDisplayModes();
     }
 
     private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
@@ -61,6 +66,7 @@ public sealed partial class SimulationView : UserControl
             InitializePanelsLayout();
 
         ApplySaved2DCalibration();
+        ApplySavedTargetDisplayModes();
         InitializePanelZOrder();
 
         RecipePlot.ZoomChanged -= OnRecipePlotZoomChanged;
@@ -344,7 +350,13 @@ public sealed partial class SimulationView : UserControl
 
         if (e.Source is Control source)
         {
-            if (source is TextBox || source is CheckBox || source is Slider || source is Button || source is ToggleButton)
+            if (source is TextBox || source is CheckBox || source is Slider || source is Button || source is ToggleButton || source is ComboBox ||
+                source.FindAncestorOfType<TextBox>() is not null ||
+                source.FindAncestorOfType<CheckBox>() is not null ||
+                source.FindAncestorOfType<Slider>() is not null ||
+                source.FindAncestorOfType<Button>() is not null ||
+                source.FindAncestorOfType<ToggleButton>() is not null ||
+                source.FindAncestorOfType<ComboBox>() is not null)
                 return;
         }
 
@@ -649,6 +661,113 @@ public sealed partial class SimulationView : UserControl
     private void UpdateView2DPairZoomText()
     {
         View2DPairZoomText.Text = $"x{View2DPairPlot.ZoomFactor.ToString("0.00", CultureInfo.InvariantCulture)}";
+    }
+
+    private void ApplySavedTargetDisplayModes()
+    {
+        if (_vm is null)
+            return;
+
+        _vm.AppSettings.SimulationPanels ??= new SimulationPanelsSettings();
+        var panels = _vm.AppSettings.SimulationPanels;
+        var mirrored = panels.TargetViewMirrored;
+
+        _applyingTargetDisplayModes = true;
+        ApplyTargetViewOrientation(mirrored);
+        ApplyTargetDisplayMode(RecipePlot, PlotTargetSideButton, PlotTargetCoverageButton, panels.PlotTargetDisplayMode, mirrored);
+        ApplyTargetDisplayMode(View2DPairPlot, View2DPairTargetSideButton, View2DPairTargetCoverageButton, panels.View2DPairTargetDisplayMode, mirrored);
+        _applyingTargetDisplayModes = false;
+    }
+
+    private void ApplyTargetViewOrientation(bool mirrored)
+    {
+        RecipePlot.InvertHorizontal = mirrored;
+        View2DPairPlot.InvertHorizontal = mirrored;
+    }
+
+    private static void SetTargetViewOrientation(SimulationPanelsSettings panels, bool mirrored)
+    {
+        panels.TargetViewMirrored = mirrored;
+        var side = mirrored ? SimulationTargetDisplayModes.Mirrored : SimulationTargetDisplayModes.Original;
+        panels.PlotTargetDisplaySide = side;
+        panels.View2DPairTargetDisplaySide = side;
+    }
+
+    private static string NormalizeCoverageMode(string? mode)
+        => SimulationTargetDisplayModes.NormalizeCoverage(mode);
+
+    private void ApplyTargetDisplayMode(RecipePlotControl control, Button sideButton, Button coverageButton, string? mode, bool mirrored)
+    {
+        var normalizedMode = NormalizeCoverageMode(mode);
+        control.TargetDisplayMode = normalizedMode;
+        UpdateTargetDisplayButtons(sideButton, coverageButton, mirrored, normalizedMode == SimulationTargetDisplayModes.Full);
+    }
+
+    private void ApplyTargetDisplayMode(SimulationPointPair2DControl control, Button sideButton, Button coverageButton, string? mode, bool mirrored)
+    {
+        var normalizedMode = NormalizeCoverageMode(mode);
+        control.TargetDisplayMode = normalizedMode;
+        UpdateTargetDisplayButtons(sideButton, coverageButton, mirrored, normalizedMode == SimulationTargetDisplayModes.Full);
+    }
+
+    private static void UpdateTargetDisplayButtons(Button sideButton, Button coverageButton, bool mirrored, bool full)
+    {
+        var side = mirrored ? SimulationTargetDisplayModes.Mirrored : SimulationTargetDisplayModes.Original;
+        sideButton.Content = side == SimulationTargetDisplayModes.Mirrored ? "Зеркальная" : "Исходная";
+        coverageButton.Content = full ? "Полная" : "Частичная";
+    }
+
+    private static string BuildTargetDisplayMode(bool full)
+        => full ? SimulationTargetDisplayModes.Full : SimulationTargetDisplayModes.Original;
+
+    private void PlotTargetSideButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_applyingTargetDisplayModes || _vm is null)
+            return;
+
+        _vm.AppSettings.SimulationPanels ??= new SimulationPanelsSettings();
+        var panels = _vm.AppSettings.SimulationPanels;
+        SetTargetViewOrientation(panels, !panels.TargetViewMirrored);
+        ApplySavedTargetDisplayModes();
+        _vm.SaveAppSettings();
+    }
+
+    private void PlotTargetCoverageButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_applyingTargetDisplayModes || _vm is null)
+            return;
+
+        _vm.AppSettings.SimulationPanels ??= new SimulationPanelsSettings();
+        var panels = _vm.AppSettings.SimulationPanels;
+        var full = NormalizeCoverageMode(panels.PlotTargetDisplayMode) != SimulationTargetDisplayModes.Full;
+        panels.PlotTargetDisplayMode = BuildTargetDisplayMode(full);
+        ApplySavedTargetDisplayModes();
+        _vm.SaveAppSettings();
+    }
+
+    private void View2DPairTargetSideButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_applyingTargetDisplayModes || _vm is null)
+            return;
+
+        _vm.AppSettings.SimulationPanels ??= new SimulationPanelsSettings();
+        var panels = _vm.AppSettings.SimulationPanels;
+        SetTargetViewOrientation(panels, !panels.TargetViewMirrored);
+        ApplySavedTargetDisplayModes();
+        _vm.SaveAppSettings();
+    }
+
+    private void View2DPairTargetCoverageButton_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_applyingTargetDisplayModes || _vm is null)
+            return;
+
+        _vm.AppSettings.SimulationPanels ??= new SimulationPanelsSettings();
+        var panels = _vm.AppSettings.SimulationPanels;
+        var full = NormalizeCoverageMode(panels.View2DPairTargetDisplayMode) != SimulationTargetDisplayModes.Full;
+        panels.View2DPairTargetDisplayMode = BuildTargetDisplayMode(full);
+        ApplySavedTargetDisplayModes();
+        _vm.SaveAppSettings();
     }
 
     private void ResetPanels_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)

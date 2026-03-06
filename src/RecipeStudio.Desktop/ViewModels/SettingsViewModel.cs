@@ -444,6 +444,11 @@ public sealed class SettingsViewModel : ViewModelBase
                     ManipulatorAnchorY = defaults.SimulationPanels.Calibration2D.ManipulatorAnchorY,
                     ReversePath = defaults.SimulationPanels.Calibration2D.ReversePath
                 };
+                _settings.Settings.SimulationPanels.TargetViewMirrored = defaults.SimulationPanels.TargetViewMirrored;
+                _settings.Settings.SimulationPanels.PlotTargetDisplayMode = defaults.SimulationPanels.PlotTargetDisplayMode;
+                _settings.Settings.SimulationPanels.PlotTargetDisplaySide = defaults.SimulationPanels.PlotTargetDisplaySide;
+                _settings.Settings.SimulationPanels.View2DPairTargetDisplayMode = defaults.SimulationPanels.View2DPairTargetDisplayMode;
+                _settings.Settings.SimulationPanels.View2DPairTargetDisplaySide = defaults.SimulationPanels.View2DPairTargetDisplaySide;
                 RaisePropertyChanged(nameof(SimAllowPlot));
                 RaisePropertyChanged(nameof(SimAllowTelemetry));
                 RaisePropertyChanged(nameof(SimAllowTopView));
@@ -572,6 +577,11 @@ public sealed class SettingsViewModel : ViewModelBase
                 target.SimulationPanels.Calibration2D.ManipulatorAnchorX = source.SimulationPanels.Calibration2D.ManipulatorAnchorX;
                 target.SimulationPanels.Calibration2D.ManipulatorAnchorY = source.SimulationPanels.Calibration2D.ManipulatorAnchorY;
                 target.SimulationPanels.Calibration2D.ReversePath = source.SimulationPanels.Calibration2D.ReversePath;
+                target.SimulationPanels.TargetViewMirrored = source.SimulationPanels.TargetViewMirrored;
+                target.SimulationPanels.PlotTargetDisplayMode = source.SimulationPanels.PlotTargetDisplayMode;
+                target.SimulationPanels.PlotTargetDisplaySide = source.SimulationPanels.PlotTargetDisplaySide;
+                target.SimulationPanels.View2DPairTargetDisplayMode = source.SimulationPanels.View2DPairTargetDisplayMode;
+                target.SimulationPanels.View2DPairTargetDisplaySide = source.SimulationPanels.View2DPairTargetDisplaySide;
                 break;
 
             case SectionLogging:

@@ -67,6 +67,9 @@ public sealed class RecipePlotControl : Control
     public static readonly StyledProperty<bool> InvertHorizontalProperty =
         AvaloniaProperty.Register<RecipePlotControl, bool>(nameof(InvertHorizontal));
 
+    public static readonly StyledProperty<string> TargetDisplayModeProperty =
+        AvaloniaProperty.Register<RecipePlotControl, string>(nameof(TargetDisplayMode), SimulationTargetDisplayModes.Full);
+
     private INotifyCollectionChanged? _collectionChanged;
     private readonly Dictionary<RecipePoint, PropertyChangedEventHandler> _pointHandlers = new();
 
@@ -187,6 +190,12 @@ public sealed class RecipePlotControl : Control
         set => SetValue(InvertHorizontalProperty, value);
     }
 
+    public string TargetDisplayMode
+    {
+        get => GetValue(TargetDisplayModeProperty);
+        set => SetValue(TargetDisplayModeProperty, value);
+    }
+
     static RecipePlotControl()
     {
         // Avoid relying on GetObservable/AffectsRender helpers (can vary between Avalonia versions).
@@ -210,6 +219,7 @@ public sealed class RecipePlotControl : Control
         ShowPairLinksProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         ShowGridProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         InvertHorizontalProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
+        TargetDisplayModeProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
     }
 
     public RecipePlotControl()
@@ -328,6 +338,8 @@ public sealed class RecipePlotControl : Control
 
         var settings = Settings ?? new AppSettings();
         var points = FilterRenderablePoints(Points);
+        var showOriginalTarget = ShouldDrawOriginalTarget();
+        var showMirroredTarget = ShouldDrawMirroredTarget();
 
         // background
         context.FillRectangle(new SolidColorBrush(Color.FromRgb(11, 18, 32)), new Rect(Bounds.Size));
@@ -345,6 +357,7 @@ public sealed class RecipePlotControl : Control
             var (xp, zp) = p.GetTargetPoint(settings.HZone);
             target.Add(new Point(ToVisualX(xp), zp));
         }
+        var mirroredTarget = showMirroredTarget ? target.Select(MirrorWorldX).ToList() : new List<Point>();
 
         var robotPoints = points.Where(p => !p.Safe).ToList();
         if (robotPoints.Count == 0)
@@ -382,7 +395,10 @@ public sealed class RecipePlotControl : Control
 
         var hFreeZ = Math.Clamp(settings.HFreeZ, Math.Min(settings.HContMax, settings.HZone), Math.Max(settings.HContMax, settings.HZone));
 
-        var xs = target.Select(p => p.X).Concat(tool.Select(p => p.X)).Concat(new[] { -halfClamp, halfClamp, 0.0 });
+        var xs = target.Select(p => p.X)
+            .Concat(mirroredTarget.Select(p => p.X))
+            .Concat(tool.Select(p => p.X))
+            .Concat(new[] { -halfClamp, halfClamp, 0.0 });
         var ys = target.Select(p => p.Y).Concat(tool.Select(p => p.Y)).Concat(new[] { 0.0, settings.HZone, settings.HContMax, hFreeZ });
 
         var minX = xs.Min();
@@ -437,7 +453,7 @@ public sealed class RecipePlotControl : Control
                 DrawGrid(context);
 
             // Clamp rectangles (visual reference)
-            DrawClamp(context, halfClamp, settings.HContMax, hFreeZ, settings.HZone);
+            DrawClamp(context, halfClamp, settings.HContMax, hFreeZ, settings.HZone, showOriginalTarget, showMirroredTarget);
 
             // Paths
             var opacity = Math.Clamp(settings.PlotOpacity, 0.05, 0.90);
@@ -461,11 +477,23 @@ public sealed class RecipePlotControl : Control
                 DrawPolyline(context, SelectTool(robotPoints, robotToolMap, safe: false, place: 1), penTool);
 
                 // Step 2: target polylines split by (Safe, Place) and pair links Xp/Zp <-> Xr/Zr for cleaning points.
-                DrawPolyline(context, SelectTarget(points, settings.HZone, safe: false, place: 0), penTargetWork);
-                DrawPolyline(context, SelectTarget(points, settings.HZone, safe: false, place: 1), penTargetWork);
-                DrawWorkTransitionLinks(context, points, settings.HZone, penTargetWork);
-                DrawPolyline(context, SelectTarget(points, settings.HZone, safe: true, place: 0), penTargetSafe);
-                DrawPolyline(context, SelectTarget(points, settings.HZone, safe: true, place: 1), penTargetSafe);
+                if (showOriginalTarget)
+                {
+                    DrawPolyline(context, SelectTarget(points, settings.HZone, safe: false, place: 0), penTargetWork);
+                    DrawPolyline(context, SelectTarget(points, settings.HZone, safe: false, place: 1), penTargetWork);
+                    DrawWorkTransitionLinks(context, points, settings.HZone, penTargetWork);
+                    DrawPolyline(context, SelectTarget(points, settings.HZone, safe: true, place: 0), penTargetSafe);
+                    DrawPolyline(context, SelectTarget(points, settings.HZone, safe: true, place: 1), penTargetSafe);
+                }
+
+                if (showMirroredTarget)
+                {
+                    DrawMirroredTargetPolyline(context, SelectTarget(points, settings.HZone, safe: false, place: 0), penTargetWork);
+                    DrawMirroredTargetPolyline(context, SelectTarget(points, settings.HZone, safe: false, place: 1), penTargetWork);
+                    DrawMirroredWorkTransitionLinks(context, points, settings.HZone, penTargetWork);
+                    DrawMirroredTargetPolyline(context, SelectTarget(points, settings.HZone, safe: true, place: 0), penTargetSafe);
+                    DrawMirroredTargetPolyline(context, SelectTarget(points, settings.HZone, safe: true, place: 1), penTargetSafe);
+                }
 
                 if (ShowPairLinks)
                     DrawTargetToToolLinks(context, points, robotToolMap, settings.HZone, penTargetToTool);
@@ -478,7 +506,7 @@ public sealed class RecipePlotControl : Control
             }
 
             // Target points are always drawn to keep point markers visible in the editor.
-            DrawPoints(context, points, settings, settings.HZone);
+            DrawPoints(context, points, settings, settings.HZone, showOriginalTarget, showMirroredTarget);
             DrawRobotPoints(context, robotPoints, robotToolMap, settings);
 
             // Tool marker rendered as a smooth nozzle link Target->Robot.
@@ -597,23 +625,37 @@ public sealed class RecipePlotControl : Control
         }
     }
 
-    private void DrawClamp(DrawingContext ctx, double halfClamp, double hCont, double hFreeZ, double hZone)
+    private void DrawClamp(DrawingContext ctx, double halfClamp, double hCont, double hFreeZ, double hZone, bool showOriginalTarget, bool showMirroredTarget)
     {
         var pen = new Pen(new SolidColorBrush(Color.FromArgb(140, 0, 0, 0)), 2);
         var penDashed = new Pen(new SolidColorBrush(Color.FromArgb(120, 148, 163, 184)), 1,
             dashStyle: new DashStyle(new double[] { 6, 6 }, 0));
 
-        // Bottom (right side)
-        var r1 = new Rect(
-            WorldToScreen(new Point(0, 0)),
-            WorldToScreen(new Point(halfClamp, hCont))).Normalize();
-        ctx.DrawRectangle(null, pen, r1);
+        if (showOriginalTarget)
+        {
+            var r1 = new Rect(
+                WorldToScreen(new Point(0, 0)),
+                WorldToScreen(new Point(halfClamp, hCont))).Normalize();
+            ctx.DrawRectangle(null, pen, r1);
 
-        // Top (left side)
-        var r2 = new Rect(
-            WorldToScreen(new Point(-halfClamp, hFreeZ)),
-            WorldToScreen(new Point(0, hZone))).Normalize();
-        ctx.DrawRectangle(null, pen, r2);
+            var r2 = new Rect(
+                WorldToScreen(new Point(-halfClamp, hFreeZ)),
+                WorldToScreen(new Point(0, hZone))).Normalize();
+            ctx.DrawRectangle(null, pen, r2);
+        }
+
+        if (showMirroredTarget)
+        {
+            var r1Mirror = new Rect(
+                WorldToScreen(new Point(-halfClamp, 0)),
+                WorldToScreen(new Point(0, hCont))).Normalize();
+            ctx.DrawRectangle(null, pen, r1Mirror);
+
+            var r2Mirror = new Rect(
+                WorldToScreen(new Point(0, hFreeZ)),
+                WorldToScreen(new Point(halfClamp, hZone))).Normalize();
+            ctx.DrawRectangle(null, pen, r2Mirror);
+        }
 
         // reference lines
         var y1 = WorldToScreen(new Point(_worldBounds.Left, hCont)).Y;
@@ -641,7 +683,7 @@ public sealed class RecipePlotControl : Control
         ctx.DrawGeometry(null, pen, geom);
     }
 
-    private void DrawPoints(DrawingContext ctx, IList<RecipePoint> points, AppSettings settings, double hZone)
+    private void DrawPoints(DrawingContext ctx, IList<RecipePoint> points, AppSettings settings, double hZone, bool showOriginalTarget, bool showMirroredTarget)
     {
         var r = Math.Max(4, settings.PlotPointRadius);
 
@@ -658,12 +700,21 @@ public sealed class RecipePlotControl : Control
             var brush = new SolidColorBrush(color);
 
             var outline = new Pen(new SolidColorBrush(Color.FromRgb(226, 232, 240)), 1.2);
-            ctx.DrawEllipse(brush, outline, sp, r, r);
+            var mirrored = WorldToScreen(MirrorWorldX(new Point(ToVisualX(xp), zp)));
+            if (showOriginalTarget)
+                ctx.DrawEllipse(brush, outline, sp, r, r);
+
+            if (showMirroredTarget)
+                ctx.DrawEllipse(brush, outline, mirrored, r, r);
 
             if (p == SelectedPoint)
             {
                 var selPen = new Pen(new SolidColorBrush(Color.FromRgb(239, 68, 68)), 2);
-                ctx.DrawEllipse(null, selPen, sp, r + 3, r + 3);
+                if (showOriginalTarget)
+                    ctx.DrawEllipse(null, selPen, sp, r + 3, r + 3);
+
+                if (showMirroredTarget)
+                    ctx.DrawEllipse(null, selPen, mirrored, r + 3, r + 3);
             }
         }
     }
@@ -697,6 +748,9 @@ public sealed class RecipePlotControl : Control
             })
             .ToList();
 
+    private void DrawMirroredTargetPolyline(DrawingContext ctx, IList<Point> worldPoints, Pen pen)
+        => DrawPolyline(ctx, worldPoints.Select(MirrorWorldX).ToList(), pen);
+
     /// <summary>
     /// Builds robot/tool polyline points for a specific (Safe, Place) series.
     /// </summary>
@@ -727,6 +781,24 @@ public sealed class RecipePlotControl : Control
         }
     }
 
+    private void DrawMirroredWorkTransitionLinks(DrawingContext ctx, IList<RecipePoint> points, double hZone, Pen pen)
+    {
+        for (var i = 1; i < points.Count; i++)
+        {
+            var prev = points[i - 1];
+            var cur = points[i];
+
+            if (prev.Safe || cur.Safe || prev.Place == cur.Place)
+                continue;
+
+            var (x1, z1) = prev.GetTargetPoint(hZone);
+            var (x2, z2) = cur.GetTargetPoint(hZone);
+            var p1 = MirrorWorldX(new Point(ToVisualX(x1), z1));
+            var p2 = MirrorWorldX(new Point(ToVisualX(x2), z2));
+            ctx.DrawLine(pen, WorldToScreen(p1), WorldToScreen(p2));
+        }
+    }
+
     /// <summary>
     /// Draws pair links Xp/Zp -> Xr/Zr for working rows (Safe=0).
     /// </summary>
@@ -748,6 +820,15 @@ public sealed class RecipePlotControl : Control
         var zr = point.Zr0 + point.DZ;
         return new Point(xr, zr);
     }
+
+    private static Point MirrorWorldX(Point point)
+        => new(-point.X, point.Y);
+
+    private bool ShouldDrawOriginalTarget()
+        => SimulationTargetDisplayModes.Normalize(TargetDisplayMode) != SimulationTargetDisplayModes.Mirrored;
+
+    private bool ShouldDrawMirroredTarget()
+        => SimulationTargetDisplayModes.Normalize(TargetDisplayMode) != SimulationTargetDisplayModes.Original;
 
     private void DrawToolMarker(DrawingContext ctx, Point toolWorld, Point targetWorld, Point direction)
     {
