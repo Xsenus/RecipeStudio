@@ -167,6 +167,7 @@ public sealed class EditorViewModel : ViewModelBase
         {
             if (SetProperty(ref _selectedPoint, value))
             {
+                RaisePropertyChanged(nameof(HasSelectedPoint));
                 RemovePointCommand.RaiseCanExecuteChanged();
                 DuplicatePointCommand.RaiseCanExecuteChanged();
                 MoveUpCommand.RaiseCanExecuteChanged();
@@ -174,6 +175,8 @@ public sealed class EditorViewModel : ViewModelBase
             }
         }
     }
+
+    public bool HasSelectedPoint => SelectedPoint is not null;
 
     // Commands
     public RelayCommand SaveCommand { get; }

@@ -323,6 +323,81 @@
     <Setter Property="Padding" Value="12" />
   </Style>
 
+  <Style Selector="Border.point-detail-group">
+    <Setter Property="Background" Value="#111827" />
+    <Setter Property="BorderBrush" Value="#2A3142" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="12" />
+  </Style>
+
+  <Style Selector="Border.point-detail-stat">
+    <Setter Property="Background" Value="#101522" />
+    <Setter Property="BorderBrush" Value="#223049" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="10" />
+    <Setter Property="MinWidth" Value="100" />
+  </Style>
+
+  <Style Selector="TextBlock.point-detail-group-title">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="#EAF0FF" />
+  </Style>
+
+  <Style Selector="TextBlock.point-detail-label">
+    <Setter Property="Foreground" Value="#8D97AA" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="FontSize" Value="13" />
+  </Style>
+
+  <Style Selector="TextBlock.point-detail-value">
+    <Setter Property="Foreground" Value="#E6EAF2" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <Style Selector="TextBlock.point-detail-caption">
+    <Setter Property="Foreground" Value="#7E879C" />
+    <Setter Property="FontSize" Value="11" />
+  </Style>
+
+  <Style Selector="TextBox.point-detail-input">
+    <Setter Property="Background" Value="#0D121C" />
+    <Setter Property="BorderBrush" Value="#2A3142" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Foreground" Value="#EAF0FF" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="10,8" />
+    <Setter Property="MinHeight" Value="36" />
+  </Style>
+
+  <Style Selector="NumericUpDown.point-detail-input">
+    <Setter Property="Background" Value="#0D121C" />
+    <Setter Property="BorderBrush" Value="#2A3142" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Foreground" Value="#EAF0FF" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="MinHeight" Value="36" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+  </Style>
+
+  <Style Selector="ComboBox.point-detail-input">
+    <Setter Property="Background" Value="#0D121C" />
+    <Setter Property="BorderBrush" Value="#2A3142" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Foreground" Value="#EAF0FF" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="10,8" />
+    <Setter Property="MinHeight" Value="36" />
+  </Style>
+
+  <Style Selector="CheckBox.point-detail-flag">
+    <Setter Property="Foreground" Value="#E6EAF2" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
   <Style Selector="Border.panel-resize-handle">
     <Setter Property="Width" Value="12" />
     <Setter Property="Height" Value="12" />

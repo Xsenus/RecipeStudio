@@ -37,7 +37,9 @@
             <StackPanel Orientation="Horizontal" Spacing="8">
               <Button Command="{Binding AddPointCommand}" Classes="good">+ Точка</Button>
               <Button Command="{Binding DuplicatePointCommand}" Classes="ghost">Дублировать</Button>
-              <Button Command="{Binding RemovePointCommand}" Classes="danger">Удалить</Button>
+              <Button Click="DeleteSelectedPoint_Click"
+                      IsEnabled="{Binding HasSelectedPoint}"
+                      Classes="danger">Удалить</Button>
               <Button Command="{Binding MoveUpCommand}" Classes="ghost">↑</Button>
               <Button Command="{Binding MoveDownCommand}" Classes="ghost">↓</Button>
               <Button Command="{Binding RecalculateCommand}" Classes="ghost">Пересчитать</Button>
@@ -423,18 +425,361 @@
                 PointerPressed="ResizeHandle_PointerPressed" PointerMoved="ResizeHandle_PointerMoved" PointerReleased="ResizeHandle_PointerReleased" />
 
         <Border x:Name="SelectedPointPanel" Classes="card floating-panel"
-                Width="430" Height="280" MinWidth="340" MinHeight="220"
+                Width="540" Height="720" MinWidth="420" MinHeight="420"
                 PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
-          <Grid RowDefinitions="Auto,*">
+          <Grid RowDefinitions="Auto,*,Auto">
             <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Text="ДЕТАЛИ ТОЧКИ" FontSize="16" FontWeight="SemiBold" />
+              <StackPanel Spacing="2">
+                <TextBlock Text="POINT DETAILS" FontSize="16" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding SelectedPoint, TargetNullValue='Select a point in the table or plot.'}"
+                           Classes="muted"
+                           TextWrapping="Wrap" />
+              </StackPanel>
               <Button Grid.Column="1" Classes="ghost panel-close-btn" Click="HideSelectedPointPanel_Click">✕</Button>
             </Grid>
 
-            <StackPanel Grid.Row="1" Spacing="8" Margin="0,10,0,0">
-              <TextBlock Text="{Binding SelectedPoint}" Classes="muted" TextWrapping="Wrap" />
-              <TextBlock Text="Перетаскивание точки в визуализации обновляет R/Z." Classes="muted" TextWrapping="Wrap" />
-            </StackPanel>
+            <ScrollViewer Grid.Row="1" Margin="0,12,0,0" VerticalScrollBarVisibility="Auto">
+              <StackPanel Spacing="12">
+                <Border Classes="point-detail-group">
+                  <StackPanel Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                      <StackPanel Spacing="2">
+                        <TextBlock Text="{Binding SelectedPoint.NPoint, StringFormat='Point #{0}'}"
+                                   FontSize="18"
+                                   FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding SelectedPoint.Description, TargetNullValue='Desc empty'}"
+                                   Classes="muted"
+                                   TextWrapping="Wrap" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="1" Spacing="4" HorizontalAlignment="Right">
+                        <TextBlock Text="{Binding SelectedPoint.Place, StringFormat='Top: {0}'}"
+                                   Classes="point-detail-caption"
+                                   HorizontalAlignment="Right" />
+                        <TextBlock Text="{Binding SelectedPoint.Safe, StringFormat='S: {0}'}"
+                                   Classes="point-detail-caption"
+                                   HorizontalAlignment="Right" />
+                      </StackPanel>
+                    </Grid>
+
+                    <WrapPanel Orientation="Horizontal" ItemWidth="112">
+                      <Border Classes="point-detail-stat" Margin="0,0,8,8">
+                        <StackPanel Spacing="3">
+                          <TextBlock Text="R" Classes="point-detail-caption" />
+                          <TextBlock Text="{Binding SelectedPoint.RCrd, StringFormat='{}{0:0.###} мм'}" Classes="point-detail-value" />
+                        </StackPanel>
+                      </Border>
+                      <Border Classes="point-detail-stat" Margin="0,0,8,8">
+                        <StackPanel Spacing="3">
+                          <TextBlock Text="Z" Classes="point-detail-caption" />
+                          <TextBlock Text="{Binding SelectedPoint.ZCrd, StringFormat='{}{0:0.###} мм'}" Classes="point-detail-value" />
+                        </StackPanel>
+                      </Border>
+                      <Border Classes="point-detail-stat" Margin="0,0,8,8">
+                        <StackPanel Spacing="3">
+                          <TextBlock Text="α" Classes="point-detail-caption" />
+                          <TextBlock Text="{Binding SelectedPoint.Alfa, StringFormat='{}{0:0.###}°'}" Classes="point-detail-value" />
+                        </StackPanel>
+                      </Border>
+                      <Border Classes="point-detail-stat" Margin="0,0,8,8">
+                        <StackPanel Spacing="3">
+                          <TextBlock Text="β" Classes="point-detail-caption" />
+                          <TextBlock Text="{Binding SelectedPoint.Betta, StringFormat='{}{0:0.###}°'}" Classes="point-detail-value" />
+                        </StackPanel>
+                      </Border>
+                    </WrapPanel>
+                  </StackPanel>
+                </Border>
+
+                <ContentControl Content="{Binding SelectedPoint}">
+                  <ContentControl.ContentTemplate>
+                    <DataTemplate>
+                      <StackPanel Spacing="12">
+                        <Border Classes="point-detail-group">
+                          <StackPanel Spacing="10">
+                            <TextBlock Text="Flags / Top" Classes="point-detail-group-title" />
+                            <Grid ColumnDefinitions="150,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
+                              <TextBlock Text="#" Classes="point-detail-label" />
+                              <TextBlock Grid.Column="1" Text="{Binding NPoint}" Classes="point-detail-value" />
+
+                              <TextBlock Grid.Row="1" Text="Top" Classes="point-detail-label" />
+                              <ComboBox Grid.Row="1" Grid.Column="1"
+                                        Classes="point-detail-input"
+                                        SelectedIndex="{Binding Place, Mode=TwoWay}">
+                                <ComboBoxItem Content="0" />
+                                <ComboBoxItem Content="1" />
+                              </ComboBox>
+
+                              <TextBlock Grid.Row="2" Text="A" Classes="point-detail-label" />
+                              <CheckBox Grid.Row="2" Grid.Column="1"
+                                        Classes="point-detail-flag"
+                                        IsChecked="{Binding Act, Mode=TwoWay}" />
+
+                              <TextBlock Grid.Row="3" Text="S" Classes="point-detail-label" />
+                              <CheckBox Grid.Row="3" Grid.Column="1"
+                                        Classes="point-detail-flag"
+                                        IsChecked="{Binding Safe, Mode=TwoWay}" />
+
+                              <TextBlock Grid.Row="4" Text="Micro" Classes="point-detail-label" />
+                              <CheckBox Grid.Row="4" Grid.Column="1"
+                                        Classes="point-detail-flag"
+                                        IsChecked="{Binding Hidden, Mode=TwoWay}" />
+
+                              <TextBlock Grid.Row="5" Text="Container" Classes="point-detail-label" />
+                              <CheckBox Grid.Row="5" Grid.Column="1"
+                                        Classes="point-detail-flag"
+                                        IsChecked="{Binding Container, Mode=TwoWay}" />
+                            </Grid>
+                          </StackPanel>
+                        </Border>
+
+                        <Border Classes="point-detail-group">
+                          <StackPanel Spacing="10">
+                            <TextBlock Text="Input" Classes="point-detail-group-title" />
+                            <Grid ColumnDefinitions="150,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
+                              <TextBlock Text="R" Classes="point-detail-label" />
+                              <NumericUpDown Grid.Column="1"
+                                             Classes="point-detail-input"
+                                             Minimum="-50000"
+                                             Maximum="50000"
+                                             Increment="0.1"
+                                             FormatString="0.###"
+                                             ClipValueToMinMax="False"
+                                             Value="{Binding RCrd, Mode=TwoWay}" />
+
+                              <TextBlock Grid.Row="1" Text="Z" Classes="point-detail-label" />
+                              <NumericUpDown Grid.Row="1" Grid.Column="1"
+                                             Classes="point-detail-input"
+                                             Minimum="-50000"
+                                             Maximum="50000"
+                                             Increment="0.1"
+                                             FormatString="0.###"
+                                             ClipValueToMinMax="False"
+                                             Value="{Binding ZCrd, Mode=TwoWay}" />
+
+                              <TextBlock Grid.Row="2" Text="a" Classes="point-detail-label" />
+                              <NumericUpDown Grid.Row="2" Grid.Column="1"
+                                             Classes="point-detail-input"
+                                             Minimum="0"
+                                             Maximum="5000"
+                                             Increment="0.1"
+                                             FormatString="0.###"
+                                             ClipValueToMinMax="False"
+                                             Value="{Binding ANozzle, Mode=TwoWay}" />
+
+                              <TextBlock Grid.Row="3" Text="α" Classes="point-detail-label" />
+                              <NumericUpDown Grid.Row="3" Grid.Column="1"
+                                             Classes="point-detail-input"
+                                             Minimum="-360"
+                                             Maximum="360"
+                                             Increment="0.1"
+                                             FormatString="0.###"
+                                             ClipValueToMinMax="False"
+                                             Value="{Binding Alfa, Mode=TwoWay}" />
+
+                              <TextBlock Grid.Row="4" Text="β" Classes="point-detail-label" />
+                              <NumericUpDown Grid.Row="4" Grid.Column="1"
+                                             Classes="point-detail-input"
+                                             Minimum="-360"
+                                             Maximum="360"
+                                             Increment="0.1"
+                                             FormatString="0.###"
+                                             ClipValueToMinMax="False"
+                                             Value="{Binding Betta, Mode=TwoWay}" />
+                            </Grid>
+                          </StackPanel>
+                        </Border>
+
+                        <Border Classes="point-detail-group">
+                          <StackPanel Spacing="10">
+                            <TextBlock Text="Process" Classes="point-detail-group-title" />
+                            <Grid ColumnDefinitions="150,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
+                              <TextBlock Text="Speed" Classes="point-detail-label" />
+                              <NumericUpDown Grid.Column="1"
+                                             Classes="point-detail-input"
+                                             Minimum="0"
+                                             Maximum="10000"
+                                             Increment="1"
+                                             FormatString="0.###"
+                                             ClipValueToMinMax="False"
+                                             Value="{Binding SpeedTable, Mode=TwoWay}" />
+
+                              <TextBlock Grid.Row="1" Text="Ice.R" Classes="point-detail-label" />
+                              <NumericUpDown Grid.Row="1" Grid.Column="1"
+                                             Classes="point-detail-input"
+                                             Minimum="0"
+                                             Maximum="10000"
+                                             Increment="0.1"
+                                             FormatString="0.###"
+                                             ClipValueToMinMax="False"
+                                             Value="{Binding IceRate, Mode=TwoWay}" />
+
+                              <TextBlock Grid.Row="2" Text="Ice.G" Classes="point-detail-label" />
+                              <NumericUpDown Grid.Row="2" Grid.Column="1"
+                                             Classes="point-detail-input"
+                                             Minimum="0"
+                                             Maximum="10000"
+                                             Increment="0.1"
+                                             FormatString="0.###"
+                                             ClipValueToMinMax="False"
+                                             Value="{Binding IceGrind, Mode=TwoWay}" />
+
+                              <TextBlock Grid.Row="3" Text="Air.P" Classes="point-detail-label" />
+                              <NumericUpDown Grid.Row="3" Grid.Column="1"
+                                             Classes="point-detail-input"
+                                             Minimum="0"
+                                             Maximum="1000"
+                                             Increment="0.1"
+                                             FormatString="0.###"
+                                             ClipValueToMinMax="False"
+                                             Value="{Binding AirPressure, Mode=TwoWay}" />
+
+                              <TextBlock Grid.Row="4" Text="Air.T" Classes="point-detail-label" />
+                              <NumericUpDown Grid.Row="4" Grid.Column="1"
+                                             Classes="point-detail-input"
+                                             Minimum="-200"
+                                             Maximum="1000"
+                                             Increment="0.1"
+                                             FormatString="0.###"
+                                             ClipValueToMinMax="False"
+                                             Value="{Binding AirTemp, Mode=TwoWay}" />
+                            </Grid>
+                          </StackPanel>
+                        </Border>
+
+                        <Border Classes="point-detail-group">
+                          <StackPanel Spacing="10">
+                            <TextBlock Text="Calc" Classes="point-detail-group-title" />
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="12" RowDefinitions="Auto,Auto">
+                              <Border Classes="point-detail-stat">
+                                <StackPanel Spacing="3">
+                                  <TextBlock Text="α rec" Classes="point-detail-caption" />
+                                  <TextBlock Text="{Binding RecommendedAlfa, StringFormat='{}{0:0.###}°'}" Classes="point-detail-value" />
+                                </StackPanel>
+                              </Border>
+                              <Border Grid.Column="1" Classes="point-detail-stat">
+                                <StackPanel Spacing="3">
+                                  <TextBlock Text="Flow" Classes="point-detail-caption" />
+                                  <TextBlock Text="{Binding RecommendedIceRate, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
+                                </StackPanel>
+                              </Border>
+                              <Border Grid.Row="1" Classes="point-detail-stat">
+                                <StackPanel Spacing="3">
+                                  <TextBlock Text="Time" Classes="point-detail-caption" />
+                                  <TextBlock Text="{Binding TimeSec, StringFormat='{}{0:0.###} c'}" Classes="point-detail-value" />
+                                </StackPanel>
+                              </Border>
+                              <Border Grid.Row="1" Grid.Column="1" Classes="point-detail-stat">
+                                <StackPanel Spacing="3">
+                                  <TextBlock Text="Vel" Classes="point-detail-caption" />
+                                  <TextBlock Text="{Binding NozzleSpeedMmMin, StringFormat='{}{0:0.###} мм/мин'}" Classes="point-detail-value" />
+                                </StackPanel>
+                              </Border>
+                            </Grid>
+                          </StackPanel>
+                        </Border>
+
+                        <Border Classes="point-detail-group">
+                          <StackPanel Spacing="10">
+                            <TextBlock Text="Robot / Machine" Classes="point-detail-group-title" />
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                              <Border Classes="point-detail-stat">
+                                <StackPanel Spacing="6">
+                                  <TextBlock Text="Robot" Classes="point-detail-caption" />
+                                  <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="4">
+                                    <TextBlock Text="Xr" Classes="point-detail-label" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Xr0, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
+                                    <TextBlock Grid.Row="1" Text="Yr" Classes="point-detail-label" />
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Yx0, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
+                                    <TextBlock Grid.Row="2" Text="Zr" Classes="point-detail-label" />
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Zr0, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
+                                  </Grid>
+                                </StackPanel>
+                              </Border>
+
+                              <Border Grid.Column="1" Classes="point-detail-stat">
+                                <StackPanel Spacing="6">
+                                  <TextBlock Text="Machine" Classes="point-detail-caption" />
+                                  <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="4">
+                                    <TextBlock Text="Xm" Classes="point-detail-label" />
+                                    <TextBlock Grid.Column="1" Text="{Binding DX, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
+                                    <TextBlock Grid.Row="1" Text="Ym" Classes="point-detail-label" />
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding DY, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
+                                    <TextBlock Grid.Row="2" Text="Zm" Classes="point-detail-label" />
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DZ, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
+                                    <TextBlock Grid.Row="3" Text="Am" Classes="point-detail-label" />
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding DA, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
+                                    <TextBlock Grid.Row="4" Text="Bm" Classes="point-detail-label" />
+                                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding AB, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
+                                  </Grid>
+                                </StackPanel>
+                              </Border>
+                            </Grid>
+                          </StackPanel>
+                        </Border>
+
+                        <Border Classes="point-detail-group">
+                          <StackPanel Spacing="10">
+                            <TextBlock Text="Pulses" Classes="point-detail-group-title" />
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                              <Border Classes="point-detail-stat">
+                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="4">
+                                  <TextBlock Text="Xp" Classes="point-detail-label" />
+                                  <TextBlock Grid.Column="1" Text="{Binding XPuls, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
+                                  <TextBlock Grid.Row="1" Text="Yp" Classes="point-detail-label" />
+                                  <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding YPuls, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
+                                  <TextBlock Grid.Row="2" Text="Zp" Classes="point-detail-label" />
+                                  <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ZPuls, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
+                                </Grid>
+                              </Border>
+                              <Border Grid.Column="1" Classes="point-detail-stat">
+                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="4">
+                                  <TextBlock Text="Ap" Classes="point-detail-label" />
+                                  <TextBlock Grid.Column="1" Text="{Binding APuls, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
+                                  <TextBlock Grid.Row="1" Text="Bp" Classes="point-detail-label" />
+                                  <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding BPuls, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
+                                  <TextBlock Grid.Row="2" Text="Top" Classes="point-detail-label" />
+                                  <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding TopPuls, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
+                                  <TextBlock Grid.Row="3" Text="Low" Classes="point-detail-label" />
+                                  <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding LowPuls, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
+                                  <TextBlock Grid.Row="4" Text="Clamp" Classes="point-detail-label" />
+                                  <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding ClampPuls, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
+                                </Grid>
+                              </Border>
+                            </Grid>
+                          </StackPanel>
+                        </Border>
+
+                        <Border Classes="point-detail-group">
+                          <StackPanel Spacing="10">
+                            <TextBlock Text="Desc" Classes="point-detail-group-title" />
+                            <TextBox Classes="point-detail-input"
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     MinHeight="90"
+                                     Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                          </StackPanel>
+                        </Border>
+                      </StackPanel>
+                    </DataTemplate>
+                  </ContentControl.ContentTemplate>
+                </ContentControl>
+              </StackPanel>
+            </ScrollViewer>
+
+            <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,12,0,0">
+              <TextBlock Text="Changes apply immediately. Plot recalculates automatically."
+                         Classes="muted"
+                         TextWrapping="Wrap"
+                         VerticalAlignment="Center"
+                         Margin="0,0,12,0" />
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <Button Command="{Binding MoveUpCommand}" Classes="ghost">↑</Button>
+                <Button Command="{Binding MoveDownCommand}" Classes="ghost">↓</Button>
+                <Button Click="DeleteSelectedPoint_Click"
+                        IsEnabled="{Binding HasSelectedPoint}"
+                        Classes="danger">Удалить</Button>
+              </StackPanel>
+            </Grid>
           </Grid>
         </Border>
         <Border x:Name="SelectedPointResizeHandle" Classes="panel-resize-handle"

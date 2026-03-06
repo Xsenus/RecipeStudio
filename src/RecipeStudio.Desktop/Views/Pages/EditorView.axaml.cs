@@ -4,9 +4,11 @@ using System.Globalization;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using RecipeStudio.Desktop.Controls;
 using RecipeStudio.Desktop.Services;
 using RecipeStudio.Desktop.ViewModels;
@@ -457,7 +459,15 @@ public sealed partial class EditorView : UserControl
 
         if (e.Source is Control source)
         {
-            if (source is TextBox || source is CheckBox || source is Slider || source is Button)
+            if (source is TextBox || source is CheckBox || source is Slider || source is Button || source is ToggleButton || source is ComboBox || source is NumericUpDown || source is ScrollViewer ||
+                source.FindAncestorOfType<TextBox>() is not null ||
+                source.FindAncestorOfType<CheckBox>() is not null ||
+                source.FindAncestorOfType<Slider>() is not null ||
+                source.FindAncestorOfType<Button>() is not null ||
+                source.FindAncestorOfType<ToggleButton>() is not null ||
+                source.FindAncestorOfType<ComboBox>() is not null ||
+                source.FindAncestorOfType<NumericUpDown>() is not null ||
+                source.FindAncestorOfType<ScrollViewer>() is not null)
                 return;
 
             if (IsDescendantOf(source, RecipePlot) || IsDescendantOf(source, Pair2DPlot))
@@ -656,6 +666,29 @@ public sealed partial class EditorView : UserControl
         PersistPanelsLayout();
     }
 
+    private async void DeleteSelectedPoint_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (_vm?.SelectedPoint is null)
+            return;
+
+        var owner = TopLevel.GetTopLevel(this) as Window;
+        if (owner is null)
+            return;
+
+        var point = _vm.SelectedPoint;
+        var dialog = new ConfirmDialog(
+            "Удаление точки",
+            $"Удалить точку #{point.NPoint}?\nR={point.RCrd:0.###}, Z={point.ZCrd:0.###}",
+            "Удалить",
+            "Отмена");
+
+        var confirmed = await dialog.ShowDialog<bool>(owner);
+        if (!confirmed || !_vm.RemovePointCommand.CanExecute(null))
+            return;
+
+        _vm.RemovePointCommand.Execute(null);
+    }
+
     private void ZoomInPlot_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         RecipePlot.ZoomIn();
@@ -843,8 +876,8 @@ public sealed partial class EditorView : UserControl
         UpdateZoomText();
         UpdatePair2DZoomText();
         UpdatePlotOverlayButtons();
-        SelectedPointPanel.Width = 430;
-        SelectedPointPanel.Height = 280;
+        SelectedPointPanel.Width = 540;
+        SelectedPointPanel.Height = 720;
 
         ParametersPanel.IsVisible = true;
         VisualizationPanel.IsVisible = true;
