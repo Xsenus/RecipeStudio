@@ -7,6 +7,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using RecipeStudio.Desktop.Controls;
 using RecipeStudio.Desktop.Services;
 using RecipeStudio.Desktop.ViewModels;
 using RecipeStudio.Desktop.Views.Dialogs;
@@ -36,6 +37,7 @@ public sealed partial class EditorView : UserControl
     private Size _resizeStartSize;
     private int _zOrderCounter;
     private bool _isApplyingSavedColumnWidths;
+    private bool _applyingTargetDisplayModes;
 
     private void HookVm()
     {
@@ -58,6 +60,9 @@ public sealed partial class EditorView : UserControl
             _vm.RequestShowCharts += OnRequestShowCharts;
             _vm.PropertyChanged += OnVmPropertyChanged;
         }
+
+        if (VisualRoot is not null)
+            ApplySavedTargetDisplayModes();
     }
 
     private void OnAttachedToVisualTree(object? sender, Avalonia.VisualTreeAttachmentEventArgs e)
@@ -73,10 +78,14 @@ public sealed partial class EditorView : UserControl
 
         RecipePlot.ZoomChanged -= OnRecipePlotZoomChanged;
         RecipePlot.ZoomChanged += OnRecipePlotZoomChanged;
+        Pair2DPlot.ZoomChanged -= OnPair2DPlotZoomChanged;
+        Pair2DPlot.ZoomChanged += OnPair2DPlotZoomChanged;
         PointsGrid.PointerReleased -= OnPointsGridPointerReleased;
         PointsGrid.PointerReleased += OnPointsGridPointerReleased;
 
+        ApplySavedTargetDisplayModes();
         UpdateZoomText();
+        UpdatePair2DZoomText();
         UpdatePlotOverlayButtons();
         Dispatcher.UIThread.Post(ApplySavedGridColumnWidths, DispatcherPriority.Loaded);
     }
@@ -85,6 +94,7 @@ public sealed partial class EditorView : UserControl
     {
         PanelsCanvas.SizeChanged -= OnPanelsCanvasSizeChanged;
         RecipePlot.ZoomChanged -= OnRecipePlotZoomChanged;
+        Pair2DPlot.ZoomChanged -= OnPair2DPlotZoomChanged;
         PointsGrid.PointerReleased -= OnPointsGridPointerReleased;
         PersistGridColumnWidths(force: true);
         PersistPanelsLayout(force: false);
@@ -98,6 +108,8 @@ public sealed partial class EditorView : UserControl
         UpdatePlotOverlayButtons();
     }
 
+    private void OnPair2DPlotZoomChanged(double _) => UpdatePair2DZoomText();
+
     private void OnPanelsCanvasSizeChanged(object? sender, SizeChangedEventArgs e)
     {
         if (!_panelsInitialized)
@@ -110,6 +122,7 @@ public sealed partial class EditorView : UserControl
 
         ClampPanelToCanvas(ParametersPanel);
         ClampPanelToCanvas(VisualizationPanel);
+        ClampPanelToCanvas(Pair2DPanel);
         ClampPanelToCanvas(SelectedPointPanel);
         UpdateResizeHandlePositions();
     }
@@ -333,6 +346,7 @@ public sealed partial class EditorView : UserControl
         var saved = _vm?.AppSettings.EditorPanels;
         ApplyPanelLayout(ParametersPanel, saved?.Parameters, ParametersPanelDefaultPosition);
         ApplyPanelLayout(VisualizationPanel, saved?.Visualization, VisualizationPanelDefaultPosition);
+        ApplyPanelLayout(Pair2DPanel, saved?.Pair2D, Pair2DPanelDefaultPosition);
         ApplyPanelLayout(SelectedPointPanel, saved?.SelectedPoint, SelectedPointPanelDefaultPosition);
 
         _panelsInitialized = true;
@@ -373,6 +387,15 @@ public sealed partial class EditorView : UserControl
         return new(Math.Max(PanelMargin, canvasWidth - panel.Width - PanelMargin), PanelMargin);
     }
 
+    private Point Pair2DPanelDefaultPosition(Border panel)
+    {
+        var canvasWidth = GetCanvasWidth();
+        var canvasHeight = GetCanvasHeight();
+        var left = Math.Max(PanelMargin, canvasWidth - panel.Width - SelectedPointPanel.Width - PanelMargin * 2);
+        var top = Math.Max(PanelMargin, canvasHeight - panel.Height - PanelMargin);
+        return new(left, top);
+    }
+
     private Point SelectedPointPanelDefaultPosition(Border panel)
     {
         var canvasWidth = GetCanvasWidth();
@@ -392,12 +415,17 @@ public sealed partial class EditorView : UserControl
         Canvas.SetLeft(VisualizationPanel, visualizationPos.X);
         Canvas.SetTop(VisualizationPanel, visualizationPos.Y);
 
+        var pair2DPos = Pair2DPanelDefaultPosition(Pair2DPanel);
+        Canvas.SetLeft(Pair2DPanel, pair2DPos.X);
+        Canvas.SetTop(Pair2DPanel, pair2DPos.Y);
+
         var selectedPointPos = SelectedPointPanelDefaultPosition(SelectedPointPanel);
         Canvas.SetLeft(SelectedPointPanel, selectedPointPos.X);
         Canvas.SetTop(SelectedPointPanel, selectedPointPos.Y);
 
         ClampPanelToCanvas(ParametersPanel);
         ClampPanelToCanvas(VisualizationPanel);
+        ClampPanelToCanvas(Pair2DPanel);
         ClampPanelToCanvas(SelectedPointPanel);
     }
 
@@ -416,6 +444,8 @@ public sealed partial class EditorView : UserControl
             BringPanelToFront(ParametersPanel);
         if (VisualizationPanel.IsVisible)
             BringPanelToFront(VisualizationPanel);
+        if (Pair2DPanel.IsVisible)
+            BringPanelToFront(Pair2DPanel);
         if (SelectedPointPanel.IsVisible)
             BringPanelToFront(SelectedPointPanel);
     }
@@ -430,7 +460,7 @@ public sealed partial class EditorView : UserControl
             if (source is TextBox || source is CheckBox || source is Slider || source is Button)
                 return;
 
-            if (IsDescendantOf(source, RecipePlot))
+            if (IsDescendantOf(source, RecipePlot) || IsDescendantOf(source, Pair2DPlot))
                 return;
         }
 
@@ -498,6 +528,7 @@ public sealed partial class EditorView : UserControl
         {
             Border handle when ReferenceEquals(handle, ParametersResizeHandle) => ParametersPanel,
             Border handle when ReferenceEquals(handle, VisualizationResizeHandle) => VisualizationPanel,
+            Border handle when ReferenceEquals(handle, Pair2DResizeHandle) => Pair2DPanel,
             Border handle when ReferenceEquals(handle, SelectedPointResizeHandle) => SelectedPointPanel,
             _ => null
         };
@@ -563,6 +594,13 @@ public sealed partial class EditorView : UserControl
         PersistPanelsLayout();
     }
 
+    private void HidePair2DPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        Pair2DPanel.IsVisible = false;
+        Pair2DResizeHandle.IsVisible = false;
+        PersistPanelsLayout();
+    }
+
     private void HideSelectedPointPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         SelectedPointPanel.IsVisible = false;
@@ -590,6 +628,18 @@ public sealed partial class EditorView : UserControl
         {
             BringPanelToFront(VisualizationPanel);
             UpdateResizeHandleFor(VisualizationPanel);
+        }
+        PersistPanelsLayout();
+    }
+
+    private void ShowPair2DPanel_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        Pair2DPanel.IsVisible = !Pair2DPanel.IsVisible;
+        Pair2DResizeHandle.IsVisible = Pair2DPanel.IsVisible;
+        if (Pair2DPanel.IsVisible)
+        {
+            BringPanelToFront(Pair2DPanel);
+            UpdateResizeHandleFor(Pair2DPanel);
         }
         PersistPanelsLayout();
     }
@@ -626,9 +676,138 @@ public sealed partial class EditorView : UserControl
         UpdateZoomText();
     }
 
+    private void ZoomInPair2D_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        Pair2DPlot.ZoomIn();
+        UpdatePair2DZoomText();
+    }
+
+    private void ZoomOutPair2D_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        Pair2DPlot.ZoomOut();
+        UpdatePair2DZoomText();
+    }
+
+    private void FitPair2D_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        Pair2DPlot.ResetZoom();
+        UpdatePair2DZoomText();
+    }
+
     private void UpdateZoomText()
     {
         ZoomText.Text = $"x{RecipePlot.ZoomFactor.ToString("0.00", CultureInfo.InvariantCulture)}";
+    }
+
+    private void UpdatePair2DZoomText()
+    {
+        Pair2DZoomText.Text = $"x{Pair2DPlot.ZoomFactor.ToString("0.00", CultureInfo.InvariantCulture)}";
+    }
+
+    private void ApplySavedTargetDisplayModes()
+    {
+        if (_vm is null)
+            return;
+
+        _vm.AppSettings.SimulationPanels ??= new SimulationPanelsSettings();
+        var panels = _vm.AppSettings.SimulationPanels;
+        var mirrored = panels.TargetViewMirrored;
+
+        _applyingTargetDisplayModes = true;
+        ApplyTargetViewOrientation(mirrored);
+        ApplyTargetDisplayMode(RecipePlot, EditorPlotTargetSideButton, EditorPlotTargetCoverageButton, panels.PlotTargetDisplayMode, mirrored);
+        ApplyTargetDisplayMode(Pair2DPlot, EditorPair2DTargetSideButton, EditorPair2DTargetCoverageButton, panels.View2DPairTargetDisplayMode, mirrored);
+        _applyingTargetDisplayModes = false;
+    }
+
+    private void ApplyTargetViewOrientation(bool mirrored)
+    {
+        RecipePlot.InvertHorizontal = mirrored;
+        Pair2DPlot.InvertHorizontal = mirrored;
+    }
+
+    private static void SetTargetViewOrientation(SimulationPanelsSettings panels, bool mirrored)
+    {
+        panels.TargetViewMirrored = mirrored;
+        var side = mirrored ? SimulationTargetDisplayModes.Mirrored : SimulationTargetDisplayModes.Original;
+        panels.PlotTargetDisplaySide = side;
+        panels.View2DPairTargetDisplaySide = side;
+    }
+
+    private static string NormalizeCoverageMode(string? mode)
+        => SimulationTargetDisplayModes.NormalizeCoverage(mode);
+
+    private void ApplyTargetDisplayMode(RecipePlotControl control, Button sideButton, Button coverageButton, string? mode, bool mirrored)
+    {
+        var normalizedMode = NormalizeCoverageMode(mode);
+        control.TargetDisplayMode = normalizedMode;
+        UpdateTargetDisplayButtons(sideButton, coverageButton, mirrored, normalizedMode == SimulationTargetDisplayModes.Full);
+    }
+
+    private void ApplyTargetDisplayMode(SimulationPointPair2DControl control, Button sideButton, Button coverageButton, string? mode, bool mirrored)
+    {
+        var normalizedMode = NormalizeCoverageMode(mode);
+        control.TargetDisplayMode = normalizedMode;
+        UpdateTargetDisplayButtons(sideButton, coverageButton, mirrored, normalizedMode == SimulationTargetDisplayModes.Full);
+    }
+
+    private static void UpdateTargetDisplayButtons(Button sideButton, Button coverageButton, bool mirrored, bool full)
+    {
+        sideButton.Content = mirrored ? "Зеркальная" : "Исходная";
+        coverageButton.Content = full ? "Полная" : "Частичная";
+    }
+
+    private static string BuildTargetDisplayMode(bool full)
+        => full ? SimulationTargetDisplayModes.Full : SimulationTargetDisplayModes.Original;
+
+    private void EditorPlotTargetSideButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (_applyingTargetDisplayModes || _vm is null)
+            return;
+
+        _vm.AppSettings.SimulationPanels ??= new SimulationPanelsSettings();
+        var panels = _vm.AppSettings.SimulationPanels;
+        SetTargetViewOrientation(panels, !panels.TargetViewMirrored);
+        ApplySavedTargetDisplayModes();
+        _vm.SaveAppSettings();
+    }
+
+    private void EditorPlotTargetCoverageButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (_applyingTargetDisplayModes || _vm is null)
+            return;
+
+        _vm.AppSettings.SimulationPanels ??= new SimulationPanelsSettings();
+        var panels = _vm.AppSettings.SimulationPanels;
+        var full = NormalizeCoverageMode(panels.PlotTargetDisplayMode) != SimulationTargetDisplayModes.Full;
+        panels.PlotTargetDisplayMode = BuildTargetDisplayMode(full);
+        ApplySavedTargetDisplayModes();
+        _vm.SaveAppSettings();
+    }
+
+    private void EditorPair2DTargetSideButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (_applyingTargetDisplayModes || _vm is null)
+            return;
+
+        _vm.AppSettings.SimulationPanels ??= new SimulationPanelsSettings();
+        var panels = _vm.AppSettings.SimulationPanels;
+        SetTargetViewOrientation(panels, !panels.TargetViewMirrored);
+        ApplySavedTargetDisplayModes();
+        _vm.SaveAppSettings();
+    }
+
+    private void EditorPair2DTargetCoverageButton_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (_applyingTargetDisplayModes || _vm is null)
+            return;
+
+        _vm.AppSettings.SimulationPanels ??= new SimulationPanelsSettings();
+        var panels = _vm.AppSettings.SimulationPanels;
+        var full = NormalizeCoverageMode(panels.View2DPairTargetDisplayMode) != SimulationTargetDisplayModes.Full;
+        panels.View2DPairTargetDisplayMode = BuildTargetDisplayMode(full);
+        ApplySavedTargetDisplayModes();
+        _vm.SaveAppSettings();
     }
 
     private void ToggleLegend_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -655,20 +834,26 @@ public sealed partial class EditorView : UserControl
         ParametersPanel.Height = 210;
         VisualizationPanel.Width = 760;
         VisualizationPanel.Height = 520;
+        Pair2DPanel.Width = 760;
+        Pair2DPanel.Height = 600;
         RecipePlot.ResetZoom();
+        Pair2DPlot.ResetZoom();
         RecipePlot.ShowLegend = true;
         RecipePlot.ShowPairLinks = false;
         UpdateZoomText();
+        UpdatePair2DZoomText();
         UpdatePlotOverlayButtons();
         SelectedPointPanel.Width = 430;
         SelectedPointPanel.Height = 280;
 
         ParametersPanel.IsVisible = true;
         VisualizationPanel.IsVisible = true;
+        Pair2DPanel.IsVisible = true;
         SelectedPointPanel.IsVisible = true;
 
         ParametersResizeHandle.IsVisible = true;
         VisualizationResizeHandle.IsVisible = true;
+        Pair2DResizeHandle.IsVisible = true;
         SelectedPointResizeHandle.IsVisible = true;
 
         ApplyDefaultPanelsLayout();
@@ -694,6 +879,7 @@ public sealed partial class EditorView : UserControl
 
         _vm.AppSettings.EditorPanels.Parameters = ToLayout(ParametersPanel, _vm.AppSettings.EditorPanels.Parameters);
         _vm.AppSettings.EditorPanels.Visualization = ToLayout(VisualizationPanel, _vm.AppSettings.EditorPanels.Visualization);
+        _vm.AppSettings.EditorPanels.Pair2D = ToLayout(Pair2DPanel, _vm.AppSettings.EditorPanels.Pair2D);
         _vm.AppSettings.EditorPanels.SelectedPoint = ToLayout(SelectedPointPanel, _vm.AppSettings.EditorPanels.SelectedPoint);
         _vm.SaveAppSettings();
     }
@@ -754,6 +940,7 @@ public sealed partial class EditorView : UserControl
     {
         UpdateResizeHandleFor(ParametersPanel);
         UpdateResizeHandleFor(VisualizationPanel);
+        UpdateResizeHandleFor(Pair2DPanel);
         UpdateResizeHandleFor(SelectedPointPanel);
     }
 
@@ -763,7 +950,9 @@ public sealed partial class EditorView : UserControl
             ? ParametersResizeHandle
             : panel == VisualizationPanel
                 ? VisualizationResizeHandle
-                : SelectedPointResizeHandle;
+                : panel == Pair2DPanel
+                    ? Pair2DResizeHandle
+                    : SelectedPointResizeHandle;
 
         if (!panel.IsVisible)
         {

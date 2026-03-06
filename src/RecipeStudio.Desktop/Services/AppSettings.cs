@@ -88,6 +88,7 @@ public sealed class EditorPanelsSettings
 {
     public PanelPlacementSettings Parameters { get; set; } = new();
     public PanelPlacementSettings Visualization { get; set; } = new();
+    public PanelPlacementSettings Pair2D { get; set; } = new();
     public PanelPlacementSettings SelectedPoint { get; set; } = new();
 }
 

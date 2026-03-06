@@ -41,7 +41,7 @@
       <Canvas x:Name="PanelsCanvas" ClipToBounds="True">
         <Border x:Name="PlotPanel" Classes="card floating-panel" Width="700" Height="640" MinWidth="520" MinHeight="340"
                 PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
-          <Grid RowDefinitions="Auto,*" RowSpacing="8" ClipToBounds="True">
+          <Grid RowDefinitions="Auto,Auto,*" RowSpacing="8" ClipToBounds="True">
             <Grid x:Name="PlotPanelHeader" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
               <TextBlock Text="PROFILE VIEWER (R-Z)" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
               <Button Grid.Column="1" Classes="ghost" ToolTip.Tip="Приблизить график" Click="ZoomInPlot_Click">＋</Button>
@@ -61,7 +61,12 @@
               </StackPanel>
             </Grid>
 
-            <controls:RecipePlotControl Grid.Row="1" x:Name="RecipePlot"
+            <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*" Margin="0,0,0,4">
+              <Button x:Name="SimulationLegendToggleButton" Classes="ghost" ToolTip.Tip="Показать или скрыть пояснения на графике" Click="TogglePlotLegend_Click">Пояснения: вкл</Button>
+              <Button Grid.Column="1" x:Name="SimulationLinksToggleButton" Classes="ghost" ToolTip.Tip="Показать или скрыть связи Xp/Zp ↔ Xr/Zr" Click="TogglePlotPairLinks_Click" Margin="8,0,0,0">Связи точек: выкл</Button>
+            </Grid>
+
+            <controls:RecipePlotControl Grid.Row="2" x:Name="RecipePlot"
                                         InvertHorizontal="True"
                                         TargetDisplayMode="Full"
                                         Points="{Binding PointsForPlot}"
@@ -76,6 +81,7 @@
                                         TargetXRaw="{Binding CurrentTargetX}"
                                         TargetZRaw="{Binding CurrentTargetZ}"
                                         Settings="{Binding AppSettings}"
+                                        ShowLegend="{Binding ShowLegend}"
                                         ShowPairLinks="{Binding ShowPairLinks}"
                                         ShowGrid="{Binding ShowGrid}" />
           </Grid>

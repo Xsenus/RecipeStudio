@@ -85,6 +85,7 @@ public sealed partial class SimulationView : UserControl
         UpdateView2DZoomText();
         UpdateView2DFactZoomText();
         UpdateView2DPairZoomText();
+        UpdatePlotOverlayButtons();
     }
 
     private void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
@@ -103,6 +104,9 @@ public sealed partial class SimulationView : UserControl
     {
         if (e.PropertyName == nameof(SimulationViewModel.RecipePath) && string.IsNullOrWhiteSpace(_vm?.RecipePath))
             PersistPanelsLayout(force: false);
+
+        if (e.PropertyName is nameof(SimulationViewModel.ShowLegend) or nameof(SimulationViewModel.ShowPairLinks))
+            UpdatePlotOverlayButtons();
     }
 
     private void OnRecipePlotZoomChanged(double _) => UpdateZoomText();
@@ -661,6 +665,33 @@ public sealed partial class SimulationView : UserControl
     private void UpdateView2DPairZoomText()
     {
         View2DPairZoomText.Text = $"x{View2DPairPlot.ZoomFactor.ToString("0.00", CultureInfo.InvariantCulture)}";
+    }
+
+    private void TogglePlotLegend_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_vm is null)
+            return;
+
+        _vm.ShowLegend = !_vm.ShowLegend;
+        UpdatePlotOverlayButtons();
+    }
+
+    private void TogglePlotPairLinks_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_vm is null)
+            return;
+
+        _vm.ShowPairLinks = !_vm.ShowPairLinks;
+        UpdatePlotOverlayButtons();
+    }
+
+    private void UpdatePlotOverlayButtons()
+    {
+        if (_vm is null)
+            return;
+
+        SimulationLegendToggleButton.Content = _vm.ShowLegend ? "Пояснения: вкл" : "Пояснения: выкл";
+        SimulationLinksToggleButton.Content = _vm.ShowPairLinks ? "Связи точек: вкл" : "Связи точек: выкл";
     }
 
     private void ApplySavedTargetDisplayModes()

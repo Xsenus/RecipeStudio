@@ -19,6 +19,7 @@
       <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Margin="0,0,8,0">
         <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать/скрыть панель параметров" Click="ShowParametersPanel_Click">⚙</Button>
         <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать/скрыть панель визуализации" Click="ShowVisualizationPanel_Click">📈</Button>
+        <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать/скрыть панель 2D Pair" Click="ShowPair2DPanel_Click">◫</Button>
         <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Показать/скрыть панель выбранной точки" Click="ShowSelectedPointPanel_Click">◎</Button>
         <Button Classes="ghost panel-icon-btn" ToolTip.Tip="Сбросить панели" Click="ResetPanels_Click">↺</Button>
       </StackPanel>
@@ -336,16 +337,28 @@
             </Grid>
 
             <Grid Grid.Row="1" RowDefinitions="Auto,*,Auto" Margin="0,10,0,0">
-              <Grid ColumnDefinitions="Auto,Auto,*" Margin="0,0,0,8">
+              <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*" Margin="0,0,0,8">
                 <Button x:Name="LegendToggleButton" Classes="ghost" ToolTip.Tip="Показать/скрыть пояснения на графике" Click="ToggleLegend_Click">Пояснения: вкл</Button>
                 <Button Grid.Column="1" x:Name="LinksToggleButton" Classes="ghost" ToolTip.Tip="Показать/скрыть вспомогательные связи Xp/Zp ↔ Xr/Zr" Click="TogglePairLinks_Click" Margin="8,0,0,0">Связи точек: выкл</Button>
+                <Button Grid.Column="2" x:Name="EditorPlotTargetSideButton" Classes="ghost" ToolTip.Tip="Переключить ориентацию вида: исходная или зеркальная" Click="EditorPlotTargetSideButton_Click" Margin="8,0,0,0">Исходная</Button>
+                <Button Grid.Column="3" x:Name="EditorPlotTargetCoverageButton" Classes="ghost" ToolTip.Tip="Переключить отображение контура: полное или частичное" Click="EditorPlotTargetCoverageButton_Click" Margin="8,0,0,0">Полная</Button>
               </Grid>
 
               <controls:RecipePlotControl Grid.Row="1" x:Name="RecipePlot" MinHeight="320"
                                          Points="{Binding Points}"
                                          SelectedPoint="{Binding SelectedPoint}"
+                                         AnimationPoints="{Binding PointsForAnimation}"
                                          Progress="{Binding Progress}"
-                                         Settings="{Binding AppSettings}" />
+                                         CurrentAlfa="{Binding CurrentAlfa}"
+                                         CurrentBetta="{Binding CurrentBetta}"
+                                         CurrentSegmentIndex="{Binding CurrentSegmentIndex}"
+                                         CurrentSegmentT="{Binding CurrentSegmentT}"
+                                         ToolXRaw="{Binding ToolXRaw}"
+                                         ToolZRaw="{Binding ToolZRaw}"
+                                         TargetXRaw="{Binding CurrentTargetX}"
+                                         TargetZRaw="{Binding CurrentTargetZ}"
+                                         Settings="{Binding AppSettings}"
+                                         TargetDisplayMode="Full" />
 
               <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,14,Auto,Auto,Auto,Auto,*,Auto" Margin="0,8,0,0">
                 <Button Command="{Binding PlayPauseCommand}" Classes="accent">▶ / ❚❚</Button>
@@ -363,6 +376,50 @@
           </Grid>
         </Border>
         <Border x:Name="VisualizationResizeHandle" Classes="panel-resize-handle"
+                PointerPressed="ResizeHandle_PointerPressed" PointerMoved="ResizeHandle_PointerMoved" PointerReleased="ResizeHandle_PointerReleased" />
+
+        <Border x:Name="Pair2DPanel" Classes="card floating-panel"
+                Width="760" Height="600" MinWidth="520" MinHeight="360"
+                PointerPressed="Panel_PointerPressed" PointerMoved="Panel_PointerMoved" PointerReleased="Panel_PointerReleased">
+          <Grid RowDefinitions="Auto,*">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="2D Pair (1-2)" FontSize="16" FontWeight="SemiBold" />
+              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                <Button Classes="ghost" ToolTip.Tip="Приблизить 2D Pair" Click="ZoomInPair2D_Click">+</Button>
+                <Button Classes="ghost" ToolTip.Tip="Отдалить 2D Pair" Click="ZoomOutPair2D_Click">-</Button>
+                <Button Classes="ghost" ToolTip.Tip="Подогнать в окно" Click="FitPair2D_Click">Fit</Button>
+                <Button x:Name="EditorPair2DTargetSideButton" Classes="ghost" ToolTip.Tip="Переключить ориентацию вида: исходная или зеркальная" Click="EditorPair2DTargetSideButton_Click">Исходная</Button>
+                <Button x:Name="EditorPair2DTargetCoverageButton" Classes="ghost" ToolTip.Tip="Переключить отображение контура: полное или частичное" Click="EditorPair2DTargetCoverageButton_Click">Полная</Button>
+                <TextBlock x:Name="Pair2DZoomText" Text="x1.00" VerticalAlignment="Center" Classes="muted" />
+                <Button Classes="ghost panel-close-btn" Click="HidePair2DPanel_Click">✕</Button>
+              </StackPanel>
+            </Grid>
+
+            <controls:SimulationPointPair2DControl Grid.Row="1" x:Name="Pair2DPlot"
+                                                   Points="{Binding PointsForAnimation}"
+                                                   PlotPoints="{Binding Points}"
+                                                   TargetDisplayMode="Full"
+                                                   Progress="{Binding Progress}"
+                                                   CurrentSegmentIndex="{Binding CurrentSegmentIndex}"
+                                                   CurrentSegmentT="{Binding CurrentSegmentT}"
+                                                   Settings="{Binding AppSettings}"
+                                                   CurrentAlfa="{Binding CurrentAlfa}"
+                                                   CurrentBetta="{Binding CurrentBetta}"
+                                                   ToolXRaw="{Binding ToolXRaw}"
+                                                   ToolZRaw="{Binding ToolZRaw}"
+                                                   TargetXRaw="{Binding CurrentTargetX}"
+                                                   TargetZRaw="{Binding CurrentTargetZ}"
+                                                   ShowGrid="True"
+                                                   InvertHorizontal="{Binding ElementName=RecipePlot, Path=InvertHorizontal}"
+                                                   ReferenceHeightMm="{Binding AppSettings.SimulationPanels.Calibration2D.ReferenceHeightMm}"
+                                                   PartWidthScalePercent="{Binding AppSettings.SimulationPanels.Calibration2D.PartWidthScalePercent}"
+                                                   ManipulatorAnchorX="{Binding AppSettings.SimulationPanels.Calibration2D.ManipulatorAnchorX}"
+                                                   ManipulatorAnchorY="{Binding AppSettings.SimulationPanels.Calibration2D.ManipulatorAnchorY}"
+                                                   VerticalOffsetMm="{Binding AppSettings.SimulationPanels.Calibration2D.VerticalOffsetMm}"
+                                                   HorizontalOffsetMm="{Binding AppSettings.SimulationPanels.Calibration2D.HorizontalOffsetMm}" />
+          </Grid>
+        </Border>
+        <Border x:Name="Pair2DResizeHandle" Classes="panel-resize-handle"
                 PointerPressed="ResizeHandle_PointerPressed" PointerMoved="ResizeHandle_PointerMoved" PointerReleased="ResizeHandle_PointerReleased" />
 
         <Border x:Name="SelectedPointPanel" Classes="card floating-panel"
@@ -386,4 +443,3 @@
     </Grid>
   </Grid>
 </UserControl>
-

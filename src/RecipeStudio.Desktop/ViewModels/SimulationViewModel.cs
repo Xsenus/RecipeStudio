@@ -29,6 +29,7 @@ public sealed class SimulationViewModel : ViewModelBase
     private double _currentTargetZ;
     private int _currentSegmentIndex = -1;
     private double _currentSegmentT;
+    private bool _showLegend = true;
     private bool _showGrid = true;
     private bool _showPairLinks = false;
     // Startup defaults for the industrial simulation scenario:
@@ -69,6 +70,7 @@ public sealed class SimulationViewModel : ViewModelBase
     public RelayCommand ResetRecommendedModesCommand { get; }
 
     public bool IsPlaying { get => _isPlaying; private set => SetProperty(ref _isPlaying, value); }
+    public bool ShowLegend { get => _showLegend; set => SetProperty(ref _showLegend, value); }
     public bool ShowGrid { get => _showGrid; set => SetProperty(ref _showGrid, value); }
     public bool ShowPairLinks { get => _showPairLinks; set => SetProperty(ref _showPairLinks, value); }
     public string NozzleOrientationMode => NozzleOrientationModes.Normalize(AppSettings.NozzleOrientationMode);
@@ -138,6 +140,7 @@ public sealed class SimulationViewModel : ViewModelBase
     {
         IncludeSafePoints = true;
         SmoothMotion = true;
+        ShowLegend = true;
         ShowGrid = true;
         ShowPairLinks = false;
         SpeedMultiplier = 2.0;

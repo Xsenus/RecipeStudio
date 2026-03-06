@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Numerics;
 using Avalonia.Threading;
 using RecipeStudio.Desktop.Models;
 using RecipeStudio.Desktop.Services;
@@ -21,9 +23,20 @@ public sealed class EditorViewModel : ViewModelBase
 
     // Simulation
     private readonly DispatcherTimer _timer;
+    private readonly SimulationPathService _pathService = new();
     private bool _isPlaying;
     private double _speedMultiplier = 1.0;
     private double _progress;
+    private double _elapsedSec;
+    private double _totalDurationSec;
+    private Vector3 _toolPosition;
+    private double _currentAlfa;
+    private double _currentBetta;
+    private double _currentTargetX;
+    private double _currentTargetZ;
+    private int _currentSegmentIndex = -1;
+    private double _currentSegmentT;
+    private SimulationPath _timeline = new(new List<PathWaypoint>(), new List<PathSegment>(), 0);
 
     private bool _suppressRecalc;
     private string _importDiagnosticsSummary = "";
@@ -145,6 +158,7 @@ public sealed class EditorViewModel : ViewModelBase
     }
 
     public ObservableCollection<RecipePoint> Points { get; }
+    public IList<RecipePoint> PointsForAnimation => GetAnimationPoints();
 
     public RecipePoint? SelectedPoint
     {
@@ -205,6 +219,26 @@ public sealed class EditorViewModel : ViewModelBase
         set => SetProperty(ref _progress, value);
     }
 
+    public double ToolXRaw => _toolPosition.X;
+    public double ToolZRaw => _toolPosition.Z;
+
+    public double CurrentAlfa
+    {
+        get => _currentAlfa;
+        private set => SetProperty(ref _currentAlfa, value);
+    }
+
+    public double CurrentBetta
+    {
+        get => _currentBetta;
+        private set => SetProperty(ref _currentBetta, value);
+    }
+
+    public double CurrentTargetX => _currentTargetX;
+    public double CurrentTargetZ => _currentTargetZ;
+    public int CurrentSegmentIndex => _currentSegmentIndex;
+    public double CurrentSegmentT => _currentSegmentT;
+
     public string ImportDiagnosticsSummary
     {
         get => _importDiagnosticsSummary;
@@ -219,6 +253,7 @@ public sealed class EditorViewModel : ViewModelBase
         SelectedPoint = null;
         Document = null;
         ImportDiagnosticsSummary = "";
+        RecalculateTimeline();
     }
 
     public void LoadDocument(RecipeDocument doc)
@@ -238,6 +273,7 @@ public sealed class EditorViewModel : ViewModelBase
         SelectedPoint = Points.FirstOrDefault();
         Stop();
         ImportDiagnosticsSummary = "";
+        RecalculateTimeline();
     }
 
     private void RecalculateIfNeeded()
@@ -292,6 +328,7 @@ public sealed class EditorViewModel : ViewModelBase
             RaisePropertyChanged(nameof(ContainerPresent));
             RaisePropertyChanged(nameof(DClampForm));
             RaisePropertyChanged(nameof(DClampCont));
+            RecalculateTimeline();
         }
         finally
         {
@@ -463,12 +500,19 @@ public sealed class EditorViewModel : ViewModelBase
             case nameof(RecipePoint.Safe):
                 Recalculate();
                 break;
+            case nameof(RecipePoint.Act):
+            case nameof(RecipePoint.Hidden):
+                RecalculateTimeline();
+                break;
         }
     }
 
 
     private void TogglePlay()
     {
+        if (GetAnimationPoints().Count < 2)
+            return;
+
         if (IsPlaying)
         {
             IsPlaying = false;
@@ -476,6 +520,12 @@ public sealed class EditorViewModel : ViewModelBase
         }
         else
         {
+            if (Progress >= 1)
+            {
+                _elapsedSec = 0;
+                UpdateFromElapsed();
+            }
+
             IsPlaying = true;
             _timer.Start();
         }
@@ -485,22 +535,136 @@ public sealed class EditorViewModel : ViewModelBase
     {
         IsPlaying = false;
         _timer.Stop();
-        Progress = 0;
+        _elapsedSec = 0;
+        UpdateFromElapsed();
     }
 
     private void Tick()
     {
-        if (!IsPlaying) return;
+        if (!IsPlaying || _totalDurationSec <= 0)
+            return;
 
-        // Basic animation: advance by a small delta, scaled by SpeedMultiplier.
-        // In a later iteration this should be time-based per-segment using t_sec.
-        var delta = 0.0025 * SpeedMultiplier;
-        Progress += delta;
-        if (Progress >= 1)
+        _elapsedSec += 0.016 * SpeedMultiplier;
+        if (_elapsedSec >= _totalDurationSec)
         {
-            Progress = 1;
+            _elapsedSec = _totalDurationSec;
             IsPlaying = false;
             _timer.Stop();
         }
+
+        UpdateFromElapsed();
+    }
+
+    private void RecalculateTimeline()
+    {
+        var points = GetAnimationPoints();
+        _timeline = _pathService.Build(points.ToList(), smoothMotion: true);
+        _totalDurationSec = _timeline.TotalDurationSec;
+        _elapsedSec = Math.Min(_elapsedSec, _totalDurationSec);
+        UpdateFromElapsed();
+        RaisePropertyChanged(nameof(PointsForAnimation));
+    }
+
+    private void UpdateFromElapsed()
+    {
+        var points = GetAnimationPoints();
+        if (points.Count == 0)
+        {
+            _toolPosition = default;
+            _currentTargetX = 0;
+            _currentTargetZ = 0;
+            _currentSegmentIndex = -1;
+            _currentSegmentT = 0;
+            Progress = 0;
+            CurrentAlfa = 0;
+            CurrentBetta = 0;
+            RaiseTelemetry();
+            return;
+        }
+
+        var sample = _pathService.Evaluate(_timeline, _elapsedSec, smoothMotion: true);
+        _toolPosition = sample.Position;
+        Progress = sample.Progress;
+        CurrentAlfa = sample.Alfa;
+        CurrentBetta = sample.Betta;
+        var (targetX, targetZ) = EvaluateTargetPosition(points, sample);
+        _currentTargetX = targetX;
+        _currentTargetZ = targetZ;
+        _currentSegmentIndex = sample.SegmentIndex;
+        _currentSegmentT = sample.SegmentT;
+        RaiseTelemetry();
+    }
+
+    private void RaiseTelemetry()
+    {
+        RaisePropertyChanged(nameof(ToolXRaw));
+        RaisePropertyChanged(nameof(ToolZRaw));
+        RaisePropertyChanged(nameof(CurrentTargetX));
+        RaisePropertyChanged(nameof(CurrentTargetZ));
+        RaisePropertyChanged(nameof(CurrentSegmentIndex));
+        RaisePropertyChanged(nameof(CurrentSegmentT));
+    }
+
+    private IList<RecipePoint> GetAnimationPoints()
+    {
+        var all = Points.ToList();
+        if (all.Count < 2)
+            return all;
+
+        var activeRobot = all.Where(p => p.Act && !p.Hidden && HasRobotGeometry(p)).ToList();
+        if (activeRobot.Count >= 2)
+            return activeRobot;
+
+        var activeRobotIncludingHidden = all.Where(p => p.Act && HasRobotGeometry(p)).ToList();
+        if (activeRobotIncludingHidden.Count >= 2)
+            return activeRobotIncludingHidden;
+
+        var activeRenderable = all.Where(p => p.Act && !p.Hidden && IsRenderable(p)).ToList();
+        if (activeRenderable.Count >= 2)
+            return activeRenderable;
+
+        return all.Where(p => p.Act && !p.Hidden).ToList() is { Count: >= 2 } activeVisible
+            ? activeVisible
+            : all;
+    }
+
+    private (double X, double Z) EvaluateTargetPosition(IList<RecipePoint> points, PathSample sample)
+    {
+        if (points.Count == 0)
+            return (0, 0);
+
+        if (points.Count == 1)
+        {
+            var p = points[0].GetTargetPoint(AppSettings.HZone);
+            return (p.Xp, p.Zp);
+        }
+
+        var seg = Math.Clamp(sample.SegmentIndex, 0, points.Count - 2);
+        var t = Math.Clamp(sample.SegmentT, 0f, 1f);
+        var a = points[seg].GetTargetPoint(AppSettings.HZone);
+        var b = points[seg + 1].GetTargetPoint(AppSettings.HZone);
+        return (
+            a.Xp + (b.Xp - a.Xp) * t,
+            a.Zp + (b.Zp - a.Zp) * t);
+    }
+
+    private static bool HasRobotGeometry(RecipePoint p)
+    {
+        const double eps = 1e-6;
+        return Math.Abs(p.Xr0) > eps
+            || Math.Abs(p.Yx0) > eps
+            || Math.Abs(p.Zr0) > eps
+            || Math.Abs(p.DX) > eps
+            || Math.Abs(p.DY) > eps
+            || Math.Abs(p.DZ) > eps;
+    }
+
+    private static bool IsRenderable(RecipePoint p)
+    {
+        const double eps = 1e-6;
+        return Math.Abs(p.RCrd) > eps
+            || Math.Abs(p.ZCrd) > eps
+            || Math.Abs(p.Xr0 + p.DX) > eps
+            || Math.Abs(p.Zr0 + p.DZ) > eps;
     }
 }

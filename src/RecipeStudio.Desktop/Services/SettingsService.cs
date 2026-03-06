@@ -143,6 +143,7 @@ public sealed class SettingsService
         settings.EditorPanels ??= new EditorPanelsSettings();
         settings.EditorPanels.Parameters ??= new PanelPlacementSettings();
         settings.EditorPanels.Visualization ??= new PanelPlacementSettings();
+        settings.EditorPanels.Pair2D ??= new PanelPlacementSettings();
         settings.EditorPanels.SelectedPoint ??= new PanelPlacementSettings();
         settings.SimulationPanels ??= new SimulationPanelsSettings();
         settings.SimulationPanels.Plot ??= new PanelPlacementSettings();
@@ -254,7 +255,7 @@ public sealed class SettingsService
         var panels = s.EditorPanels;
         if (panels is not null)
         {
-            if (!ValidatePanel(panels.Parameters) || !ValidatePanel(panels.Visualization) || !ValidatePanel(panels.SelectedPoint))
+            if (!ValidatePanel(panels.Parameters) || !ValidatePanel(panels.Visualization) || !ValidatePanel(panels.Pair2D) || !ValidatePanel(panels.SelectedPoint))
             {
                 error = "EditorPanels содержит недопустимые значения.";
                 return false;
