@@ -19,6 +19,8 @@ namespace RecipeStudio.Desktop.Views.Pages;
 public sealed partial class EditorView : UserControl
 {
     private const double PanelMargin = 20;
+    private const double DefaultPanelsTopOffset = 42;
+    private const double DefaultPanelGap = 16;
 
     public EditorView()
     {
@@ -379,36 +381,103 @@ public sealed partial class EditorView : UserControl
 
     private Point ParametersPanelDefaultPosition(Border panel)
     {
-        var canvasHeight = GetCanvasHeight();
-        return new(PanelMargin, Math.Max(PanelMargin, canvasHeight - panel.Height - PanelMargin));
+        return GetDefaultPanelPositions().Parameters;
     }
 
     private Point VisualizationPanelDefaultPosition(Border panel)
     {
-        var canvasWidth = GetCanvasWidth();
-        return new(Math.Max(PanelMargin, canvasWidth - panel.Width - PanelMargin), PanelMargin);
+        return GetDefaultPanelPositions().Visualization;
     }
 
     private Point Pair2DPanelDefaultPosition(Border panel)
     {
-        var canvasWidth = GetCanvasWidth();
-        var canvasHeight = GetCanvasHeight();
-        var left = Math.Max(PanelMargin, canvasWidth - panel.Width - SelectedPointPanel.Width - PanelMargin * 2);
-        var top = Math.Max(PanelMargin, canvasHeight - panel.Height - PanelMargin);
-        return new(left, top);
+        return GetDefaultPanelPositions().Pair2D;
     }
 
     private Point SelectedPointPanelDefaultPosition(Border panel)
     {
+        return GetDefaultPanelPositions().SelectedPoint;
+    }
+
+    private (Point Parameters, Point Visualization, Point Pair2D, Point SelectedPoint) GetDefaultPanelPositions()
+    {
+        var canvasWidth = GetCanvasWidth();
+        var top = Math.Max(PanelMargin, DefaultPanelsTopOffset);
+
+        var pair2DLeft = PanelMargin;
+        var pair2DTop = top;
+
+        var visualizationLeft = pair2DLeft + Pair2DPanel.Width + DefaultPanelGap;
+        var visualizationTop = top;
+
+        var parametersLeft = Math.Max(PanelMargin, canvasWidth - ParametersPanel.Width - PanelMargin);
+        var parametersTop = top;
+
+        var selectedPointLeft = Math.Max(PanelMargin, canvasWidth - SelectedPointPanel.Width - PanelMargin);
+        var selectedPointTop = parametersTop + ParametersPanel.Height + DefaultPanelGap;
+
+        return (
+            new Point(parametersLeft, parametersTop),
+            new Point(visualizationLeft, visualizationTop),
+            new Point(pair2DLeft, pair2DTop),
+            new Point(selectedPointLeft, selectedPointTop));
+    }
+
+    private void ApplyDefaultPanelSizes()
+    {
+        if (!HasUsableCanvasSize())
+        {
+            ParametersPanel.Width = 390;
+            ParametersPanel.Height = 210;
+            VisualizationPanel.Width = 640;
+            VisualizationPanel.Height = 680;
+            Pair2DPanel.Width = 600;
+            Pair2DPanel.Height = 680;
+            SelectedPointPanel.Width = 600;
+            SelectedPointPanel.Height = 620;
+            return;
+        }
+
         var canvasWidth = GetCanvasWidth();
         var canvasHeight = GetCanvasHeight();
-        return new(
-            Math.Max(PanelMargin, canvasWidth - panel.Width - PanelMargin),
-            Math.Max(PanelMargin, canvasHeight - panel.Height - PanelMargin));
+        var top = Math.Max(PanelMargin, DefaultPanelsTopOffset);
+        var availableMainHeight = Math.Max(Pair2DPanel.MinHeight, canvasHeight - top - PanelMargin);
+
+        ParametersPanel.Width = ClampPanelDimension(canvasWidth * 0.2, ParametersPanel.MinWidth, 390);
+        ParametersPanel.Height = ClampPanelDimension(canvasHeight * 0.2, ParametersPanel.MinHeight, 220);
+
+        SelectedPointPanel.Width = ClampPanelDimension(canvasWidth * 0.32, SelectedPointPanel.MinWidth, 620);
+
+        var selectedAvailableHeight = canvasHeight - top - ParametersPanel.Height - DefaultPanelGap - PanelMargin;
+        SelectedPointPanel.Height = ClampPanelDimension(selectedAvailableHeight, SelectedPointPanel.MinHeight, 760);
+
+        var mainAvailableWidth = Math.Max(
+            Pair2DPanel.MinWidth + VisualizationPanel.MinWidth + DefaultPanelGap,
+            canvasWidth - SelectedPointPanel.Width - PanelMargin * 2 - DefaultPanelGap);
+
+        var pair2DWidth = ClampPanelDimension(mainAvailableWidth * 0.48, Pair2DPanel.MinWidth, 620);
+        var visualizationWidth = Math.Max(VisualizationPanel.MinWidth, mainAvailableWidth - pair2DWidth - DefaultPanelGap);
+        if (pair2DWidth + visualizationWidth + DefaultPanelGap > mainAvailableWidth)
+            pair2DWidth = Math.Max(Pair2DPanel.MinWidth, mainAvailableWidth - VisualizationPanel.MinWidth - DefaultPanelGap);
+
+        Pair2DPanel.Width = pair2DWidth;
+        VisualizationPanel.Width = Math.Max(VisualizationPanel.MinWidth, mainAvailableWidth - Pair2DPanel.Width - DefaultPanelGap);
+
+        Pair2DPanel.Height = availableMainHeight;
+        VisualizationPanel.Height = availableMainHeight;
+    }
+
+    private static double ClampPanelDimension(double value, double min, double max)
+    {
+        var safeMin = min > 0 ? min : 0;
+        var safeMax = Math.Max(safeMin, max);
+        return Math.Clamp(value, safeMin, safeMax);
     }
 
     private void ApplyDefaultPanelsLayout()
     {
+        ApplyDefaultPanelSizes();
+
         var parametersPos = ParametersPanelDefaultPosition(ParametersPanel);
         Canvas.SetLeft(ParametersPanel, parametersPos.X);
         Canvas.SetTop(ParametersPanel, parametersPos.Y);
@@ -863,12 +932,7 @@ public sealed partial class EditorView : UserControl
 
     private void ResetPanels_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        ParametersPanel.Width = 390;
-        ParametersPanel.Height = 210;
-        VisualizationPanel.Width = 760;
-        VisualizationPanel.Height = 520;
-        Pair2DPanel.Width = 760;
-        Pair2DPanel.Height = 600;
+        ApplyDefaultPanelSizes();
         RecipePlot.ResetZoom();
         Pair2DPlot.ResetZoom();
         RecipePlot.ShowLegend = true;
@@ -876,8 +940,6 @@ public sealed partial class EditorView : UserControl
         UpdateZoomText();
         UpdatePair2DZoomText();
         UpdatePlotOverlayButtons();
-        SelectedPointPanel.Width = 540;
-        SelectedPointPanel.Height = 720;
 
         ParametersPanel.IsVisible = true;
         VisualizationPanel.IsVisible = true;

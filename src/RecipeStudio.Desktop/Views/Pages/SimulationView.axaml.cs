@@ -18,6 +18,8 @@ public sealed partial class SimulationView : UserControl
 {
     private const double PanelMargin = 20;
     private const double TopUiReserve = 52;
+    private const double DefaultPanelGap = 16;
+    private const double TelemetryTopOffset = 22;
 
     private SimulationViewModel? _vm;
     private Border? _dragPanel;
@@ -139,6 +141,8 @@ public sealed partial class SimulationView : UserControl
         if (_panelsInitialized)
             return;
 
+        ApplyPrimaryDefaultPanelSizes();
+
         var saved = _vm?.AppSettings.SimulationPanels;
         ApplyPanelLayout(PlotPanel, saved?.Plot, PlotPanelDefaultPosition);
         ApplyPanelLayout(TelemetryPanel, saved?.Telemetry, TelemetryPanelDefaultPosition);
@@ -175,20 +179,12 @@ public sealed partial class SimulationView : UserControl
 
     private Point PlotPanelDefaultPosition(Border panel)
     {
-        var canvasWidth = GetCanvasWidth();
-        var maxLeft = Math.Max(PanelMargin, canvasWidth - panel.Width - PanelMargin);
-        var desiredLeft = PanelMargin + View2DPairPanel.Width + PanelMargin;
-        return new(Math.Clamp(desiredLeft, PanelMargin, maxLeft), TopUiReserve);
+        return GetPrimaryDefaultPanelPositions().Plot;
     }
 
     private Point TelemetryPanelDefaultPosition(Border panel)
     {
-        var canvasWidth = GetCanvasWidth();
-        var canvasHeight = GetCanvasHeight();
-        var maxLeft = Math.Max(PanelMargin, canvasWidth - panel.Width - PanelMargin);
-        var maxTop = Math.Max(TopUiReserve, canvasHeight - panel.Height - PanelMargin);
-        var desiredTop = TopUiReserve + 58;
-        return new(maxLeft, Math.Clamp(desiredTop, TopUiReserve, maxTop));
+        return GetPrimaryDefaultPanelPositions().Telemetry;
     }
 
     private Point TopViewPanelDefaultPosition(Border panel)
@@ -215,10 +211,71 @@ public sealed partial class SimulationView : UserControl
 
     private Point View2DPairPanelDefaultPosition(Border panel)
     {
-        return new(PanelMargin, TopUiReserve);
+        return GetPrimaryDefaultPanelPositions().Pair2D;
     }
 
     private Point View3DPanelDefaultPosition(Border _) => new(PanelMargin, TopUiReserve);
+
+    private (Point Plot, Point Telemetry, Point Pair2D) GetPrimaryDefaultPanelPositions()
+    {
+        var canvasWidth = GetCanvasWidth();
+        var pair2DLeft = PanelMargin;
+        var pair2DTop = TopUiReserve;
+
+        var plotLeft = pair2DLeft + View2DPairPanel.Width + DefaultPanelGap;
+        var plotTop = TopUiReserve;
+
+        var telemetryLeft = Math.Max(PanelMargin, canvasWidth - TelemetryPanel.Width - PanelMargin);
+        var telemetryTop = TopUiReserve + TelemetryTopOffset;
+
+        return (
+            new Point(plotLeft, plotTop),
+            new Point(telemetryLeft, telemetryTop),
+            new Point(pair2DLeft, pair2DTop));
+    }
+
+    private void ApplyPrimaryDefaultPanelSizes()
+    {
+        if (!HasUsableCanvasSize())
+        {
+            PlotPanel.Width = 700;
+            PlotPanel.Height = 640;
+            TelemetryPanel.Width = 300;
+            TelemetryPanel.Height = 330;
+            View2DPairPanel.Width = 580;
+            View2DPairPanel.Height = 640;
+            return;
+        }
+
+        var canvasWidth = GetCanvasWidth();
+        var canvasHeight = GetCanvasHeight();
+        var mainHeight = Math.Max(Math.Max(PlotPanel.MinHeight, View2DPairPanel.MinHeight), canvasHeight - TopUiReserve - PanelMargin);
+
+        TelemetryPanel.Width = ClampPanelDimension(canvasWidth * 0.16, TelemetryPanel.MinWidth, 320);
+        TelemetryPanel.Height = ClampPanelDimension(canvasHeight * 0.34, TelemetryPanel.MinHeight, 340);
+
+        var mainAvailableWidth = Math.Max(
+            View2DPairPanel.MinWidth + PlotPanel.MinWidth + DefaultPanelGap,
+            canvasWidth - TelemetryPanel.Width - PanelMargin * 2 - DefaultPanelGap * 2);
+
+        var pair2DWidth = ClampPanelDimension(mainAvailableWidth * 0.44, View2DPairPanel.MinWidth, 640);
+        var plotWidth = Math.Max(PlotPanel.MinWidth, mainAvailableWidth - pair2DWidth - DefaultPanelGap);
+        if (pair2DWidth + plotWidth + DefaultPanelGap > mainAvailableWidth)
+            pair2DWidth = Math.Max(View2DPairPanel.MinWidth, mainAvailableWidth - PlotPanel.MinWidth - DefaultPanelGap);
+
+        View2DPairPanel.Width = pair2DWidth;
+        PlotPanel.Width = Math.Max(PlotPanel.MinWidth, mainAvailableWidth - View2DPairPanel.Width - DefaultPanelGap);
+
+        View2DPairPanel.Height = mainHeight;
+        PlotPanel.Height = mainHeight;
+    }
+
+    private static double ClampPanelDimension(double value, double min, double max)
+    {
+        var safeMin = min > 0 ? min : 0;
+        var safeMax = Math.Max(safeMin, max);
+        return Math.Clamp(value, safeMin, safeMax);
+    }
 
     private SimulationPanelsAccessSettings GetPanelsAccess()
     {
@@ -278,6 +335,8 @@ public sealed partial class SimulationView : UserControl
 
     private void ApplyDefaultPanelsLayout()
     {
+        ApplyPrimaryDefaultPanelSizes();
+
         var plotPos = PlotPanelDefaultPosition(PlotPanel);
         Canvas.SetLeft(PlotPanel, plotPos.X);
         Canvas.SetTop(PlotPanel, plotPos.Y);
@@ -805,18 +864,13 @@ public sealed partial class SimulationView : UserControl
     {
         var access = GetPanelsAccess();
 
-        PlotPanel.Width = 700;
-        PlotPanel.Height = 640;
-        TelemetryPanel.Width = 320;
-        TelemetryPanel.Height = 335;
+        ApplyPrimaryDefaultPanelSizes();
         TopViewPanel.Width = 560;
         TopViewPanel.Height = 320;
         View2DPanel.Width = 740;
         View2DPanel.Height = 470;
         View2DFactPanel.Width = 700;
         View2DFactPanel.Height = 420;
-        View2DPairPanel.Width = 820;
-        View2DPairPanel.Height = 640;
         View3DPanel.Width = 1160;
         View3DPanel.Height = 640;
 
