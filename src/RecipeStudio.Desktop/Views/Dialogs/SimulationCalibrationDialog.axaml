@@ -1,0 +1,179 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="RecipeStudio.Desktop.Views.Dialogs.SimulationCalibrationDialog"
+        Width="560"
+        Height="620"
+        MinWidth="520"
+        MinHeight="500"
+        CanResize="True"
+        WindowStartupLocation="CenterOwner"
+        SystemDecorations="BorderOnly"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Title="Калибровка 2D">
+
+  <Border BorderBrush="#2A3142" BorderThickness="1" Background="#0F1420">
+    <Grid RowDefinitions="Auto,*,Auto">
+      <Border Background="#111827" Padding="12,8" PointerPressed="Header_PointerPressed">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+          <TextBlock Text="Калибровка 2D" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Classes="window-btn" Click="Close_Click" ToolTip.Tip="Закрыть окно калибровки">X</Button>
+        </Grid>
+      </Border>
+
+      <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="16" Spacing="12">
+          <TextBlock Text="Изменения применяются сразу. Кнопка сохранения записывает их как значения по умолчанию."
+                     Classes="muted"
+                     TextWrapping="Wrap" />
+
+          <Border Background="#111827" BorderBrush="#2A3142" BorderThickness="1" CornerRadius="10" Padding="14">
+            <StackPanel Spacing="10">
+              <TextBlock Text="Выравнивание изображения" FontSize="14" FontWeight="SemiBold" />
+
+              <Grid ColumnDefinitions="150,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
+                <TextBlock Text="Смещение Z (мм)"
+                           VerticalAlignment="Center"
+                           ToolTip.Tip="Сдвигает изображение детали и оснастки вверх или вниз относительно координат графика." />
+                <NumericUpDown Grid.Column="1"
+                               Minimum="-5000"
+                               Maximum="5000"
+                               Increment="1"
+                               FormatString="0.0"
+                               ClipValueToMinMax="True"
+                               ToolTip.Tip="Сдвигает изображение детали и оснастки вверх или вниз относительно координат графика."
+                               Value="{Binding VerticalOffsetMm, Mode=TwoWay}" />
+
+                <TextBlock Grid.Row="1"
+                           Text="Смещение X (мм)"
+                           VerticalAlignment="Center"
+                           ToolTip.Tip="Сдвигает изображение детали и оснастки влево или вправо относительно траектории." />
+                <NumericUpDown Grid.Row="1" Grid.Column="1"
+                               Minimum="-5000"
+                               Maximum="5000"
+                               Increment="1"
+                               FormatString="0.0"
+                               ClipValueToMinMax="True"
+                               ToolTip.Tip="Сдвигает изображение детали и оснастки влево или вправо относительно траектории."
+                               Value="{Binding HorizontalOffsetMm, Mode=TwoWay}" />
+
+                <TextBlock Grid.Row="2"
+                           Text="Масштаб высоты (%)"
+                           VerticalAlignment="Center"
+                           ToolTip.Tip="Растягивает или сжимает изображение по высоте относительно базового масштаба модели." />
+                <NumericUpDown Grid.Row="2" Grid.Column="1"
+                               Minimum="50"
+                               Maximum="150"
+                               Increment="1"
+                               FormatString="0.0"
+                               ClipValueToMinMax="True"
+                               ToolTip.Tip="Растягивает или сжимает изображение по высоте относительно базового масштаба модели."
+                               Value="{Binding PartHeightScalePercent, Mode=TwoWay}" />
+
+                <TextBlock Grid.Row="3"
+                           Text="Масштаб ширины (%)"
+                           VerticalAlignment="Center"
+                           ToolTip.Tip="Дополнительно растягивает или сжимает изображение только по ширине, не меняя его высоту." />
+                <NumericUpDown Grid.Row="3" Grid.Column="1"
+                               Minimum="50"
+                               Maximum="150"
+                               Increment="1"
+                               FormatString="0.0"
+                               ClipValueToMinMax="True"
+                               ToolTip.Tip="Дополнительно растягивает или сжимает изображение только по ширине, не меняя его высоту."
+                               Value="{Binding PartWidthScalePercent, Mode=TwoWay}" />
+              </Grid>
+            </StackPanel>
+          </Border>
+
+          <Expander Header="Расширенные параметры"
+                    IsExpanded="False"
+                    ToolTip.Tip="Тонкая настройка внутренних точек привязки изображения сопла и манипулятора. Обычно менять только при явном рассинхроне.">
+            <Border Background="#111827" BorderBrush="#2A3142" BorderThickness="1" CornerRadius="10" Padding="14" Margin="0,8,0,0">
+              <StackPanel Spacing="10">
+                <Grid ColumnDefinitions="150,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
+                  <TextBlock Text="Сопло X"
+                             VerticalAlignment="Center"
+                             ToolTip.Tip="Горизонтальная точка привязки сопла внутри его изображения. Меняйте малыми шагами." />
+                  <NumericUpDown Grid.Column="1"
+                                 Minimum="0.00"
+                                 Maximum="0.99"
+                                 Increment="0.01"
+                                 FormatString="0.00"
+                                 ClipValueToMinMax="True"
+                                 ToolTip.Tip="Горизонтальная точка привязки сопла внутри его изображения. Меняйте малыми шагами."
+                                 Value="{Binding NozzleAnchorX, Mode=TwoWay}" />
+
+                  <TextBlock Grid.Row="1"
+                             Text="Сопло Y"
+                             VerticalAlignment="Center"
+                             ToolTip.Tip="Вертикальная точка привязки сопла внутри его изображения. Меняйте малыми шагами." />
+                  <NumericUpDown Grid.Row="1" Grid.Column="1"
+                                 Minimum="0.00"
+                                 Maximum="0.99"
+                                 Increment="0.01"
+                                 FormatString="0.00"
+                                 ClipValueToMinMax="True"
+                                 ToolTip.Tip="Вертикальная точка привязки сопла внутри его изображения. Меняйте малыми шагами."
+                                 Value="{Binding NozzleAnchorY, Mode=TwoWay}" />
+
+                  <TextBlock Grid.Row="2"
+                             Text="Манипулятор X"
+                             VerticalAlignment="Center"
+                             ToolTip.Tip="Горизонтальная точка привязки изображения манипулятора к мировым координатам. Меняйте малыми шагами." />
+                  <NumericUpDown Grid.Row="2" Grid.Column="1"
+                                 Minimum="0.00"
+                                 Maximum="0.70"
+                                 Increment="0.01"
+                                 FormatString="0.00"
+                                 ClipValueToMinMax="True"
+                                 ToolTip.Tip="Горизонтальная точка привязки изображения манипулятора к мировым координатам. Меняйте малыми шагами."
+                                 Value="{Binding ManipulatorAnchorX, Mode=TwoWay}" />
+
+                  <TextBlock Grid.Row="3"
+                             Text="Манипулятор Y"
+                             VerticalAlignment="Center"
+                             ToolTip.Tip="Вертикальная точка привязки изображения манипулятора к мировым координатам. Меняйте малыми шагами." />
+                  <NumericUpDown Grid.Row="3" Grid.Column="1"
+                                 Minimum="0.00"
+                                 Maximum="0.99"
+                                 Increment="0.01"
+                                 FormatString="0.00"
+                                 ClipValueToMinMax="True"
+                                 ToolTip.Tip="Вертикальная точка привязки изображения манипулятора к мировым координатам. Меняйте малыми шагами."
+                                 Value="{Binding ManipulatorAnchorY, Mode=TwoWay}" />
+
+                  <TextBlock Grid.Row="4"
+                             Text="Разворот траектории"
+                             VerticalAlignment="Center"
+                             ToolTip.Tip="Инвертирует направление обхода по детали: используйте, если траектория идёт по правильному контуру, но в зеркальном направлении." />
+                  <ToggleButton Grid.Row="4" Grid.Column="1"
+                                HorizontalAlignment="Left"
+                                Classes="ghost"
+                                ToolTip.Tip="Инвертирует направление обхода по детали: используйте, если траектория идёт по правильному контуру, но в зеркальном направлении."
+                                IsChecked="{Binding ReversePath, Mode=TwoWay}">Справа налево</ToggleButton>
+                </Grid>
+              </StackPanel>
+            </Border>
+          </Expander>
+        </StackPanel>
+      </ScrollViewer>
+
+      <Border Grid.Row="2" Background="#111827" Padding="14,12" BorderBrush="#2A3142" BorderThickness="0,1,0,0">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+          <Button Classes="ghost"
+                  Click="AutoCal_Click"
+                  ToolTip.Tip="Локально подстраивает смещения и масштаб вокруг текущих значений, не делая резких скачков калибровки.">Автокалибровка</Button>
+          <Button Classes="ghost"
+                  Click="Reset_Click"
+                  ToolTip.Tip="Возвращает стандартные значения калибровки для текущей сессии.">Сброс</Button>
+          <Button Classes="accent"
+                  Click="Save_Click"
+                  ToolTip.Tip="Сохраняет текущие значения как параметры по умолчанию.">Сохранить</Button>
+          <Button Click="Close_Click"
+                  ToolTip.Tip="Закрывает окно калибровки. Несохранённые вручную параметры уже применены, но не записаны в настройки.">Закрыть</Button>
+        </StackPanel>
+      </Border>
+    </Grid>
+  </Border>
+</Window>

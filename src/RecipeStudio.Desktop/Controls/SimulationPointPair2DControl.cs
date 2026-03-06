@@ -18,6 +18,9 @@ public sealed class SimulationPointPair2DControl : Control
     public static readonly StyledProperty<IList<RecipePoint>?> PointsProperty =
         AvaloniaProperty.Register<SimulationPointPair2DControl, IList<RecipePoint>?>(nameof(Points));
 
+    public static readonly StyledProperty<IList<RecipePoint>?> PlotPointsProperty =
+        AvaloniaProperty.Register<SimulationPointPair2DControl, IList<RecipePoint>?>(nameof(PlotPoints));
+
     public static readonly StyledProperty<double> ProgressProperty =
         AvaloniaProperty.Register<SimulationPointPair2DControl, double>(nameof(Progress));
 
@@ -49,7 +52,7 @@ public sealed class SimulationPointPair2DControl : Control
         AvaloniaProperty.Register<SimulationPointPair2DControl, double>(nameof(CurrentBetta));
 
     public static readonly StyledProperty<double> ReferenceHeightMmProperty =
-        AvaloniaProperty.Register<SimulationPointPair2DControl, double>(nameof(ReferenceHeightMm), 1309.49);
+        AvaloniaProperty.Register<SimulationPointPair2DControl, double>(nameof(ReferenceHeightMm), SimulationBlueprint2DControl.DefaultReferenceHeightMm);
 
     public static readonly StyledProperty<bool> InvertHorizontalProperty =
         AvaloniaProperty.Register<SimulationPointPair2DControl, bool>(nameof(InvertHorizontal), true);
@@ -62,6 +65,9 @@ public sealed class SimulationPointPair2DControl : Control
 
     public static readonly StyledProperty<double> HorizontalOffsetMmProperty =
         AvaloniaProperty.Register<SimulationPointPair2DControl, double>(nameof(HorizontalOffsetMm), SimulationBlueprint2DControl.DefaultHorizontalOffsetMm);
+
+    public static readonly StyledProperty<double> PartWidthScalePercentProperty =
+        AvaloniaProperty.Register<SimulationPointPair2DControl, double>(nameof(PartWidthScalePercent), SimulationBlueprint2DControl.DefaultPartWidthScalePercent);
 
     public static readonly StyledProperty<double> ManipulatorAnchorXProperty =
         AvaloniaProperty.Register<SimulationPointPair2DControl, double>(nameof(ManipulatorAnchorX), SimulationBlueprint2DControl.DefaultManipulatorAnchorX);
@@ -94,6 +100,12 @@ public sealed class SimulationPointPair2DControl : Control
     {
         get => GetValue(PointsProperty);
         set => SetValue(PointsProperty, value);
+    }
+
+    public IList<RecipePoint>? PlotPoints
+    {
+        get => GetValue(PlotPointsProperty);
+        set => SetValue(PlotPointsProperty, value);
     }
 
     public double Progress
@@ -186,6 +198,12 @@ public sealed class SimulationPointPair2DControl : Control
         set => SetValue(HorizontalOffsetMmProperty, value);
     }
 
+    public double PartWidthScalePercent
+    {
+        get => GetValue(PartWidthScalePercentProperty);
+        set => SetValue(PartWidthScalePercentProperty, value);
+    }
+
     public double ManipulatorAnchorX
     {
         get => GetValue(ManipulatorAnchorXProperty);
@@ -204,6 +222,7 @@ public sealed class SimulationPointPair2DControl : Control
     static SimulationPointPair2DControl()
     {
         PointsProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
+        PlotPointsProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
         ProgressProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
         CurrentSegmentIndexProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
         CurrentSegmentTProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
@@ -219,6 +238,7 @@ public sealed class SimulationPointPair2DControl : Control
         ShowGridProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
         VerticalOffsetMmProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
         HorizontalOffsetMmProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
+        PartWidthScalePercentProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
         ManipulatorAnchorXProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
         ManipulatorAnchorYProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
     }
@@ -327,14 +347,16 @@ public sealed class SimulationPointPair2DControl : Control
         base.Render(context);
         context.FillRectangle(new SolidColorBrush(Color.FromRgb(18, 22, 30)), Bounds);
 
+        var settings = Settings ?? new AppSettings();
         var referenceHeightMm = Math.Max(100, ReferenceHeightMm);
         var mmPerPixel = ResolveMmPerPixel(referenceHeightMm);
-        var partRectWorld = CreateWorldRectCenteredAtX(HorizontalOffsetMm, 0, _partImage, mmPerPixel, referenceHeightMm);
+        var partRectWorld = CreateWorldRectCenteredAtX(HorizontalOffsetMm, 0, _partImage, mmPerPixel, referenceHeightMm, ResolvePartWidthScaleFactor(PartWidthScalePercent));
+        var workTargetPoints = BuildVisibleTargetPoints(settings, safe: false);
 
         var (point1, point2) = ResolvePairPoints();
         var manipRectWorld = CreateManipulatorRectFromAnchor(point2, _manipulatorImage, mmPerPixel);
         var nozzleRectWorld = CreateNozzleEnvelopeRect(point1, point2, _nozzleImage, mmPerPixel);
-        var worldBounds = ComputeWorldBounds(partRectWorld, manipRectWorld, point1, point2, nozzleRectWorld);
+        var worldBounds = ComputeWorldBounds(partRectWorld, manipRectWorld, point1, point2, nozzleRectWorld, workTargetPoints);
 
         if (_lastRenderSize != Bounds.Size)
         {
@@ -360,6 +382,7 @@ public sealed class SimulationPointPair2DControl : Control
 
             DrawImageWorld(context, _partImage, partRectWorld);
             DrawImageWorld(context, _manipulatorImage, manipRectWorld);
+            DrawTargetPoints(context, workTargetPoints, settings);
 
             // Keep red pair link as reference, then overlay nozzle image directly on top of it.
             DrawPairLink(context, point1, point2);
@@ -390,12 +413,12 @@ public sealed class SimulationPointPair2DControl : Control
         return referenceHeightMm / _partImage.Size.Height;
     }
 
-    private static Rect CreateWorldRectCenteredAtX(double centerX, double bottomZ, Bitmap? image, double mmPerPixel, double fallbackHeightMm)
+    private static Rect CreateWorldRectCenteredAtX(double centerX, double bottomZ, Bitmap? image, double mmPerPixel, double fallbackHeightMm, double widthScaleFactor)
     {
         if (image is null || image.Size.Height <= 0 || image.Size.Width <= 0)
-            return new Rect(centerX - 250, bottomZ, 500, fallbackHeightMm);
+            return new Rect(centerX - 250 * widthScaleFactor, bottomZ, 500 * widthScaleFactor, fallbackHeightMm);
 
-        var w = image.Size.Width * mmPerPixel;
+        var w = image.Size.Width * mmPerPixel * widthScaleFactor;
         var h = image.Size.Height * mmPerPixel;
         return new Rect(centerX - w / 2.0, bottomZ, w, h);
     }
@@ -650,7 +673,8 @@ public sealed class SimulationPointPair2DControl : Control
         Rect manipRect,
         Point point1,
         Point point2,
-        Rect nozzleRect)
+        Rect nozzleRect,
+        IList<Point>? extraPoints = null)
     {
         var minX = Math.Min(Math.Min(partRect.Left, manipRect.Left), Math.Min(point1.X, point2.X));
         minX = Math.Min(minX, nozzleRect.Left);
@@ -660,6 +684,17 @@ public sealed class SimulationPointPair2DControl : Control
         minZ = Math.Min(minZ, nozzleRect.Top);
         var maxZ = Math.Max(Math.Max(partRect.Bottom, manipRect.Bottom), Math.Max(point1.Y, point2.Y));
         maxZ = Math.Max(maxZ, nozzleRect.Bottom);
+
+        if (extraPoints is not null)
+        {
+            foreach (var point in extraPoints)
+            {
+                minX = Math.Min(minX, point.X);
+                maxX = Math.Max(maxX, point.X);
+                minZ = Math.Min(minZ, point.Y);
+                maxZ = Math.Max(maxZ, point.Y);
+            }
+        }
 
         var w = Math.Max(1, maxX - minX);
         var h = Math.Max(1, maxZ - minZ);
@@ -767,6 +802,20 @@ public sealed class SimulationPointPair2DControl : Control
         context.DrawLine(pen, WorldToScreen(point1), WorldToScreen(point2));
     }
 
+    private void DrawTargetPoints(DrawingContext context, IList<Point> worldPoints, AppSettings settings)
+    {
+        if (worldPoints.Count == 0)
+            return;
+
+        var workColor = ParseColorOrDefault(settings.PlotColorWorkingZone, Color.FromRgb(34, 197, 94));
+        var fill = new SolidColorBrush(Color.FromArgb(235, workColor.R, workColor.G, workColor.B));
+        var outline = new Pen(new SolidColorBrush(Color.FromRgb(226, 232, 240)), 1.1);
+        var radius = Math.Max(3.2, settings.PlotPointRadius);
+
+        foreach (var point in worldPoints)
+            context.DrawEllipse(fill, outline, WorldToScreen(point), radius, radius);
+    }
+
     private void DrawPointMarker(DrawingContext context, Point worldPoint, string label)
     {
         var screenPoint = WorldToScreen(worldPoint);
@@ -832,6 +881,54 @@ public sealed class SimulationPointPair2DControl : Control
     }
 
     private double ToVisualX(double x) => InvertHorizontal ? -x : x;
+
+    private static double ResolvePartWidthScaleFactor(double partWidthScalePercent)
+        => Math.Clamp(partWidthScalePercent, 50.0, 150.0) / 100.0;
+
+    private List<Point> BuildVisibleTargetPoints(AppSettings settings, bool safe)
+        => FilterRenderablePoints(PlotPoints ?? Points)
+            .Where(p => p.Safe == safe)
+            .Select(p =>
+            {
+                var (xp, zp) = p.GetTargetPoint(settings.HZone);
+                return new Point(ToVisualX(xp), zp + VerticalOffsetMm);
+            })
+            .ToList();
+
+    private static List<RecipePoint> FilterRenderablePoints(IList<RecipePoint>? source)
+    {
+        var src = source?.ToList() ?? new List<RecipePoint>();
+        if (src.Count == 0)
+            return src;
+
+        var activeRenderable = src.Where(p => p.Act && !p.Hidden && HasRenderableGeometry(p)).ToList();
+        if (activeRenderable.Count > 0)
+            return activeRenderable;
+
+        var activeVisible = src.Where(p => p.Act && !p.Hidden).ToList();
+        if (activeVisible.Count > 0)
+            return activeVisible;
+
+        var active = src.Where(p => p.Act).ToList();
+        return active.Count > 0 ? active : src;
+    }
+
+    private static bool HasRenderableGeometry(RecipePoint point)
+    {
+        const double eps = 1e-6;
+        return Math.Abs(point.RCrd) > eps
+            || Math.Abs(point.ZCrd) > eps
+            || Math.Abs(point.Xr0 + point.DX) > eps
+            || Math.Abs(point.Zr0 + point.DZ) > eps;
+    }
+
+    private static Color ParseColorOrDefault(string? value, Color fallback)
+    {
+        if (!string.IsNullOrWhiteSpace(value) && Color.TryParse(value, out var parsed))
+            return parsed;
+
+        return fallback;
+    }
 
     private void MarkRefit()
     {

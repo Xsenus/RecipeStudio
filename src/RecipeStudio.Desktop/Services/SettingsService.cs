@@ -157,6 +157,7 @@ public sealed class SettingsService
         settings.SimulationPanels.Calibration2D.ReferenceHeightMm = Math.Clamp(settings.SimulationPanels.Calibration2D.ReferenceHeightMm, 100, 5000);
         settings.SimulationPanels.Calibration2D.VerticalOffsetMm = Math.Clamp(settings.SimulationPanels.Calibration2D.VerticalOffsetMm, -10000, 10000);
         settings.SimulationPanels.Calibration2D.HorizontalOffsetMm = Math.Clamp(settings.SimulationPanels.Calibration2D.HorizontalOffsetMm, -10000, 10000);
+        settings.SimulationPanels.Calibration2D.PartWidthScalePercent = Math.Clamp(settings.SimulationPanels.Calibration2D.PartWidthScalePercent, 50, 150);
         settings.SimulationPanels.Calibration2D.ManipulatorAnchorX = Math.Clamp(settings.SimulationPanels.Calibration2D.ManipulatorAnchorX, 0, 1);
         settings.SimulationPanels.Calibration2D.ManipulatorAnchorY = Math.Clamp(settings.SimulationPanels.Calibration2D.ManipulatorAnchorY, 0, 1);
         settings.EditorGridColumns ??= new();
@@ -261,7 +262,7 @@ public sealed class SettingsService
         {
             var c = simPanels.Calibration2D;
             if (!IsFinite(c.ReferenceHeightMm) || !IsFinite(c.VerticalOffsetMm) || !IsFinite(c.HorizontalOffsetMm) ||
-                !IsFinite(c.ManipulatorAnchorX) || !IsFinite(c.ManipulatorAnchorY))
+                !IsFinite(c.PartWidthScalePercent) || !IsFinite(c.ManipulatorAnchorX) || !IsFinite(c.ManipulatorAnchorY))
             {
                 error = "SimulationPanels.Calibration2D содержит нечисловые значения.";
                 return false;

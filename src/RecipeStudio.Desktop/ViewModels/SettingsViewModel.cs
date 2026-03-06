@@ -439,6 +439,7 @@ public sealed class SettingsViewModel : ViewModelBase
                     ReferenceHeightMm = defaults.SimulationPanels.Calibration2D.ReferenceHeightMm,
                     VerticalOffsetMm = defaults.SimulationPanels.Calibration2D.VerticalOffsetMm,
                     HorizontalOffsetMm = defaults.SimulationPanels.Calibration2D.HorizontalOffsetMm,
+                    PartWidthScalePercent = defaults.SimulationPanels.Calibration2D.PartWidthScalePercent,
                     ManipulatorAnchorX = defaults.SimulationPanels.Calibration2D.ManipulatorAnchorX,
                     ManipulatorAnchorY = defaults.SimulationPanels.Calibration2D.ManipulatorAnchorY,
                     ReversePath = defaults.SimulationPanels.Calibration2D.ReversePath
@@ -567,6 +568,7 @@ public sealed class SettingsViewModel : ViewModelBase
                 target.SimulationPanels.Calibration2D.ReferenceHeightMm = source.SimulationPanels.Calibration2D.ReferenceHeightMm;
                 target.SimulationPanels.Calibration2D.VerticalOffsetMm = source.SimulationPanels.Calibration2D.VerticalOffsetMm;
                 target.SimulationPanels.Calibration2D.HorizontalOffsetMm = source.SimulationPanels.Calibration2D.HorizontalOffsetMm;
+                target.SimulationPanels.Calibration2D.PartWidthScalePercent = source.SimulationPanels.Calibration2D.PartWidthScalePercent;
                 target.SimulationPanels.Calibration2D.ManipulatorAnchorX = source.SimulationPanels.Calibration2D.ManipulatorAnchorX;
                 target.SimulationPanels.Calibration2D.ManipulatorAnchorY = source.SimulationPanels.Calibration2D.ManipulatorAnchorY;
                 target.SimulationPanels.Calibration2D.ReversePath = source.SimulationPanels.Calibration2D.ReversePath;

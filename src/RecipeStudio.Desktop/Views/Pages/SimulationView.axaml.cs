@@ -5,8 +5,11 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 using RecipeStudio.Desktop.Services;
 using RecipeStudio.Desktop.ViewModels;
+using RecipeStudio.Desktop.Views.Dialogs;
 
 namespace RecipeStudio.Desktop.Views.Pages;
 
@@ -575,17 +578,40 @@ public sealed partial class SimulationView : UserControl
     private void ZoomIn2DPairView_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => View2DPairPlot.ZoomIn();
     private void ZoomOut2DPairView_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => View2DPairPlot.ZoomOut();
     private void Fit2DPairView_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => View2DPairPlot.ResetZoom();
+    private async void Open2DCalibration_Click(object? sender, RoutedEventArgs e)
+    {
+        var owner = TopLevel.GetTopLevel(this) as Window;
+        if (owner is null)
+            return;
+
+        var dialog = new SimulationCalibrationDialog(
+            View2DPlot,
+            saveDefaults: Persist2DCalibrationDefaults,
+            resetCalibration: () => Reset2DCalibration_Click(null, new RoutedEventArgs()),
+            autoCalibration: () => AutoAlign2DCalibration_Click(null, new RoutedEventArgs()));
+
+        await dialog.ShowDialog(owner);
+    }
+
     private void Reset2DCalibration_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
+        var calibration = _vm?.AppSettings.SimulationPanels?.Calibration2D;
+
         View2DPlot.NozzleAnchorX = Controls.SimulationBlueprint2DControl.DefaultNozzleAnchorX;
         View2DPlot.NozzleAnchorY = Controls.SimulationBlueprint2DControl.DefaultNozzleAnchorY;
-        View2DPlot.ManipulatorAnchorX = Controls.SimulationBlueprint2DControl.DefaultManipulatorAnchorX;
-        View2DPlot.ManipulatorAnchorY = Controls.SimulationBlueprint2DControl.DefaultManipulatorAnchorY;
-        View2DPlot.ReferenceHeightMm = 1309.49;
-        View2DPlot.VerticalOffsetMm = Controls.SimulationBlueprint2DControl.DefaultVerticalOffsetMm;
-        View2DPlot.HorizontalOffsetMm = Controls.SimulationBlueprint2DControl.DefaultHorizontalOffsetMm;
-        View2DPlot.ReversePath = false;
-        View2DPlot.AutoAlignCalibration();
+        View2DPlot.ManipulatorAnchorX = calibration?.ManipulatorAnchorX ?? Controls.SimulationBlueprint2DControl.DefaultManipulatorAnchorX;
+        View2DPlot.ManipulatorAnchorY = calibration?.ManipulatorAnchorY ?? Controls.SimulationBlueprint2DControl.DefaultManipulatorAnchorY;
+        View2DPlot.ReferenceHeightMm = calibration?.ReferenceHeightMm ?? Controls.SimulationBlueprint2DControl.DefaultReferenceHeightMm;
+        View2DPlot.VerticalOffsetMm = calibration?.VerticalOffsetMm ?? Controls.SimulationBlueprint2DControl.DefaultVerticalOffsetMm;
+        View2DPlot.HorizontalOffsetMm = calibration?.HorizontalOffsetMm ?? Controls.SimulationBlueprint2DControl.DefaultHorizontalOffsetMm;
+        View2DPlot.PartWidthScalePercent = calibration?.PartWidthScalePercent ?? Controls.SimulationBlueprint2DControl.DefaultPartWidthScalePercent;
+        View2DPlot.ReversePath = calibration?.ReversePath ?? false;
+        View2DPlot.ResetZoom();
+        View2DFactPlot.ResetZoom();
+        View2DPairPlot.ResetZoom();
+        UpdateView2DZoomText();
+        UpdateView2DFactZoomText();
+        UpdateView2DPairZoomText();
     }
 
     private void AutoAlign2DCalibration_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -697,6 +723,7 @@ public sealed partial class SimulationView : UserControl
         View2DPlot.ManipulatorAnchorY = calibration.ManipulatorAnchorY;
         View2DPlot.VerticalOffsetMm = calibration.VerticalOffsetMm;
         View2DPlot.HorizontalOffsetMm = calibration.HorizontalOffsetMm;
+        View2DPlot.PartWidthScalePercent = calibration.PartWidthScalePercent;
         View2DPlot.ReversePath = calibration.ReversePath;
         _calibrationLoaded = true;
     }
@@ -713,6 +740,7 @@ public sealed partial class SimulationView : UserControl
         calibration.ManipulatorAnchorY = View2DPlot.ManipulatorAnchorY;
         calibration.VerticalOffsetMm = View2DPlot.VerticalOffsetMm;
         calibration.HorizontalOffsetMm = View2DPlot.HorizontalOffsetMm;
+        calibration.PartWidthScalePercent = View2DPlot.PartWidthScalePercent;
         calibration.ReversePath = View2DPlot.ReversePath;
         _vm.SaveAppSettings();
     }
