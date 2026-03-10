@@ -159,6 +159,7 @@ public sealed class SettingsService
         settings.SimulationPanels.View2DPairTargetDisplaySide = SimulationTargetDisplayModes.NormalizeSide(settings.SimulationPanels.View2DPairTargetDisplaySide, settings.SimulationPanels.View2DPairTargetDisplayMode);
         settings.SimulationPanels.Access ??= new SimulationPanelsAccessSettings();
         settings.SimulationPanels.Calibration2D ??= new Simulation2DCalibrationSettings();
+        MigrateLegacySimulationCalibration(settings.SimulationPanels.Calibration2D);
         settings.SimulationPanels.Calibration2D.ReferenceHeightMm = Math.Clamp(settings.SimulationPanels.Calibration2D.ReferenceHeightMm, 100, 5000);
         settings.SimulationPanels.Calibration2D.VerticalOffsetMm = Math.Clamp(settings.SimulationPanels.Calibration2D.VerticalOffsetMm, -10000, 10000);
         settings.SimulationPanels.Calibration2D.HorizontalOffsetMm = Math.Clamp(settings.SimulationPanels.Calibration2D.HorizontalOffsetMm, -10000, 10000);
@@ -180,6 +181,15 @@ public sealed class SettingsService
             Directory.CreateDirectory(settings.RecipesFolder);
             Directory.CreateDirectory(settings.LogsFolder);
         }
+    }
+
+    private static void MigrateLegacySimulationCalibration(Simulation2DCalibrationSettings calibration)
+    {
+        if (!SimulationSpriteAnchors.UsesLegacyManipulatorPivot(calibration.ManipulatorAnchorX, calibration.ManipulatorAnchorY))
+            return;
+
+        calibration.ManipulatorAnchorX = SimulationSpriteAnchors.ManipulatorPivotAnchorX;
+        calibration.ManipulatorAnchorY = SimulationSpriteAnchors.ManipulatorPivotAnchorY;
     }
 
     private static string ResolveSettingsRoot()

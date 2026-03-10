@@ -170,8 +170,8 @@ public sealed class Simulation2DCalibrationSettings
     public double VerticalOffsetMm { get; set; } = 195.0;
     public double HorizontalOffsetMm { get; set; } = -55.0;
     public double PartWidthScalePercent { get; set; } = 98.0;
-    public double ManipulatorAnchorX { get; set; } = 0.04;
-    public double ManipulatorAnchorY { get; set; } = 0.90;
+    public double ManipulatorAnchorX { get; set; } = SimulationSpriteAnchors.ManipulatorPivotAnchorX;
+    public double ManipulatorAnchorY { get; set; } = SimulationSpriteAnchors.ManipulatorPivotAnchorY;
     public bool ReversePath { get; set; }
 }
 

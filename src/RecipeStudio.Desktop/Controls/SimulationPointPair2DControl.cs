@@ -82,9 +82,9 @@ public sealed class SimulationPointPair2DControl : Control
         AvaloniaProperty.Register<SimulationPointPair2DControl, bool>(nameof(ShowPairLink), true);
 
     private const double Pad = 20;
-    private const double NozzleStartAnchorX = 0.04;
-    private const double NozzleEndAnchorX = 0.84;
-    private const double NozzleAnchorY = 0.50;
+    private const double NozzleStartAnchorX = SimulationSpriteAnchors.NozzleTipAnchorX;
+    private const double NozzleEndAnchorX = SimulationSpriteAnchors.NozzlePivotAnchorX;
+    private const double NozzleAnchorY = SimulationSpriteAnchors.NozzlePivotAnchorY;
     private Rect _fitWorldBounds;
     private Rect _worldBounds;
     private double _scale;

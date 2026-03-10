@@ -17,17 +17,17 @@ public sealed class SimulationBlueprint2DControl : Control
 {
     public const double BaseReferenceHeightMm = 1309.49;
     public const double DefaultReferenceHeightMm = 1361.8696;
-    public const double DefaultNozzleAnchorX = 0.04;
-    public const double DefaultNozzleAnchorY = 0.50;
-    public const double DefaultManipulatorAnchorX = 0.04;
-    public const double DefaultManipulatorAnchorY = 0.90;
+    public const double DefaultNozzleAnchorX = SimulationSpriteAnchors.NozzleTipAnchorX;
+    public const double DefaultNozzleAnchorY = SimulationSpriteAnchors.NozzlePivotAnchorY;
+    public const double DefaultManipulatorAnchorX = SimulationSpriteAnchors.ManipulatorPivotAnchorX;
+    public const double DefaultManipulatorAnchorY = SimulationSpriteAnchors.ManipulatorPivotAnchorY;
     public const double DefaultVerticalOffsetMm = 195.0;
     public const double DefaultHorizontalOffsetMm = -55.0;
     public const double DefaultPartHeightScalePercent = 104.0;
     public const double DefaultPartWidthScalePercent = 98.0;
     private const double MinPartScalePercent = 50.0;
     private const double MaxPartScalePercent = 150.0;
-    private const double NozzlePivotAnchorX = 0.84;
+    private const double NozzlePivotAnchorX = SimulationSpriteAnchors.NozzlePivotAnchorX;
     private const double ApproachPhase = 0.15;
     private const double CenterTransferPhase = 0.10;
     private const double ApproachDistanceFactor = 0.45;
