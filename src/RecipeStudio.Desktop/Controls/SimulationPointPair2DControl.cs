@@ -78,6 +78,9 @@ public sealed class SimulationPointPair2DControl : Control
     public static readonly StyledProperty<string> TargetDisplayModeProperty =
         AvaloniaProperty.Register<SimulationPointPair2DControl, string>(nameof(TargetDisplayMode), SimulationTargetDisplayModes.Full);
 
+    public static readonly StyledProperty<bool> ShowPairLinkProperty =
+        AvaloniaProperty.Register<SimulationPointPair2DControl, bool>(nameof(ShowPairLink), true);
+
     private const double Pad = 20;
     private const double NozzleStartAnchorX = 0.04;
     private const double NozzleEndAnchorX = 0.84;
@@ -225,6 +228,12 @@ public sealed class SimulationPointPair2DControl : Control
         set => SetValue(TargetDisplayModeProperty, value);
     }
 
+    public bool ShowPairLink
+    {
+        get => GetValue(ShowPairLinkProperty);
+        set => SetValue(ShowPairLinkProperty, value);
+    }
+
     public double ZoomFactor => _zoomFactor;
     public event Action<double>? ZoomChanged;
 
@@ -251,6 +260,7 @@ public sealed class SimulationPointPair2DControl : Control
         ManipulatorAnchorXProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
         ManipulatorAnchorYProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
         TargetDisplayModeProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
+        ShowPairLinkProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
     }
 
     public SimulationPointPair2DControl()
@@ -400,8 +410,9 @@ public sealed class SimulationPointPair2DControl : Control
             DrawTargetPoints(context, safeTargetPoints, settings, safe: true);
             DrawTargetPoints(context, workTargetPoints, settings, safe: false);
 
-            // Keep red pair link as reference, then overlay nozzle image directly on top of it.
-            DrawPairLink(context, point1, point2);
+            // Red reference line should match the visible nozzle segment.
+            if (ShowPairLink)
+                DrawPairLink(context, nozzleTip, point2);
             DrawNozzleBetweenPoints(context, nozzleTip, point2, mmPerPixel);
             DrawPointMarker(context, point1, "1");
             DrawPointMarker(context, point2, "2");
@@ -497,7 +508,7 @@ public sealed class SimulationPointPair2DControl : Control
             marker,
             VerticalOffsetMm,
             usePhysicalOrientation,
-            ResolveEffectiveNozzleLengthMm(source, toolState, settings));
+            ResolveDisplayedNozzleLengthMm(settings));
         return (pair.TargetPoint, pair.ToolPoint, pair.NozzleTipPoint);
     }
 
@@ -623,22 +634,8 @@ public sealed class SimulationPointPair2DControl : Control
         return new Point(x, z);
     }
 
-    private static double ResolveEffectiveNozzleLengthMm(
-        IList<RecipePoint> animSrc,
-        (Point ToolPosition, Point TargetPosition, Point Direction, Point ToolSegmentDirection, int SegmentIndex, double SegmentT) toolState,
-        AppSettings settings)
-    {
-        if (animSrc.Count == 0)
-            return Math.Clamp(Math.Abs(settings.Lz), 20, 600);
-
-        if (animSrc.Count == 1)
-            return Math.Clamp(Math.Abs(settings.Lz + animSrc[0].ANozzle), 20, 600);
-
-        var seg = Math.Clamp(toolState.SegmentIndex, 0, animSrc.Count - 2);
-        var t = Math.Clamp(toolState.SegmentT, 0.0, 1.0);
-        var extraLength = Lerp(animSrc[seg].ANozzle, animSrc[seg + 1].ANozzle, t);
-        return Math.Clamp(Math.Abs(settings.Lz + extraLength), 20, 600);
-    }
+    private static double ResolveDisplayedNozzleLengthMm(AppSettings settings)
+        => Math.Max(1e-6, Math.Abs(settings.Lz));
 
     private static bool IsTransitionSegment(IList<RecipePoint> animSrc, IList<Point> animTool, int segmentIndex)
     {
@@ -801,20 +798,17 @@ public sealed class SimulationPointPair2DControl : Control
 
         var angle = Math.Atan2(dy, dx);
 
-        var widthMm = _nozzleImage.Size.Width * mmPerPixel;
         var heightMm = _nozzleImage.Size.Height * mmPerPixel;
-        var widthPx = Math.Max(1, widthMm * _scale);
         var heightPx = Math.Max(1, heightMm * _scale);
-
-        var startAnchorPx = NozzleStartAnchorX * widthPx;
-        var endAnchorPx = NozzleEndAnchorX * widthPx;
-        var anchorSpanPx = Math.Max(1e-3, endAnchorPx - startAnchorPx);
-        var stretchX = lengthPx / anchorSpanPx;
+        var sourceWidthPx = _nozzleImage.Size.Width;
+        var sourceHeightPx = _nozzleImage.Size.Height;
+        var sourceStartX = Math.Clamp(NozzleStartAnchorX, 0.0, 1.0) * sourceWidthPx;
+        var sourceEndX = Math.Clamp(NozzleEndAnchorX, 0.0, 1.0) * sourceWidthPx;
+        var sourceSpanX = Math.Max(1.0, sourceEndX - sourceStartX);
         var anchorY = NozzleAnchorY * heightPx;
 
         var transform =
-            Matrix.CreateTranslation(-startAnchorPx, -anchorY) *
-            Matrix.CreateScale(stretchX, 1.0) *
+            Matrix.CreateTranslation(0, -anchorY) *
             Matrix.CreateRotation(angle) *
             Matrix.CreateTranslation(start.X, start.Y);
 
@@ -822,8 +816,8 @@ public sealed class SimulationPointPair2DControl : Control
         {
             context.DrawImage(
                 _nozzleImage,
-                new Rect(0, 0, _nozzleImage.Size.Width, _nozzleImage.Size.Height),
-                new Rect(0, 0, widthPx, heightPx));
+                new Rect(sourceStartX, 0, sourceSpanX, sourceHeightPx),
+                new Rect(0, 0, lengthPx, heightPx));
         }
     }
 

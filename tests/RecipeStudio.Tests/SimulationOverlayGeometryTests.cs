@@ -29,8 +29,8 @@ public sealed class SimulationOverlayGeometryTests
     {
         var marker = new PlotMarkerGeometry(
             ToolPoint: new Point(-120, 40),
-            TargetPoint: new Point(-80, 55),
-            Direction: new Point(-0.6, -0.8));
+            TargetPoint: new Point(0, 40),
+            Direction: new Point(1, 0));
 
         var pair = SimulationOverlayGeometry.ResolvePairOverlayGeometry(
             marker,
@@ -38,9 +38,47 @@ public sealed class SimulationOverlayGeometryTests
             usePhysicalOrientation: true,
             nozzleLengthMm: 100);
 
-        AssertPoint(new Point(-80, 80), pair.TargetPoint);
+        AssertPoint(new Point(0, 65), pair.TargetPoint);
         AssertPoint(new Point(-120, 65), pair.ToolPoint);
-        AssertPoint(new Point(-180, -15), pair.NozzleTipPoint);
+        AssertPoint(new Point(-20, 65), pair.NozzleTipPoint);
+    }
+
+    [Fact]
+    public void ResolvePairOverlayGeometry_LeavesGapEqualToANozzle_WhenTargetIsFartherThanL()
+    {
+        var marker = new PlotMarkerGeometry(
+            ToolPoint: new Point(0, 0),
+            TargetPoint: new Point(120, 0),
+            Direction: new Point(1, 0));
+
+        var pair = SimulationOverlayGeometry.ResolvePairOverlayGeometry(
+            marker,
+            verticalOffsetMm: 0,
+            usePhysicalOrientation: true,
+            nozzleLengthMm: 100);
+
+        var visibleLength = pair.NozzleTipPoint.X - pair.ToolPoint.X;
+        var remainingGap = pair.TargetPoint.X - pair.NozzleTipPoint.X;
+
+        Assert.Equal(100, visibleLength, 6);
+        Assert.Equal(20, remainingGap, 6);
+    }
+
+    [Fact]
+    public void ResolvePairOverlayGeometry_PreservesPhysicalDirection_ForVisibleNozzle()
+    {
+        var marker = new PlotMarkerGeometry(
+            ToolPoint: new Point(0, 0),
+            TargetPoint: new Point(0, 120),
+            Direction: new Point(1, 0));
+
+        var pair = SimulationOverlayGeometry.ResolvePairOverlayGeometry(
+            marker,
+            verticalOffsetMm: 0,
+            usePhysicalOrientation: true,
+            nozzleLengthMm: 100);
+
+        AssertPoint(new Point(100, 0), pair.NozzleTipPoint);
     }
 
     [Theory]

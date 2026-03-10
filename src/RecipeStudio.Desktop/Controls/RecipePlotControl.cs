@@ -523,7 +523,12 @@ public sealed class RecipePlotControl : Control
                 InvertHorizontal,
                 usePhysicalOrientation,
                 physicalDirection);
-            DrawToolMarker(context, marker.ToolPoint, marker.TargetPoint, marker.Direction);
+            var visibleNozzle = SimulationOverlayGeometry.ResolvePairOverlayGeometry(
+                marker,
+                verticalOffsetMm: 0,
+                usePhysicalOrientation,
+                ResolveDisplayedNozzleLengthMm(settings));
+            DrawToolMarker(context, visibleNozzle.ToolPoint, visibleNozzle.TargetPoint, visibleNozzle.NozzleTipPoint, marker.Direction);
         }
 
         // Legend
@@ -823,29 +828,37 @@ public sealed class RecipePlotControl : Control
     private bool ShouldDrawMirroredTarget()
         => SimulationTargetDisplayModes.Normalize(TargetDisplayMode) != SimulationTargetDisplayModes.Original;
 
-    private void DrawToolMarker(DrawingContext ctx, Point toolWorld, Point targetWorld, Point direction)
+    private static double ResolveDisplayedNozzleLengthMm(AppSettings settings)
+        => Math.Max(1e-6, Math.Abs(settings.Lz));
+
+    private void DrawToolMarker(DrawingContext ctx, Point toolWorld, Point targetWorld, Point nozzleTipWorld, Point direction)
     {
         var toolSp = WorldToScreen(toolWorld);
         var targetSp = WorldToScreen(targetWorld);
+        var nozzleTipSp = WorldToScreen(nozzleTipWorld);
 
         var toolColor = ParseColorOrDefault((Settings ?? new AppSettings()).PlotColorTool, Color.FromRgb(239, 68, 68));
         var linkPen = new Pen(new SolidColorBrush(Color.FromArgb(230, toolColor.R, toolColor.G, toolColor.B)), 7);
-        ctx.DrawLine(linkPen, targetSp, toolSp);
+        ctx.DrawLine(linkPen, nozzleTipSp, toolSp);
 
         // Base joint on robot side
         ctx.DrawEllipse(new SolidColorBrush(Color.FromRgb(10, 16, 30)), new Pen(new SolidColorBrush(toolColor), 2), toolSp, 6, 6);
 
-        // Tip at cleaning target side
-        ctx.DrawEllipse(new SolidColorBrush(toolColor), new Pen(Brushes.White, 1.2), targetSp, 4.2, 4.2);
+        // Visible nozzle tip at displayed L distance from the robot-side joint.
+        ctx.DrawEllipse(new SolidColorBrush(toolColor), new Pen(Brushes.White, 1.2), nozzleTipSp, 4.2, 4.2);
+
+        // Keep current target anchored to the actual recipe contour.
+        if (Math.Abs(nozzleTipSp.X - targetSp.X) > 1.5 || Math.Abs(nozzleTipSp.Y - targetSp.Y) > 1.5)
+            ctx.DrawEllipse(null, new Pen(new SolidColorBrush(toolColor), 1.4), targetSp, 4.6, 4.6);
 
         // Tiny direction arrow to emphasize smooth rotation
         var len = Math.Sqrt(direction.X * direction.X + direction.Y * direction.Y);
         var dirWorld = len <= 1e-6 ? new Point(1, 0) : new Point(direction.X / len, direction.Y / len);
         var dir = new Point(dirWorld.X, -dirWorld.Y);
         var perp = new Point(-dir.Y, dir.X);
-        var tip = new Point(targetSp.X + dir.X * 10, targetSp.Y + dir.Y * 10);
-        var left = new Point(targetSp.X - dir.X * 3 + perp.X * 3, targetSp.Y - dir.Y * 3 + perp.Y * 3);
-        var right = new Point(targetSp.X - dir.X * 3 - perp.X * 3, targetSp.Y - dir.Y * 3 - perp.Y * 3);
+        var tip = new Point(nozzleTipSp.X + dir.X * 10, nozzleTipSp.Y + dir.Y * 10);
+        var left = new Point(nozzleTipSp.X - dir.X * 3 + perp.X * 3, nozzleTipSp.Y - dir.Y * 3 + perp.Y * 3);
+        var right = new Point(nozzleTipSp.X - dir.X * 3 - perp.X * 3, nozzleTipSp.Y - dir.Y * 3 - perp.Y * 3);
 
         var g = new StreamGeometry();
         using (var gc = g.Open())

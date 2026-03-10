@@ -235,6 +235,10 @@
                         IsVisible="{Binding AppSettings.SimulationPanels.Access.ShowCalibrationControls}"
                         ToolTip.Tip="Open calibration window"
                         Click="Open2DCalibration_Click">Cal</Button>
+                <Button x:Name="View2DPairLinkToggleButton"
+                        Classes="ghost"
+                        ToolTip.Tip="Показать или скрыть красную опорную линию в 2D Pair"
+                        Click="ToggleView2DPairLink_Click">Линия: вкл</Button>
                 <TextBlock x:Name="View2DPairZoomText" Text="x1.00" Classes="muted" VerticalAlignment="Center" />
                 <Button Classes="ghost panel-close-btn" Click="HideView2DPairPanel_Click">X</Button>
               </StackPanel>
@@ -255,6 +259,7 @@
                                                    TargetXRaw="{Binding CurrentTargetX}"
                                                    TargetZRaw="{Binding CurrentTargetZ}"
                                                    ShowGrid="{Binding ShowGrid}"
+                                                   ShowPairLink="True"
                                                    InvertHorizontal="{Binding ElementName=RecipePlot, Path=InvertHorizontal}"
                                                    ReferenceHeightMm="{Binding ElementName=View2DPlot, Path=ReferenceHeightMm}"
                                                    PartWidthScalePercent="{Binding ElementName=View2DPlot, Path=PartWidthScalePercent}"

@@ -68,7 +68,10 @@ public sealed partial class SimulationView : UserControl
             _vm.PropertyChanged += OnVmPropertyChanged;
 
         if (VisualRoot is not null)
+        {
             ApplySavedTargetDisplayModes();
+            ApplySavedView2DPairOverlaySettings();
+        }
     }
 
     private void OnAttachedToVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
@@ -82,6 +85,7 @@ public sealed partial class SimulationView : UserControl
 
         ApplySaved2DCalibration();
         ApplySavedTargetDisplayModes();
+        ApplySavedView2DPairOverlaySettings();
         InitializePanelZOrder();
 
         RecipePlot.ZoomChanged -= OnRecipePlotZoomChanged;
@@ -885,6 +889,28 @@ public sealed partial class SimulationView : UserControl
 
         SimulationLegendToggleButton.Content = _vm.ShowLegend ? "Пояснения: вкл" : "Пояснения: выкл";
         SimulationLinksToggleButton.Content = _vm.ShowPairLinks ? "Связи точек: вкл" : "Связи точек: выкл";
+    }
+
+    private void ApplySavedView2DPairOverlaySettings()
+    {
+        if (_vm is null)
+            return;
+
+        _vm.AppSettings.SimulationPanels ??= new SimulationPanelsSettings();
+        var enabled = _vm.AppSettings.SimulationPanels.View2DPairShowRedLink;
+        View2DPairPlot.ShowPairLink = enabled;
+        View2DPairLinkToggleButton.Content = enabled ? "Линия: вкл" : "Линия: выкл";
+    }
+
+    private void ToggleView2DPairLink_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_vm is null)
+            return;
+
+        _vm.AppSettings.SimulationPanels ??= new SimulationPanelsSettings();
+        _vm.AppSettings.SimulationPanels.View2DPairShowRedLink = !_vm.AppSettings.SimulationPanels.View2DPairShowRedLink;
+        ApplySavedView2DPairOverlaySettings();
+        _vm.SaveAppSettings();
     }
 
     private void ApplySavedTargetDisplayModes()

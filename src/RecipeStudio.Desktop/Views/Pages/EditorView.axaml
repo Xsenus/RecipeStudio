@@ -392,6 +392,10 @@
                 <Button Classes="ghost" ToolTip.Tip="Подогнать в окно" Click="FitPair2D_Click">Fit</Button>
                 <Button x:Name="EditorPair2DTargetSideButton" Classes="ghost" ToolTip.Tip="Переключить ориентацию вида: исходная или зеркальная" Click="EditorPair2DTargetSideButton_Click">Исходная</Button>
                 <Button x:Name="EditorPair2DTargetCoverageButton" Classes="ghost" ToolTip.Tip="Переключить отображение контура: полное или частичное" Click="EditorPair2DTargetCoverageButton_Click">Полная</Button>
+                <Button x:Name="EditorPair2DLinkToggleButton"
+                        Classes="ghost"
+                        ToolTip.Tip="Показать или скрыть красную опорную линию в 2D Pair"
+                        Click="ToggleEditorPair2DLink_Click">Линия: вкл</Button>
                 <TextBlock x:Name="Pair2DZoomText" Text="x1.00" VerticalAlignment="Center" Classes="muted" />
                 <Button Classes="ghost panel-close-btn" Click="HidePair2DPanel_Click">✕</Button>
               </StackPanel>
@@ -412,6 +416,7 @@
                                                    TargetXRaw="{Binding CurrentTargetX}"
                                                    TargetZRaw="{Binding CurrentTargetZ}"
                                                    ShowGrid="True"
+                                                   ShowPairLink="True"
                                                    InvertHorizontal="{Binding ElementName=RecipePlot, Path=InvertHorizontal}"
                                                    ReferenceHeightMm="{Binding AppSettings.SimulationPanels.Calibration2D.ReferenceHeightMm}"
                                                    PartWidthScalePercent="{Binding AppSettings.SimulationPanels.Calibration2D.PartWidthScalePercent}"

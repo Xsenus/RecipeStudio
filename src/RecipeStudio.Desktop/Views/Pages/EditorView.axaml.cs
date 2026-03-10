@@ -79,7 +79,10 @@ public sealed partial class EditorView : UserControl
         }
 
         if (VisualRoot is not null)
+        {
             ApplySavedTargetDisplayModes();
+            ApplySavedPair2DOverlaySettings();
+        }
     }
 
     private void OnAttachedToVisualTree(object? sender, Avalonia.VisualTreeAttachmentEventArgs e)
@@ -101,6 +104,7 @@ public sealed partial class EditorView : UserControl
         PointsGrid.PointerReleased += OnPointsGridPointerReleased;
 
         ApplySavedTargetDisplayModes();
+        ApplySavedPair2DOverlaySettings();
         UpdateZoomText();
         UpdatePair2DZoomText();
         UpdatePlotOverlayButtons();
@@ -936,6 +940,17 @@ public sealed partial class EditorView : UserControl
         Pair2DZoomText.Text = $"x{Pair2DPlot.ZoomFactor.ToString("0.00", CultureInfo.InvariantCulture)}";
     }
 
+    private void ApplySavedPair2DOverlaySettings()
+    {
+        if (_vm is null)
+            return;
+
+        _vm.AppSettings.SimulationPanels ??= new SimulationPanelsSettings();
+        var enabled = _vm.AppSettings.SimulationPanels.View2DPairShowRedLink;
+        Pair2DPlot.ShowPairLink = enabled;
+        EditorPair2DLinkToggleButton.Content = enabled ? "Линия: вкл" : "Линия: выкл";
+    }
+
     private void ApplySavedTargetDisplayModes()
     {
         if (_vm is null)
@@ -1054,6 +1069,17 @@ public sealed partial class EditorView : UserControl
         UpdatePlotOverlayButtons();
     }
 
+    private void ToggleEditorPair2DLink_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (_vm is null)
+            return;
+
+        _vm.AppSettings.SimulationPanels ??= new SimulationPanelsSettings();
+        _vm.AppSettings.SimulationPanels.View2DPairShowRedLink = !_vm.AppSettings.SimulationPanels.View2DPairShowRedLink;
+        ApplySavedPair2DOverlaySettings();
+        _vm.SaveAppSettings();
+    }
+
     private void UpdatePlotOverlayButtons()
     {
         LegendToggleButton.Content = RecipePlot.ShowLegend ? "Пояснения: вкл" : "Пояснения: выкл";
@@ -1069,6 +1095,7 @@ public sealed partial class EditorView : UserControl
         RecipePlot.ShowPairLinks = false;
         UpdateZoomText();
         UpdatePair2DZoomText();
+        ApplySavedPair2DOverlaySettings();
         UpdatePlotOverlayButtons();
 
         ParametersPanel.IsVisible = true;

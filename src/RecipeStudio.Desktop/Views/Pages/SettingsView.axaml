@@ -311,6 +311,12 @@
                   </StackPanel>
 
                   <StackPanel Spacing="2">
+                    <CheckBox IsChecked="{Binding SimShowView2DPairRedLink}" ToolTip.Tip="Показывать или скрывать красную опорную линию в 2D Pair">Красная линия в 2D Pair</CheckBox>
+                    <TextBlock Classes="muted tiny" Margin="24,0,0,0" TextWrapping="Wrap"
+                               Text="Управляет красным опорным отрезком в окне 2D Pair. При выключении остаются изображение сопла и маркеры точек без красной линии." />
+                  </StackPanel>
+
+                  <StackPanel Spacing="2">
                     <CheckBox IsChecked="{Binding SimAllowView2DFact}" ToolTip.Tip="2D визуализация по фактической телеметрии">2D факт</CheckBox>
                     <TextBlock Classes="muted tiny" Margin="24,0,0,0" TextWrapping="Wrap"
                                Text="2D-визуализация по фактическим координатам из телеметрии (для сравнения расчётной и реальной позиции инструмента)." />

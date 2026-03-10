@@ -115,6 +115,7 @@ public sealed class SimulationPanelsSettings
     public string PlotTargetDisplaySide { get; set; } = SimulationTargetDisplayModes.Original;
     public string View2DPairTargetDisplayMode { get; set; } = SimulationTargetDisplayModes.Full;
     public string View2DPairTargetDisplaySide { get; set; } = SimulationTargetDisplayModes.Original;
+    public bool View2DPairShowRedLink { get; set; } = true;
     public SimulationPanelsAccessSettings Access { get; set; } = new();
     public Simulation2DCalibrationSettings Calibration2D { get; set; } = new();
 }
