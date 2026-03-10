@@ -511,26 +511,19 @@ public sealed class RecipePlotControl : Control
 
             // Tool marker rendered as a smooth nozzle link Target->Robot.
             var toolState = GetToolState(animTool, animTarget, Progress, CurrentSegmentIndex, CurrentSegmentT);
-            var markerTool = toolState.ToolPosition;
-            if (double.IsFinite(ToolXRaw) && double.IsFinite(ToolZRaw))
-                markerTool = new Point(ToVisualX(ToolXRaw), ToolZRaw);
-
-            var markerTarget = toolState.TargetPosition;
-            if (double.IsFinite(TargetXRaw) && double.IsFinite(TargetZRaw))
-                markerTarget = new Point(ToVisualX(TargetXRaw), TargetZRaw);
-
-            var markerDirection = new Point(markerTarget.X - markerTool.X, markerTarget.Y - markerTool.Y);
-            if (NozzleOrientationPolicy.UsePhysicalOrientation(settings.NozzleOrientationMode))
-            {
-                markerDirection = ApplyTransitionLiftOrientation(animSrc, animTool, toolState, settings);
-                if (InvertHorizontal)
-                    markerDirection = new Point(-markerDirection.X, markerDirection.Y);
-                var nozzleLength = ResolveEffectiveNozzleLengthMm(animSrc, toolState, settings);
-                markerTarget = new Point(
-                    markerTool.X + markerDirection.X * nozzleLength,
-                    markerTool.Y + markerDirection.Y * nozzleLength);
-            }
-            DrawToolMarker(context, markerTool, markerTarget, markerDirection);
+            var usePhysicalOrientation = NozzleOrientationPolicy.UsePhysicalOrientation(settings.NozzleOrientationMode);
+            var physicalDirection = usePhysicalOrientation
+                ? ApplyTransitionLiftOrientation(animSrc, animTool, toolState, settings)
+                : default;
+            var marker = SimulationOverlayGeometry.ResolvePlotMarkerGeometry(
+                toolState.ToolPosition,
+                toolState.TargetPosition,
+                double.IsFinite(ToolXRaw) && double.IsFinite(ToolZRaw) ? new Point(ToolXRaw, ToolZRaw) : null,
+                double.IsFinite(TargetXRaw) && double.IsFinite(TargetZRaw) ? new Point(TargetXRaw, TargetZRaw) : null,
+                InvertHorizontal,
+                usePhysicalOrientation,
+                physicalDirection);
+            DrawToolMarker(context, marker.ToolPoint, marker.TargetPoint, marker.Direction);
         }
 
         // Legend
@@ -1039,23 +1032,6 @@ public sealed class RecipePlotControl : Control
         var zSign = place == 0 ? -1.0 : 1.0;
         var z = zSign * Math.Cos(b) * Math.Sin(a);
         return new Point(x, z);
-    }
-
-    private static double ResolveEffectiveNozzleLengthMm(
-        IList<RecipePoint> animSrc,
-        (Point ToolPosition, Point TargetPosition, Point Direction, Point ToolSegmentDirection, int SegmentIndex, double SegmentT) toolState,
-        AppSettings settings)
-    {
-        if (animSrc.Count == 0)
-            return Math.Clamp(Math.Abs(settings.Lz), 20, 600);
-
-        if (animSrc.Count == 1)
-            return Math.Clamp(Math.Abs(settings.Lz + animSrc[0].ANozzle), 20, 600);
-
-        var seg = Math.Clamp(toolState.SegmentIndex, 0, animSrc.Count - 2);
-        var t = Math.Clamp(toolState.SegmentT, 0.0, 1.0);
-        var extraLength = Lerp(animSrc[seg].ANozzle, animSrc[seg + 1].ANozzle, t);
-        return Math.Clamp(Math.Abs(settings.Lz + extraLength), 20, 600);
     }
 
     private static bool IsTransitionSegment(IList<RecipePoint> animSrc, IList<Point> animTool, int segmentIndex)

@@ -365,9 +365,12 @@ public sealed class SimulationPointPair2DControl : Control
         var safeTargetPoints = BuildVisibleTargetPoints(settings, safe: true);
         var allTargetPoints = workTargetPoints.Concat(safeTargetPoints).ToList();
 
-        var (point1, point2) = ResolvePairPoints();
+        var pairState = ResolvePairPoints();
+        var point1 = pairState.TargetPoint;
+        var point2 = pairState.ToolPoint;
+        var nozzleTip = pairState.NozzleTipPoint;
         var manipRectWorld = CreateManipulatorRectFromAnchor(point2, _manipulatorImage, mmPerPixel);
-        var nozzleRectWorld = CreateNozzleEnvelopeRect(point1, point2, _nozzleImage, mmPerPixel);
+        var nozzleRectWorld = CreateNozzleEnvelopeRect(nozzleTip, point2, _nozzleImage, mmPerPixel);
         var worldBounds = ComputeWorldBounds(partRectWorld, manipRectWorld, point1, point2, nozzleRectWorld, allTargetPoints);
 
         if (_lastRenderSize != Bounds.Size)
@@ -399,7 +402,7 @@ public sealed class SimulationPointPair2DControl : Control
 
             // Keep red pair link as reference, then overlay nozzle image directly on top of it.
             DrawPairLink(context, point1, point2);
-            DrawNozzleBetweenPoints(context, point1, point2, mmPerPixel);
+            DrawNozzleBetweenPoints(context, nozzleTip, point2, mmPerPixel);
             DrawPointMarker(context, point1, "1");
             DrawPointMarker(context, point2, "2");
         }
@@ -450,7 +453,7 @@ public sealed class SimulationPointPair2DControl : Control
         return new Rect(left, bottom, w, h);
     }
 
-    private (Point Point1, Point Point2) ResolvePairPoints()
+    private (Point TargetPoint, Point ToolPoint, Point NozzleTipPoint) ResolvePairPoints()
     {
         var source = Points?.ToList() ?? new List<RecipePoint>();
         var settings = Settings ?? new AppSettings();
@@ -478,31 +481,24 @@ public sealed class SimulationPointPair2DControl : Control
         }
 
         var toolState = GetToolState(animTool, animTarget, Progress, CurrentSegmentIndex, CurrentSegmentT);
-
-        var point2 = toolState.ToolPosition;
-        if (double.IsFinite(ToolXRaw) && double.IsFinite(ToolZRaw))
-            point2 = new Point(ToVisualX(ToolXRaw), ToolZRaw);
-
-        var point1 = toolState.TargetPosition;
-        if (double.IsFinite(TargetXRaw) && double.IsFinite(TargetZRaw))
-            point1 = new Point(ToVisualX(TargetXRaw), TargetZRaw);
-
-        var direction = new Point(point1.X - point2.X, point1.Y - point2.Y);
-        if (NozzleOrientationPolicy.UsePhysicalOrientation(settings.NozzleOrientationMode))
-        {
-            direction = ApplyTransitionLiftOrientation(source, animTool, toolState, settings);
-            if (InvertHorizontal)
-                direction = new Point(-direction.X, direction.Y);
-
-            var nozzleLength = ResolveEffectiveNozzleLengthMm(source, toolState, settings);
-            point1 = new Point(
-                point2.X + direction.X * nozzleLength,
-                point2.Y + direction.Y * nozzleLength);
-        }
-
-        point1 = new Point(point1.X, point1.Y + VerticalOffsetMm);
-        point2 = new Point(point2.X, point2.Y + VerticalOffsetMm);
-        return (point1, point2);
+        var usePhysicalOrientation = NozzleOrientationPolicy.UsePhysicalOrientation(settings.NozzleOrientationMode);
+        var physicalDirection = usePhysicalOrientation
+            ? ApplyTransitionLiftOrientation(source, animTool, toolState, settings)
+            : default;
+        var marker = SimulationOverlayGeometry.ResolvePlotMarkerGeometry(
+            toolState.ToolPosition,
+            toolState.TargetPosition,
+            double.IsFinite(ToolXRaw) && double.IsFinite(ToolZRaw) ? new Point(ToolXRaw, ToolZRaw) : null,
+            double.IsFinite(TargetXRaw) && double.IsFinite(TargetZRaw) ? new Point(TargetXRaw, TargetZRaw) : null,
+            InvertHorizontal,
+            usePhysicalOrientation,
+            physicalDirection);
+        var pair = SimulationOverlayGeometry.ResolvePairOverlayGeometry(
+            marker,
+            VerticalOffsetMm,
+            usePhysicalOrientation,
+            ResolveEffectiveNozzleLengthMm(source, toolState, settings));
+        return (pair.TargetPoint, pair.ToolPoint, pair.NozzleTipPoint);
     }
 
     private static (Point ToolPosition, Point TargetPosition, Point Direction, Point ToolSegmentDirection, int SegmentIndex, double SegmentT) GetToolState(
@@ -930,45 +926,11 @@ public sealed class SimulationPointPair2DControl : Control
             .Select(p =>
             {
                 var (xp, zp) = p.GetTargetPoint(settings.HZone);
-                return new Point(ToVisualX(xp), zp + VerticalOffsetMm);
+                return SimulationOverlayGeometry.ProjectWorldPoint(xp, zp, InvertHorizontal, VerticalOffsetMm);
             })
             .ToList();
 
-        return BuildDisplayedTargetPoints(points, HorizontalOffsetMm, TargetDisplayMode);
-    }
-
-    private static List<Point> BuildDisplayedTargetPoints(IList<Point> source, double mirrorAxisX, string mode)
-    {
-        var normalizedMode = SimulationTargetDisplayModes.Normalize(mode);
-        if (normalizedMode == SimulationTargetDisplayModes.Original)
-            return source.ToList();
-
-        if (normalizedMode == SimulationTargetDisplayModes.Mirrored)
-            return source.Select(point => new Point(mirrorAxisX * 2.0 - point.X, point.Y)).ToList();
-
-        var result = new List<Point>(source.Count * 2);
-        foreach (var point in source)
-            AddDistinctPoint(result, point);
-
-        foreach (var point in source)
-        {
-            var mirrored = new Point(mirrorAxisX * 2.0 - point.X, point.Y);
-            AddDistinctPoint(result, mirrored);
-        }
-
-        return result;
-    }
-
-    private static void AddDistinctPoint(List<Point> points, Point candidate)
-    {
-        const double eps = 1e-3;
-        foreach (var point in points)
-        {
-            if (Math.Abs(point.X - candidate.X) <= eps && Math.Abs(point.Y - candidate.Y) <= eps)
-                return;
-        }
-
-        points.Add(candidate);
+        return SimulationOverlayGeometry.BuildDisplayedTargetPoints(points, HorizontalOffsetMm, TargetDisplayMode);
     }
 
     private static List<RecipePoint> FilterRenderablePoints(IList<RecipePoint>? source)
