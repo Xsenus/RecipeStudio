@@ -138,6 +138,14 @@ public sealed class SettingsService
             settings.LogsFolder = Path.Combine(AppDataRoot, "logs");
         }
 
+        settings.CalculationOriginMode = CalculationOriginModes.Normalize(settings.CalculationOriginMode);
+        settings.ANozzleKinematicsMode = ANozzleKinematicsModes.Normalize(settings.ANozzleKinematicsMode);
+        settings.VelocityCalculationMode = VelocityCalculationModes.Normalize(settings.VelocityCalculationMode);
+        settings.TopLowPulseMode = TopLowPulseModes.Normalize(settings.TopLowPulseMode);
+        settings.ExcelExportMode = ExcelExportModes.Normalize(settings.ExcelExportMode);
+        settings.RecommendedFlowBulkMode = RecommendedFlowBulkModes.Normalize(settings.RecommendedFlowBulkMode);
+        settings.RecommendedAlfaMode = RecommendedAlfaModes.Normalize(settings.RecommendedAlfaMode);
+        settings.NozzleOrientationMode = NozzleOrientationModes.Normalize(settings.NozzleOrientationMode);
         settings.LogMode = NormalizeLogMode(settings.LogMode);
         settings.LogRetentionDays = Math.Clamp(settings.LogRetentionDays, 1, 3650);
         settings.EditorPanels ??= new EditorPanelsSettings();
@@ -254,6 +262,62 @@ public sealed class SettingsService
         if (s.LogRetentionDays is < 1 or > 3650)
         {
             error = "LogRetentionDays вне диапазона 1..3650.";
+            return false;
+        }
+
+        if (CalculationOriginModes.Normalize(s.CalculationOriginMode) != s.CalculationOriginMode &&
+            !string.IsNullOrWhiteSpace(s.CalculationOriginMode))
+        {
+            error = "CalculationOriginMode содержит недопустимое значение.";
+            return false;
+        }
+
+        if (ANozzleKinematicsModes.Normalize(s.ANozzleKinematicsMode) != s.ANozzleKinematicsMode &&
+            !string.IsNullOrWhiteSpace(s.ANozzleKinematicsMode))
+        {
+            error = "ANozzleKinematicsMode содержит недопустимое значение.";
+            return false;
+        }
+
+        if (VelocityCalculationModes.Normalize(s.VelocityCalculationMode) != s.VelocityCalculationMode &&
+            !string.IsNullOrWhiteSpace(s.VelocityCalculationMode))
+        {
+            error = "VelocityCalculationMode содержит недопустимое значение.";
+            return false;
+        }
+
+        if (TopLowPulseModes.Normalize(s.TopLowPulseMode) != s.TopLowPulseMode &&
+            !string.IsNullOrWhiteSpace(s.TopLowPulseMode))
+        {
+            error = "TopLowPulseMode содержит недопустимое значение.";
+            return false;
+        }
+
+        if (ExcelExportModes.Normalize(s.ExcelExportMode) != s.ExcelExportMode &&
+            !string.IsNullOrWhiteSpace(s.ExcelExportMode))
+        {
+            error = "ExcelExportMode содержит недопустимое значение.";
+            return false;
+        }
+
+        if (RecommendedFlowBulkModes.Normalize(s.RecommendedFlowBulkMode) != s.RecommendedFlowBulkMode &&
+            !string.IsNullOrWhiteSpace(s.RecommendedFlowBulkMode))
+        {
+            error = "RecommendedFlowBulkMode содержит недопустимое значение.";
+            return false;
+        }
+
+        if (RecommendedAlfaModes.Normalize(s.RecommendedAlfaMode) != s.RecommendedAlfaMode &&
+            !string.IsNullOrWhiteSpace(s.RecommendedAlfaMode))
+        {
+            error = "RecommendedAlfaMode содержит недопустимое значение.";
+            return false;
+        }
+
+        if (NozzleOrientationModes.Normalize(s.NozzleOrientationMode) != s.NozzleOrientationMode &&
+            !string.IsNullOrWhiteSpace(s.NozzleOrientationMode))
+        {
+            error = "NozzleOrientationMode содержит недопустимое значение.";
             return false;
         }
 

@@ -1,7 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="RecipeStudio.Desktop.Views.Pages.SettingsView">
-
   <Grid ColumnDefinitions="290,*" Margin="18">
 
     <Border Grid.Column="0" Classes="card" Padding="12">
@@ -134,7 +133,7 @@
               <Border Classes="card" Padding="12">
                 <StackPanel Spacing="10">
                   <TextBlock Text="Ориентация сопла (A/B)" FontWeight="SemiBold" />
-                  <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto">
+                  <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
                     <TextBlock Text="Режим ориентации" VerticalAlignment="Center" ToolTip.Tip="physical_angles: только по углам A/B; target_tracking: доворот сопла на цель" Margin="0,0,0,8" />
                     <ComboBox Grid.Column="1"
                               Classes="value-box"
@@ -152,7 +151,37 @@
 
                     <TextBlock Grid.Row="1" Grid.Column="1" Margin="10,0,0,8" Text="{Binding NozzleOrientationModeDescription}" Classes="muted tiny" TextWrapping="Wrap" />
 
-                    <Grid Grid.Row="2" Grid.ColumnSpan="2" ColumnDefinitions="220,*,*,*,*" RowDefinitions="Auto,Auto" Margin="0,2,0,0">
+                    <TextBlock Grid.Row="2"
+                               IsVisible="False"
+                               Text="RecommendedAlfa"
+                               VerticalAlignment="Center"
+                               ToolTip.Tip="Переключает формулу расчета рекомендуемого угла Alfa"
+                               Margin="0,0,0,8" />
+                    <ComboBox Grid.Row="2"
+                              IsVisible="False"
+                              Grid.Column="1"
+                              Classes="value-box"
+                              ItemsSource="{Binding RecommendedAlfaModeOptions}"
+                              SelectedValue="{Binding RecommendedAlfaMode}"
+                              SelectedValueBinding="{Binding Value}"
+                              Margin="10,0,0,8"
+                              ToolTip.Tip="Выберите формулу расчета RecommendedAlfa">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                          <TextBlock Text="{Binding Label}" />
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+
+                    <TextBlock Grid.Row="3"
+                               IsVisible="False"
+                               Grid.Column="1"
+                               Margin="10,0,0,8"
+                               Text="{Binding RecommendedAlfaModeDescription}"
+                               Classes="muted tiny"
+                               TextWrapping="Wrap" />
+
+                    <Grid Grid.Row="4" Grid.ColumnSpan="2" ColumnDefinitions="220,*,*,*,*" RowDefinitions="Auto,Auto" Margin="0,2,0,0">
                       <TextBlock Text="Диапазоны углов, °" VerticalAlignment="Center" ToolTip.Tip="Физические ограничения для режима physical_angles" />
                       <TextBlock Grid.Column="1" Text="A min" Margin="10,0,0,6" />
                       <TextBlock Grid.Column="2" Text="A max" Margin="10,0,0,6" />
@@ -164,6 +193,226 @@
                       <TextBox Grid.Row="1" Grid.Column="3" Classes="value-box" Text="{Binding BettaMinDeg}" Margin="10,0,0,0" ToolTip.Tip="Минимальный угол B (обычно -15)" />
                       <TextBox Grid.Row="1" Grid.Column="4" Classes="value-box" Text="{Binding BettaMaxDeg}" Margin="10,0,0,0" ToolTip.Tip="Максимальный угол B (обычно +15)" />
                     </Grid>
+                  </Grid>
+                </StackPanel>
+              </Border>
+
+              <Border Classes="card" Padding="12" IsVisible="False">
+                <StackPanel Spacing="10">
+                  <TextBlock Text="Совместимость с Excel" FontWeight="SemiBold" />
+                  <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                    <TextBlock Text="База Xr0/dX" VerticalAlignment="Center" Margin="0,0,0,8" />
+                    <ComboBox Grid.Column="1"
+                              Classes="value-box"
+                              ItemsSource="{Binding CalculationOriginModeOptions}"
+                              SelectedValue="{Binding CalculationOriginMode}"
+                              SelectedValueBinding="{Binding Value}"
+                              Margin="10,0,0,8">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                          <TextBlock Text="{Binding Label}" />
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Margin="10,0,0,8" Text="{Binding CalculationOriginModeDescription}" Classes="muted tiny" TextWrapping="Wrap" />
+
+                    <TextBlock Grid.Row="2" Text="a_nozzle в кинематике" VerticalAlignment="Center" Margin="0,0,0,8" />
+                    <ComboBox Grid.Row="2"
+                              Grid.Column="1"
+                              Classes="value-box"
+                              ItemsSource="{Binding ANozzleKinematicsModeOptions}"
+                              SelectedValue="{Binding ANozzleKinematicsMode}"
+                              SelectedValueBinding="{Binding Value}"
+                              Margin="10,0,0,8">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                          <TextBlock Text="{Binding Label}" />
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBlock Grid.Row="3" Grid.Column="1" Margin="10,0,0,8" Text="{Binding ANozzleKinematicsModeDescription}" Classes="muted tiny" TextWrapping="Wrap" />
+
+                    <TextBlock Grid.Row="4" Text="Vel" VerticalAlignment="Center" Margin="0,0,0,8" />
+                    <ComboBox Grid.Row="4"
+                              Grid.Column="1"
+                              Classes="value-box"
+                              ItemsSource="{Binding VelocityCalculationModeOptions}"
+                              SelectedValue="{Binding VelocityCalculationMode}"
+                              SelectedValueBinding="{Binding Value}"
+                              Margin="10,0,0,8">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                          <TextBlock Text="{Binding Label}" />
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBlock Grid.Row="5" Grid.Column="1" Margin="10,0,0,8" Text="{Binding VelocityCalculationModeDescription}" Classes="muted tiny" TextWrapping="Wrap" />
+
+                    <TextBlock Grid.Row="6" Text="Top/Low pulses" VerticalAlignment="Center" Margin="0,0,0,8" />
+                    <ComboBox Grid.Row="6"
+                              Grid.Column="1"
+                              Classes="value-box"
+                              ItemsSource="{Binding TopLowPulseModeOptions}"
+                              SelectedValue="{Binding TopLowPulseMode}"
+                              SelectedValueBinding="{Binding Value}"
+                              Margin="10,0,0,8">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                          <TextBlock Text="{Binding Label}" />
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBlock Grid.Row="7" Grid.Column="1" Margin="10,0,0,8" Text="{Binding TopLowPulseModeDescription}" Classes="muted tiny" TextWrapping="Wrap" />
+
+                    <TextBlock Grid.Row="8" Text="Экспорт Excel" VerticalAlignment="Center" Margin="0,0,0,8" />
+                    <ComboBox Grid.Row="8"
+                              Grid.Column="1"
+                              Classes="value-box"
+                              ItemsSource="{Binding ExcelExportModeOptions}"
+                              SelectedValue="{Binding ExcelExportMode}"
+                              SelectedValueBinding="{Binding Value}"
+                              Margin="10,0,0,8">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                          <TextBlock Text="{Binding Label}" />
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBlock Grid.Row="9" Grid.Column="1" Margin="10,0,0,8" Text="{Binding ExcelExportModeDescription}" Classes="muted tiny" TextWrapping="Wrap" />
+
+                    <TextBlock Grid.Row="10" Text="Рекомендованный расход" VerticalAlignment="Center" Margin="0,0,0,8" />
+                    <ComboBox Grid.Row="10"
+                              Grid.Column="1"
+                              Classes="value-box"
+                              ItemsSource="{Binding RecommendedFlowBulkModeOptions}"
+                              SelectedValue="{Binding RecommendedFlowBulkMode}"
+                              SelectedValueBinding="{Binding Value}"
+                              Margin="10,0,0,8">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                          <TextBlock Text="{Binding Label}" />
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <TextBlock Grid.Row="11" Grid.Column="1" Margin="10,0,0,0" Text="{Binding RecommendedFlowBulkModeDescription}" Classes="muted tiny" TextWrapping="Wrap" />
+                  </Grid>
+                </StackPanel>
+              </Border>
+
+              <Border Classes="card" Padding="12" IsVisible="{Binding IsExcelCompatibilityVisible}">
+                <StackPanel Spacing="12">
+                  <TextBlock Text="Совместимость с Excel" FontWeight="SemiBold" />
+                  <TextBlock Text="Сервисный блок. Переключается сочетанием Ctrl + Shift + Alt + X." Classes="muted tiny" />
+
+                  <Grid ColumnDefinitions="*,*" ColumnSpacing="24">
+                    <StackPanel Spacing="12">
+                      <StackPanel Spacing="6">
+                        <TextBlock Text="RecommendedAlfa" />
+                        <ComboBox Classes="value-box"
+                                  ItemsSource="{Binding RecommendedAlfaCompatibilityOptions}"
+                                  SelectedValue="{Binding RecommendedAlfaMode}"
+                                  SelectedValueBinding="{Binding Value}">
+                          <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                              <TextBlock Text="{Binding Label}" />
+                            </DataTemplate>
+                          </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <TextBlock Text="{Binding RecommendedAlfaCompatibilityDescription}" Classes="muted tiny" TextWrapping="Wrap" />
+                      </StackPanel>
+
+                      <StackPanel Spacing="6">
+                        <TextBlock Text="База Xr0/dX" />
+                        <ComboBox Classes="value-box"
+                                  ItemsSource="{Binding CalculationOriginModeOptions}"
+                                  SelectedValue="{Binding CalculationOriginMode}"
+                                  SelectedValueBinding="{Binding Value}">
+                          <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                              <TextBlock Text="{Binding Label}" />
+                            </DataTemplate>
+                          </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <TextBlock Text="{Binding CalculationOriginModeDescription}" Classes="muted tiny" TextWrapping="Wrap" />
+                      </StackPanel>
+
+                      <StackPanel Spacing="6">
+                        <TextBlock Text="a_nozzle в кинематике" />
+                        <ComboBox Classes="value-box"
+                                  ItemsSource="{Binding ANozzleKinematicsModeOptions}"
+                                  SelectedValue="{Binding ANozzleKinematicsMode}"
+                                  SelectedValueBinding="{Binding Value}">
+                          <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                              <TextBlock Text="{Binding Label}" />
+                            </DataTemplate>
+                          </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <TextBlock Text="{Binding ANozzleKinematicsModeDescription}" Classes="muted tiny" TextWrapping="Wrap" />
+                      </StackPanel>
+
+                      <StackPanel Spacing="6">
+                        <TextBlock Text="Vel" />
+                        <ComboBox Classes="value-box"
+                                  ItemsSource="{Binding VelocityCalculationModeOptions}"
+                                  SelectedValue="{Binding VelocityCalculationMode}"
+                                  SelectedValueBinding="{Binding Value}">
+                          <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                              <TextBlock Text="{Binding Label}" />
+                            </DataTemplate>
+                          </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <TextBlock Text="{Binding VelocityCalculationModeDescription}" Classes="muted tiny" TextWrapping="Wrap" />
+                      </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Spacing="12">
+                      <StackPanel Spacing="6">
+                        <TextBlock Text="Top/Low pulses" />
+                        <ComboBox Classes="value-box"
+                                  ItemsSource="{Binding TopLowPulseModeOptions}"
+                                  SelectedValue="{Binding TopLowPulseMode}"
+                                  SelectedValueBinding="{Binding Value}">
+                          <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                              <TextBlock Text="{Binding Label}" />
+                            </DataTemplate>
+                          </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <TextBlock Text="{Binding TopLowPulseModeDescription}" Classes="muted tiny" TextWrapping="Wrap" />
+                      </StackPanel>
+
+                      <StackPanel Spacing="6">
+                        <TextBlock Text="Экспорт Excel" />
+                        <ComboBox Classes="value-box"
+                                  ItemsSource="{Binding ExcelExportModeOptions}"
+                                  SelectedValue="{Binding ExcelExportMode}"
+                                  SelectedValueBinding="{Binding Value}">
+                          <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                              <TextBlock Text="{Binding Label}" />
+                            </DataTemplate>
+                          </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <TextBlock Text="{Binding ExcelExportModeDescription}" Classes="muted tiny" TextWrapping="Wrap" />
+                      </StackPanel>
+
+                      <StackPanel Spacing="6">
+                        <TextBlock Text="Рекомендованный расход" />
+                        <ComboBox Classes="value-box"
+                                  ItemsSource="{Binding RecommendedFlowBulkModeOptions}"
+                                  SelectedValue="{Binding RecommendedFlowBulkMode}"
+                                  SelectedValueBinding="{Binding Value}">
+                          <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                              <TextBlock Text="{Binding Label}" />
+                            </DataTemplate>
+                          </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <TextBlock Text="{Binding RecommendedFlowBulkModeDescription}" Classes="muted tiny" TextWrapping="Wrap" />
+                      </StackPanel>
+                    </StackPanel>
                   </Grid>
                 </StackPanel>
               </Border>

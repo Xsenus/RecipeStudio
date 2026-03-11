@@ -183,15 +183,15 @@ public sealed partial class EditorView : UserControl
         if (header?.Content is not Control { Tag: string tag } content)
             return;
 
-        if (tag == "ApplyRecommendedIceRate")
-        {
-            BulkRecommendedIceRateHeader_PointerPressed(content, e);
-            return;
-        }
-
         if (tag is "Act" or "Top" or "Hidden")
         {
             BulkFlagHeader_PointerPressed(content, e);
+            return;
+        }
+
+        if (tag == "ApplyRecommendedIceRate")
+        {
+            BulkRecommendedFlowHeader_PointerPressed(content, e);
             return;
         }
 
@@ -266,15 +266,15 @@ public sealed partial class EditorView : UserControl
         ApplyBulkNumericField(fieldKey, value.Value);
     }
 
-    private async void BulkRecommendedIceRateHeader_PointerPressed(object? sender, PointerPressedEventArgs e)
+    private async void BulkRecommendedFlowHeader_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (_vm is null)
             return;
 
-        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        if (RecommendedFlowBulkModes.Normalize(_vm.AppSettings.RecommendedFlowBulkMode) != RecommendedFlowBulkModes.IceRateHeader)
             return;
 
-        if (sender is not Control { Tag: "ApplyRecommendedIceRate" })
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
             return;
 
         e.Handled = true;

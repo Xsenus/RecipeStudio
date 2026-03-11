@@ -71,7 +71,13 @@
             <DataGrid.Columns>
               <DataGridTextColumn Binding="{Binding NPoint}" IsReadOnly="True" Width="45">
                 <DataGridTextColumn.Header>
+                  <Border Classes="bulk-header-hitbox"
+                          Background="Transparent"
+                          Cursor="Hand"
+                          PointerPressed="BulkRecommendedFlowHeader_PointerPressed"
+                          Tag="ApplyRecommendedIceRate">
                   <TextBlock Text="#" Classes="grid-hdr" ToolTip.Tip="Порядковый номер точки" />
+                  </Border>
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
@@ -229,19 +235,19 @@
 
               <DataGridTextColumn Binding="{Binding IceRate}" Width="65">
                 <DataGridTextColumn.Header>
+                  <Border Classes="bulk-header-hitbox"
+                          Background="Transparent"
+                          Cursor="Hand"
+                          PointerPressed="BulkRecommendedFlowHeader_PointerPressed"
+                          Tag="ApplyRecommendedIceRate">
                   <TextBlock Text="Ice.R" Classes="grid-hdr hdr-violet" ToolTip.Tip="G_изм, кг/ч — фактический расход" />
+                  </Border>
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
               <DataGridTextColumn Binding="{Binding IceGrind}" Width="65">
                 <DataGridTextColumn.Header>
-                  <Border Classes="bulk-header-hitbox"
-                          Background="Transparent"
-                          Cursor="Hand"
-                          PointerPressed="BulkRecommendedIceRateHeader_PointerPressed"
-                          Tag="ApplyRecommendedIceRate">
-                    <TextBlock Text="Ice.G" Classes="grid-hdr hdr-violet" ToolTip.Tip="Степень помола/настройка льда" />
-                  </Border>
+                  <TextBlock Text="Ice.G" Classes="grid-hdr hdr-violet" ToolTip.Tip="Степень помола/настройка льда" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
@@ -283,43 +289,43 @@
 
               <DataGridTextColumn Binding="{Binding DX}" IsReadOnly="True" Width="60">
                 <DataGridTextColumn.Header>
-                  <TextBlock Text="Xm" Classes="grid-hdr" ToolTip.Tip="Машинная координата X" />
+                  <TextBlock Text="dX" Classes="grid-hdr" ToolTip.Tip="Приращение координаты X" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
               <DataGridTextColumn Binding="{Binding DY}" IsReadOnly="True" Width="60">
                 <DataGridTextColumn.Header>
-                  <TextBlock Text="Ym" Classes="grid-hdr" ToolTip.Tip="Машинная координата Y" />
+                  <TextBlock Text="dY" Classes="grid-hdr" ToolTip.Tip="Приращение координаты Y" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
               <DataGridTextColumn Binding="{Binding DZ}" IsReadOnly="True" Width="60">
                 <DataGridTextColumn.Header>
-                  <TextBlock Text="Zm" Classes="grid-hdr" ToolTip.Tip="Машинная координата Z" />
+                  <TextBlock Text="dZ" Classes="grid-hdr" ToolTip.Tip="Приращение координаты Z" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
               <DataGridTextColumn Binding="{Binding DA}" IsReadOnly="True" Width="60">
                 <DataGridTextColumn.Header>
-                  <TextBlock Text="Am" Classes="grid-hdr" ToolTip.Tip="Машинная координата A" />
+                  <TextBlock Text="dA" Classes="grid-hdr" ToolTip.Tip="Приращение координаты A" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
               <DataGridTextColumn Binding="{Binding AB}" IsReadOnly="True" Width="60">
                 <DataGridTextColumn.Header>
-                  <TextBlock Text="Bm" Classes="grid-hdr" ToolTip.Tip="Машинная координата B" />
+                  <TextBlock Text="aB" Classes="grid-hdr" ToolTip.Tip="Приращение координаты B" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
               <DataGridTextColumn Binding="{Binding Xr0}" IsReadOnly="True" Width="60">
                 <DataGridTextColumn.Header>
-                  <TextBlock Text="Xr" Classes="grid-hdr hdr-red" ToolTip.Tip="Робот-координата X" />
+                  <TextBlock Text="Xr0" Classes="grid-hdr hdr-red" ToolTip.Tip="Базовая робот-координата X" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
               <DataGridTextColumn Binding="{Binding Yx0}" IsReadOnly="True" Width="60">
                 <DataGridTextColumn.Header>
-                  <TextBlock Text="Yr" Classes="grid-hdr hdr-red" ToolTip.Tip="Робот-координата Y" />
+                  <TextBlock Text="Yx0" Classes="grid-hdr hdr-red" ToolTip.Tip="Базовая робот-координата Y" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
               <DataGridTextColumn Binding="{Binding Zr0}" IsReadOnly="True" Width="60">
                 <DataGridTextColumn.Header>
-                  <TextBlock Text="Zr" Classes="grid-hdr hdr-red" ToolTip.Tip="Робот-координата Z" />
+                  <TextBlock Text="Zr0" Classes="grid-hdr hdr-red" ToolTip.Tip="Базовая робот-координата Z" />
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
@@ -749,13 +755,13 @@
                             <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                               <Border Classes="point-detail-stat">
                                 <StackPanel Spacing="6">
-                                  <TextBlock Text="Robot" Classes="point-detail-caption" />
+                                  <TextBlock Text="Robot Base" Classes="point-detail-caption" />
                                   <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="4">
-                                    <TextBlock Text="Xr" Classes="point-detail-label" />
+                                    <TextBlock Text="Xr0" Classes="point-detail-label" />
                                     <TextBlock Grid.Column="1" Text="{Binding Xr0, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
-                                    <TextBlock Grid.Row="1" Text="Yr" Classes="point-detail-label" />
+                                    <TextBlock Grid.Row="1" Text="Yx0" Classes="point-detail-label" />
                                     <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Yx0, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
-                                    <TextBlock Grid.Row="2" Text="Zr" Classes="point-detail-label" />
+                                    <TextBlock Grid.Row="2" Text="Zr0" Classes="point-detail-label" />
                                     <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Zr0, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
                                   </Grid>
                                 </StackPanel>
@@ -763,17 +769,17 @@
 
                               <Border Grid.Column="1" Classes="point-detail-stat">
                                 <StackPanel Spacing="6">
-                                  <TextBlock Text="Machine" Classes="point-detail-caption" />
+                                  <TextBlock Text="Delta" Classes="point-detail-caption" />
                                   <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="4">
-                                    <TextBlock Text="Xm" Classes="point-detail-label" />
+                                    <TextBlock Text="dX" Classes="point-detail-label" />
                                     <TextBlock Grid.Column="1" Text="{Binding DX, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
-                                    <TextBlock Grid.Row="1" Text="Ym" Classes="point-detail-label" />
+                                    <TextBlock Grid.Row="1" Text="dY" Classes="point-detail-label" />
                                     <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding DY, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
-                                    <TextBlock Grid.Row="2" Text="Zm" Classes="point-detail-label" />
+                                    <TextBlock Grid.Row="2" Text="dZ" Classes="point-detail-label" />
                                     <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DZ, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
-                                    <TextBlock Grid.Row="3" Text="Am" Classes="point-detail-label" />
+                                    <TextBlock Grid.Row="3" Text="dA" Classes="point-detail-label" />
                                     <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding DA, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
-                                    <TextBlock Grid.Row="4" Text="Bm" Classes="point-detail-label" />
+                                    <TextBlock Grid.Row="4" Text="aB" Classes="point-detail-label" />
                                     <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding AB, StringFormat='{}{0:0.###}'}" Classes="point-detail-value" />
                                   </Grid>
                                 </StackPanel>

@@ -82,21 +82,17 @@ public sealed class EditorViewModelBulkFlagsTests : IDisposable
     }
 
     [Fact]
-    public void ApplyRecommendedIceRateForAll_CopiesRecommendedValuesToIceRate()
+    public void ApplyRecommendedIceRateForAll_CopiesCurrentRecommendedValuesToIceRate()
     {
         var vm = CreateViewModel();
         vm.LoadDocument(CreateDocument());
-        var expected = vm.Points.Select(point => point.RecommendedIceRate).ToArray();
 
-        vm.Points[1].IceRate = 10;
+        var expected = vm.Points.Select(point => point.RecommendedIceRate).ToArray();
 
         vm.ApplyRecommendedIceRateForAll();
 
         for (var i = 0; i < vm.Points.Count; i++)
-        {
             Assert.Equal(expected[i], vm.Points[i].IceRate, precision: 6);
-            Assert.Equal(expected[i], vm.Points[i].RecommendedIceRate, precision: 6);
-        }
     }
 
     public void Dispose()

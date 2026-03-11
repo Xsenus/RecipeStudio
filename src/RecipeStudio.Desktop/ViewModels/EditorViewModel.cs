@@ -359,7 +359,7 @@ public sealed class EditorViewModel : ViewModelBase
     {
         if (Document is null) return;
         Recalculate();
-        _excel.Export(Document, path);
+        _excel.Export(Document, path, _settings.Settings);
     }
 
     public RecipeImportPreview PreviewImport(string path)
@@ -432,7 +432,25 @@ public sealed class EditorViewModel : ViewModelBase
         => ApplyNumericToAll((point, numericValue) => point.AirTemp = numericValue, value, recalculate: false);
 
     public void ApplyRecommendedIceRateForAll()
-        => ApplyFlagToAll(point => point.IceRate = point.RecommendedIceRate, recalculate: true);
+    {
+        if (Document is null || Points.Count == 0)
+            return;
+
+        var snapshot = Points.Select(point => point.RecommendedIceRate).ToArray();
+
+        try
+        {
+            _suppressRecalc = true;
+            for (var i = 0; i < Points.Count; i++)
+                Points[i].IceRate = snapshot[i];
+        }
+        finally
+        {
+            _suppressRecalc = false;
+        }
+
+        Recalculate();
+    }
 
     private void AddPoint()
     {

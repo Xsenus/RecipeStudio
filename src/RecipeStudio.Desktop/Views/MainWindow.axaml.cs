@@ -1,20 +1,35 @@
+﻿using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Input;
 using RecipeStudio.Desktop.Services;
+using RecipeStudio.Desktop.ViewModels;
 using RecipeStudio.Desktop.Views.Dialogs;
 
 namespace RecipeStudio.Desktop.Views;
 
 public sealed partial class MainWindow : Window
 {
+    private const uint WmKeyDown = 0x0100;
+    private const uint WmSysKeyDown = 0x0104;
+    private const int VkControl = 0x11;
+    private const int VkShift = 0x10;
+    private const int VkMenu = 0x12;
+    private const int VkX = 0x58;
+
     private SettingsService? _settings;
     private bool _closeConfirmed;
+    private readonly Win32Properties.CustomWndProcHookCallback _wndProcHook;
+    private bool _wndProcHookAttached;
 
     public MainWindow()
     {
         InitializeComponent();
+        _wndProcHook = WndProcHook;
+        Opened += OnOpened;
+        Closed += OnClosed;
 
         if (Design.IsDesignMode)
         {
@@ -103,6 +118,56 @@ public sealed partial class MainWindow : Window
         var result = await dialog.ShowDialog<bool>(this);
         return result;
     }
+
+    private void OnOpened(object? sender, EventArgs e)
+    {
+        if (!OperatingSystem.IsWindows() || _wndProcHookAttached)
+        {
+            return;
+        }
+
+        Win32Properties.AddWndProcHookCallback(this, _wndProcHook);
+        _wndProcHookAttached = true;
+    }
+
+    private void OnClosed(object? sender, EventArgs e)
+    {
+        if (!OperatingSystem.IsWindows() || !_wndProcHookAttached)
+        {
+            return;
+        }
+
+        Win32Properties.RemoveWndProcHookCallback(this, _wndProcHook);
+        _wndProcHookAttached = false;
+    }
+
+    private IntPtr WndProcHook(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if ((msg != WmKeyDown && msg != WmSysKeyDown) || wParam.ToInt32() != VkX)
+        {
+            return IntPtr.Zero;
+        }
+
+        if (DataContext is not MainViewModel { CurrentPage: SettingsViewModel settingsVm })
+        {
+            return IntPtr.Zero;
+        }
+
+        if (!IsKeyPressed(VkControl) || !IsKeyPressed(VkShift) || !IsKeyPressed(VkMenu))
+        {
+            return IntPtr.Zero;
+        }
+
+        settingsVm.ToggleExcelCompatibilityVisibility();
+        handled = true;
+        return IntPtr.Zero;
+    }
+
+    private static bool IsKeyPressed(int virtualKey)
+        => (GetKeyState(virtualKey) & 0x8000) != 0;
+
+    [DllImport("user32.dll")]
+    private static extern short GetKeyState(int nVirtKey);
 
     private void ApplyWindowPlacementIfExists()
     {

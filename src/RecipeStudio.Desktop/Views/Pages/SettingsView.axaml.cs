@@ -207,6 +207,30 @@ public sealed partial class SettingsView : UserControl
         }
     }
 
+    // shortcut handling moved to MainWindow
+    private void SettingsView_KeyDown(object? sender, KeyEventArgs e)
+    {
+        e.Handled = false;
+    }
+
+    private static bool IsExcelCompatibilityShortcut(KeyEventArgs e)
+    {
+        var modifiers = e.KeyModifiers;
+        var hasModifiers =
+            modifiers.HasFlag(KeyModifiers.Control) &&
+            modifiers.HasFlag(KeyModifiers.Shift) &&
+            modifiers.HasFlag(KeyModifiers.Alt);
+
+        if (!hasModifiers)
+            return false;
+
+        if (e.PhysicalKey == PhysicalKey.X || e.Key == Key.X)
+            return true;
+
+        return string.Equals(e.KeySymbol, "x", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(e.KeySymbol, "ч", StringComparison.OrdinalIgnoreCase);
+    }
+
 
 
     private async void ColorPicker_Click(object? sender, RoutedEventArgs e)

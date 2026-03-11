@@ -19,6 +19,20 @@ public static class NozzleOrientationModes
     }
 }
 
+public static class RecommendedAlfaModes
+{
+    public const string Plus90 = "plus_90";
+    public const string Minus90 = "minus_90";
+
+    public static string Normalize(string? mode)
+    {
+        if (string.Equals(mode, Minus90, StringComparison.OrdinalIgnoreCase))
+            return Minus90;
+
+        return Plus90;
+    }
+}
+
 public readonly record struct NozzleAngleLimits(double AlfaMin, double AlfaMax, double BettaMin, double BettaMax)
 {
     public static NozzleAngleLimits FromSettings(AppSettings? settings)

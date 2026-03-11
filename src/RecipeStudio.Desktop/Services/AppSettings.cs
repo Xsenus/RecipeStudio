@@ -19,6 +19,13 @@ public sealed class AppSettings
     public double Zm { get; set; } = 423;
 
     public double Lz { get; set; } = 250;
+    public string CalculationOriginMode { get; set; } = CalculationOriginModes.ExcelFirstRow;
+    public string ANozzleKinematicsMode { get; set; } = ANozzleKinematicsModes.ExcelFirstRow;
+    public string VelocityCalculationMode { get; set; } = VelocityCalculationModes.ExcelExact;
+    public string TopLowPulseMode { get; set; } = TopLowPulseModes.ExcelLinked;
+    public string ExcelExportMode { get; set; } = ExcelExportModes.Workbook;
+    public string RecommendedFlowBulkMode { get; set; } = RecommendedFlowBulkModes.Disabled;
+    public string RecommendedAlfaMode { get; set; } = RecommendedAlfaModes.Plus90;
     public string NozzleOrientationMode { get; set; } = NozzleOrientationModes.PhysicalAngles;
     public double AlfaMinDeg { get; set; } = -90;
     public double AlfaMaxDeg { get; set; } = 90;

@@ -18,10 +18,15 @@ public sealed class RecipeExcelService
 {
     private static readonly CultureInfo Ru = CultureInfo.GetCultureInfo("ru-RU");
 
+    private sealed record ImportSheetContext(IXLWorksheet Worksheet, int HeaderRow, int DataStartRow);
+    private static readonly string[] WorkbookCalcColumns = new[] { "n_point" }
+        .Concat(RecipeFieldCatalog.CalcColumns)
+        .ToArray();
+
     // Column keys used in Excel files.
     public static readonly string[] Columns = RecipeFieldCatalog.ExcelColumns;
 
-    public void Export(RecipeDocument doc, string path)
+    public void Export(RecipeDocument doc, string path, AppSettings? settings = null)
     {
         if (doc.Points.Count == 0)
             throw new InvalidOperationException("Recipe has no points to export.");
@@ -29,71 +34,219 @@ public sealed class RecipeExcelService
         Directory.CreateDirectory(Path.GetDirectoryName(path) ?? ".");
 
         using var wb = new XLWorkbook();
-        var ws = wb.AddWorksheet("Points");
+        settings ??= new AppSettings();
+        var exportMode = ExcelExportModes.Normalize(settings.ExcelExportMode);
 
-        for (var c = 0; c < Columns.Length; c++)
-            ws.Cell(1, c + 1).Value = Columns[c];
+        if (exportMode == ExcelExportModes.FlatPoints)
+            ExportFlatWorkbook(wb, doc);
+        else
+            ExportWorkbookLayout(wb, doc, settings);
+
+        wb.SaveAs(path);
+    }
+
+    private static void ExportFlatWorkbook(XLWorkbook wb, RecipeDocument doc)
+    {
+        var ws = wb.AddWorksheet("Points");
+        WriteHeaders(ws, Columns, headerRow: 1);
 
         var row = 2;
-        foreach (var p in doc.Points.OrderBy(x => x.NPoint))
+        foreach (var point in GetPreparedPoints(doc))
         {
-            p.RecipeCode = doc.RecipeCode;
-            p.DClampForm = doc.DClampForm;
-            p.DClampCont = doc.DClampCont;
-            p.Container = doc.ContainerPresent;
-
-            Write(ws, row, "recipe_code", p.RecipeCode);
-            Write(ws, row, "n_point", p.NPoint);
-            Write(ws, row, "Act", p.Act ? 1 : 0);
-            Write(ws, row, "Safe", p.Safe ? 1 : 0);
-            Write(ws, row, "r_crd", p.RCrd);
-            Write(ws, row, "z_crd", p.ZCrd);
-            Write(ws, row, "place", p.Place);
-            Write(ws, row, "hidden", p.Hidden ? 1 : 0);
-            Write(ws, row, "a_nozzle", p.ANozzle);
-
-            Write(ws, row, "recommended_alfa", p.RecommendedAlfa);
-            Write(ws, row, "alfa_crd", p.Alfa);
-            Write(ws, row, "betta_crd", p.Betta);
-            Write(ws, row, "speed_table", p.SpeedTable);
-            Write(ws, row, "time_sec", p.TimeSec);
-            Write(ws, row, "v_mm_min", p.NozzleSpeedMmMin);
-            Write(ws, row, "recommended_ice_rate", p.RecommendedIceRate);
-
-            Write(ws, row, "ice_rate", p.IceRate);
-            Write(ws, row, "ice_grind", p.IceGrind);
-            Write(ws, row, "air_pressure", p.AirPressure);
-            Write(ws, row, "air_temp", p.AirTemp);
-            Write(ws, row, "container", p.Container ? 1 : 0);
-            Write(ws, row, "d_clamp_form", p.DClampForm);
-            Write(ws, row, "d_clamp_cont", p.DClampCont);
-            Write(ws, row, "description", p.Description ?? "");
-
-            Write(ws, row, "Xr0", p.Xr0);
-            Write(ws, row, "Yx0", p.Yx0);
-            Write(ws, row, "Zr0", p.Zr0);
-            Write(ws, row, "dX", p.DX);
-            Write(ws, row, "dY", p.DY);
-            Write(ws, row, "dZ", p.DZ);
-            Write(ws, row, "dA", p.DA);
-            Write(ws, row, "aB", p.AB);
-            Write(ws, row, "Xpuls", p.XPuls);
-            Write(ws, row, "Ypuls", p.YPuls);
-            Write(ws, row, "Zpuls", p.ZPuls);
-            Write(ws, row, "Apuls", p.APuls);
-            Write(ws, row, "Bpuls", p.BPuls);
-            Write(ws, row, "Top_puls", p.TopPuls);
-            Write(ws, row, "Top_Hz", p.TopHz);
-            Write(ws, row, "Low_puls", p.LowPuls);
-            Write(ws, row, "Low_Hz", p.LowHz);
-            Write(ws, row, "Clamp_puls", p.ClampPuls);
-
+            WriteRecipePointRow(ws, Columns, row, point);
             row++;
         }
 
         ws.SheetView.FreezeRows(1);
         ws.Columns().AdjustToContents();
-        wb.SaveAs(path);
+    }
+
+    private static void ExportWorkbookLayout(XLWorkbook wb, RecipeDocument doc, AppSettings settings)
+    {
+        var points = GetPreparedPoints(doc).ToList();
+
+        var ui = wb.AddWorksheet("UI");
+        WriteHeaders(ui, Columns, headerRow: 1);
+        WriteWorkbookDisplayHeaders(ui, Columns, headerRow: 2, GetWorkbookUiDisplayHeader);
+        for (var i = 0; i < points.Count; i++)
+            WriteRecipePointRow(ui, Columns, i + 3, points[i]);
+        ui.SheetView.FreezeRows(2);
+        ui.Columns().AdjustToContents();
+
+        var calc = wb.AddWorksheet("CALC");
+        WriteHeaders(calc, WorkbookCalcColumns, headerRow: 1);
+        for (var i = 0; i < points.Count; i++)
+            WriteCalcRow(calc, i + 2, points[i]);
+        calc.SheetView.FreezeRows(1);
+        calc.Columns().AdjustToContents();
+
+        var save = wb.AddWorksheet("SAVE");
+        WriteHeaders(save, RecipeFieldCatalog.TsvColumns, headerRow: 1);
+        for (var i = 0; i < points.Count; i++)
+            WriteRecipePointRow(save, RecipeFieldCatalog.TsvColumns, i + 2, points[i]);
+        save.SheetView.FreezeRows(1);
+        save.Columns().AdjustToContents();
+
+        var constants = wb.AddWorksheet("CONST");
+        constants.Cell(1, 1).Value = "name";
+        constants.Cell(1, 2).Value = "value";
+        var rows = BuildConstRows(settings);
+        for (var i = 0; i < rows.Count; i++)
+        {
+            constants.Cell(i + 2, 1).Value = rows[i].Key;
+            constants.Cell(i + 2, 2).Value = rows[i].Value;
+        }
+
+        constants.SheetView.FreezeRows(1);
+        constants.Columns().AdjustToContents();
+    }
+
+    private static IEnumerable<RecipePoint> GetPreparedPoints(RecipeDocument doc)
+    {
+        foreach (var point in doc.Points.OrderBy(x => x.NPoint))
+        {
+            point.RecipeCode = doc.RecipeCode;
+            point.DClampForm = doc.DClampForm;
+            point.DClampCont = doc.DClampCont;
+            point.Container = doc.ContainerPresent;
+            yield return point;
+        }
+    }
+
+    private static void WriteHeaders(IXLWorksheet ws, IReadOnlyList<string> columns, int headerRow)
+    {
+        for (var c = 0; c < columns.Count; c++)
+            ws.Cell(headerRow, c + 1).Value = columns[c];
+    }
+
+    private static void WriteWorkbookDisplayHeaders(IXLWorksheet ws, IReadOnlyList<string> columns, int headerRow, Func<string, string> map)
+    {
+        for (var c = 0; c < columns.Count; c++)
+            ws.Cell(headerRow, c + 1).Value = map(columns[c]);
+    }
+
+    private static void WriteRecipePointRow(IXLWorksheet ws, IReadOnlyList<string> columns, int row, RecipePoint p)
+    {
+        Write(ws, columns, row, "recipe_code", p.RecipeCode);
+        Write(ws, columns, row, "n_point", p.NPoint);
+        Write(ws, columns, row, "Act", p.Act ? 1 : 0);
+        Write(ws, columns, row, "Safe", p.Safe ? 1 : 0);
+        Write(ws, columns, row, "r_crd", p.RCrd);
+        Write(ws, columns, row, "z_crd", p.ZCrd);
+        Write(ws, columns, row, "place", p.Place);
+        Write(ws, columns, row, "hidden", p.Hidden ? 1 : 0);
+        Write(ws, columns, row, "a_nozzle", p.ANozzle);
+        Write(ws, columns, row, "recommended_alfa", p.RecommendedAlfa);
+        Write(ws, columns, row, "alfa_crd", p.Alfa);
+        Write(ws, columns, row, "betta_crd", p.Betta);
+        Write(ws, columns, row, "speed_table", p.SpeedTable);
+        Write(ws, columns, row, "time_sec", p.TimeSec);
+        Write(ws, columns, row, "v_mm_min", p.NozzleSpeedMmMin);
+        Write(ws, columns, row, "recommended_ice_rate", p.RecommendedIceRate);
+        Write(ws, columns, row, "ice_rate", p.IceRate);
+        Write(ws, columns, row, "ice_grind", p.IceGrind);
+        Write(ws, columns, row, "air_pressure", p.AirPressure);
+        Write(ws, columns, row, "air_temp", p.AirTemp);
+        Write(ws, columns, row, "container", p.Container ? 1 : 0);
+        Write(ws, columns, row, "d_clamp_form", p.DClampForm);
+        Write(ws, columns, row, "d_clamp_cont", p.DClampCont);
+        Write(ws, columns, row, "description", p.Description ?? "");
+        Write(ws, columns, row, "Xr0", p.Xr0);
+        Write(ws, columns, row, "Yx0", p.Yx0);
+        Write(ws, columns, row, "Zr0", p.Zr0);
+        Write(ws, columns, row, "dX", p.DX);
+        Write(ws, columns, row, "dY", p.DY);
+        Write(ws, columns, row, "dZ", p.DZ);
+        Write(ws, columns, row, "dA", p.DA);
+        Write(ws, columns, row, "aB", p.AB);
+        Write(ws, columns, row, "Xpuls", p.XPuls);
+        Write(ws, columns, row, "Ypuls", p.YPuls);
+        Write(ws, columns, row, "Zpuls", p.ZPuls);
+        Write(ws, columns, row, "Apuls", p.APuls);
+        Write(ws, columns, row, "Bpuls", p.BPuls);
+        Write(ws, columns, row, "Top_puls", p.TopPuls);
+        Write(ws, columns, row, "Top_Hz", p.TopHz);
+        Write(ws, columns, row, "Low_puls", p.LowPuls);
+        Write(ws, columns, row, "Low_Hz", p.LowHz);
+        Write(ws, columns, row, "Clamp_puls", p.ClampPuls);
+    }
+
+    private static void WriteCalcRow(IXLWorksheet ws, int row, RecipePoint p)
+    {
+        Write(ws, WorkbookCalcColumns, row, "n_point", p.NPoint);
+        Write(ws, WorkbookCalcColumns, row, "Xr0", p.Xr0);
+        Write(ws, WorkbookCalcColumns, row, "Yx0", p.Yx0);
+        Write(ws, WorkbookCalcColumns, row, "Zr0", p.Zr0);
+        Write(ws, WorkbookCalcColumns, row, "dX", p.DX);
+        Write(ws, WorkbookCalcColumns, row, "dY", p.DY);
+        Write(ws, WorkbookCalcColumns, row, "dZ", p.DZ);
+        Write(ws, WorkbookCalcColumns, row, "dA", p.DA);
+        Write(ws, WorkbookCalcColumns, row, "aB", p.AB);
+        Write(ws, WorkbookCalcColumns, row, "Xpuls", p.XPuls);
+        Write(ws, WorkbookCalcColumns, row, "Ypuls", p.YPuls);
+        Write(ws, WorkbookCalcColumns, row, "Zpuls", p.ZPuls);
+        Write(ws, WorkbookCalcColumns, row, "Apuls", p.APuls);
+        Write(ws, WorkbookCalcColumns, row, "Bpuls", p.BPuls);
+        Write(ws, WorkbookCalcColumns, row, "Top_puls", p.TopPuls);
+        Write(ws, WorkbookCalcColumns, row, "Top_Hz", p.TopHz);
+        Write(ws, WorkbookCalcColumns, row, "Low_puls", p.LowPuls);
+        Write(ws, WorkbookCalcColumns, row, "Low_Hz", p.LowHz);
+        Write(ws, WorkbookCalcColumns, row, "Clamp_puls", p.ClampPuls);
+    }
+
+    private static List<(string Key, double Value)> BuildConstRows(AppSettings settings)
+    {
+        return new List<(string Key, double Value)>
+        {
+            ("H_zone", settings.HZone),
+            ("H_cont", settings.HContMax),
+            ("H_bok", settings.HBokMax),
+            ("H_freeZ", settings.HFreeZ),
+            ("Xm", settings.Xm),
+            ("Ym", settings.Ym),
+            ("Zm", settings.Zm),
+            ("Lz", settings.Lz),
+            ("vPulse_X", settings.PulseX),
+            ("vPulse_Y", settings.PulseY),
+            ("vPulse_Z", settings.PulseZ),
+            ("vPulse_A", settings.PulseA),
+            ("vPulse_B", settings.PulseB),
+            ("vPulse_TOP", settings.PulseTop),
+            ("vPulse_LOW", settings.PulseLow),
+            ("vPulse_clamp", settings.PulseClamp),
+        };
+    }
+
+    private static string GetWorkbookUiDisplayHeader(string key)
+    {
+        return key switch
+        {
+            "recipe_code" => "#",
+            "n_point" => "Point",
+            "Act" => "A",
+            "Safe" => "Safe",
+            "r_crd" => "R",
+            "z_crd" => "Z",
+            "place" => "Top",
+            "hidden" => "Micro",
+            "a_nozzle" => "a",
+            "recommended_alfa" => "a rec",
+            "alfa_crd" => "alfa",
+            "betta_crd" => "beta",
+            "speed_table" => "Speed",
+            "time_sec" => "Time",
+            "v_mm_min" => "Vel",
+            "recommended_ice_rate" => "Flow",
+            "ice_rate" => "Ice.R",
+            "ice_grind" => "Ice.G",
+            "air_pressure" => "Air.P",
+            "air_temp" => "Air.T",
+            "container" => "Container",
+            "d_clamp_form" => "Clamp.F",
+            "d_clamp_cont" => "Clamp.C",
+            "description" => "Description",
+            _ => key
+        };
     }
 
     public RecipeDocument Import(string path)
@@ -105,9 +258,10 @@ public sealed class RecipeExcelService
             throw new FileNotFoundException("Excel file not found", path);
 
         using var wb = new XLWorkbook(path);
-        var ws = wb.Worksheets.First();
+        var importSheet = ResolveImportSheet(wb);
+        var ws = importSheet.Worksheet;
 
-        var rawHeaders = ReadHeaders(ws);
+        var rawHeaders = ReadHeaders(ws, importSheet.HeaderRow);
         var (headerMap, duplicateHeaders) = BuildHeaderMap(rawHeaders);
 
         var aliasHits = NormalizeAliases(headerMap);
@@ -116,7 +270,7 @@ public sealed class RecipeExcelService
         var doc = new RecipeDocument();
         var lastRow = ws.LastRowUsed()?.RowNumber() ?? 1;
 
-        for (var r = 2; r <= lastRow; r++)
+        for (var r = importSheet.DataStartRow; r <= lastRow; r++)
         {
             var row = ws.Row(r);
             if (row.CellsUsed().All(c => c.IsEmpty()))
@@ -191,15 +345,39 @@ public sealed class RecipeExcelService
         return new RecipeImportResult(doc, report);
     }
 
-    private static List<string> ReadHeaders(IXLWorksheet ws)
+    private static ImportSheetContext ResolveImportSheet(XLWorkbook workbook)
     {
-        var headerRow = ws.Row(1);
+        var uiSheet = workbook.Worksheets.FirstOrDefault(IsWorkbookUiSheet);
+        if (uiSheet is not null)
+            return new ImportSheetContext(uiSheet, HeaderRow: 1, DataStartRow: 3);
+
+        return new ImportSheetContext(workbook.Worksheets.First(), HeaderRow: 1, DataStartRow: 2);
+    }
+
+    private static bool IsWorkbookUiSheet(IXLWorksheet worksheet)
+    {
+        if (!string.Equals(worksheet.Name, "UI", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var headers = ReadHeaders(worksheet, headerRow: 1);
+        var headerSet = new HashSet<string>(
+            headers.Where(h => !string.IsNullOrWhiteSpace(h)),
+            StringComparer.OrdinalIgnoreCase);
+
+        return headerSet.Contains("recipe_code") &&
+               headerSet.Contains("n_point") &&
+               RecipeFieldCatalog.RequiredImportColumns.All(headerSet.Contains);
+    }
+
+    private static List<string> ReadHeaders(IXLWorksheet ws, int headerRow)
+    {
+        var row = ws.Row(headerRow);
         var maxCol = ws.LastColumnUsed()?.ColumnNumber() ?? 1;
         var headers = new List<string>(Math.Max(1, maxCol));
 
         for (var c = 1; c <= maxCol; c++)
         {
-            headers.Add(headerRow.Cell(c).GetString().Trim());
+            headers.Add(row.Cell(c).GetString().Trim());
         }
 
         return headers;
@@ -268,9 +446,18 @@ public sealed class RecipeExcelService
         return hits;
     }
 
-    private static void Write(IXLWorksheet ws, int row, string key, object? value)
+    private static void Write(IXLWorksheet ws, IReadOnlyList<string> columns, int row, string key, object? value)
     {
-        var col = Array.IndexOf(Columns, key);
+        var col = -1;
+        for (var i = 0; i < columns.Count; i++)
+        {
+            if (!string.Equals(columns[i], key, StringComparison.Ordinal))
+                continue;
+
+            col = i;
+            break;
+        }
+
         if (col < 0)
             return;
 

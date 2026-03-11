@@ -19,6 +19,7 @@ public sealed class SettingsViewModel : ViewModelBase
     private readonly Func<bool> _createSampleRecipe;
 
     private string _selectedSection = SectionStorage;
+    private bool _isExcelCompatibilityVisible;
 
     public SettingsViewModel(SettingsService settings, Action onChanged, Func<bool> createSampleRecipe)
     {
@@ -29,11 +30,13 @@ public sealed class SettingsViewModel : ViewModelBase
         SaveCommand = new RelayCommand(Save);
         ResetToDefaultsCommand = new RelayCommand(ResetToDefaults);
         CreateSampleRecipeCommand = new RelayCommand(() => RequestCreateSampleRecipe?.Invoke());
+        ToggleExcelCompatibilityCommand = new RelayCommand(ToggleExcelCompatibilityVisibility);
     }
 
     public RelayCommand SaveCommand { get; }
     public RelayCommand ResetToDefaultsCommand { get; }
     public RelayCommand CreateSampleRecipeCommand { get; }
+    public RelayCommand ToggleExcelCompatibilityCommand { get; }
 
     public event Action? RequestCreateSampleRecipe;
     public event Action<string>? SettingsSaved;
@@ -62,6 +65,11 @@ public sealed class SettingsViewModel : ViewModelBase
     public bool IsGraphicsSection => SelectedSection == SectionGraphics;
     public bool IsSimulationSection => SelectedSection == SectionSimulation;
     public bool IsLoggingSection => SelectedSection == SectionLogging;
+    public bool IsExcelCompatibilityVisible
+    {
+        get => _isExcelCompatibilityVisible;
+        private set => SetProperty(ref _isExcelCompatibilityVisible, value);
+    }
 
     public string CurrentSectionTitle => SelectedSection switch
     {
@@ -133,6 +141,215 @@ public sealed class SettingsViewModel : ViewModelBase
     public string NozzleOrientationModeDescription
         => NozzleOrientationModeOptions.FirstOrDefault(x => x.Value == NozzleOrientationMode)?.Description
            ?? "Сопло ориентируется строго по углам A/B.";
+
+    public IReadOnlyList<RecommendedAlfaModeOption> RecommendedAlfaModeOptions { get; } = new[]
+    {
+        new RecommendedAlfaModeOption(
+            RecommendedAlfaModes.Plus90,
+            "Формула +90",
+            "RecommendedAlfa считается как round(-atan(dZ/dR)) + 90. Это текущее поведение по умолчанию."),
+        new RecommendedAlfaModeOption(
+            RecommendedAlfaModes.Minus90,
+            "Формула 90-",
+            "RecommendedAlfa считается как 90 - round(-atan(dZ/dR)). Подходит для альтернативной трактовки угла.")
+    };
+
+    public string RecommendedAlfaMode
+    {
+        get => RecommendedAlfaModes.Normalize(_settings.Settings.RecommendedAlfaMode);
+        set
+        {
+            _settings.Settings.RecommendedAlfaMode = RecommendedAlfaModes.Normalize(value);
+            RaisePropertyChanged();
+            RaisePropertyChanged(nameof(RecommendedAlfaModeDescription));
+            RaisePropertyChanged(nameof(RecommendedAlfaCompatibilityDescription));
+        }
+    }
+
+    public string RecommendedAlfaModeDescription
+        => RecommendedAlfaModeOptions.FirstOrDefault(x => x.Value == RecommendedAlfaMode)?.Description
+           ?? "RecommendedAlfa считается по формуле round(-atan(dZ/dR)) + 90.";
+
+    public IReadOnlyList<CompatibilityModeOption> RecommendedAlfaCompatibilityOptions { get; } = new[]
+    {
+        new CompatibilityModeOption(
+            RecommendedAlfaModes.Plus90,
+            "Как в Excel",
+            "RecommendedAlfa считается по формуле round(-atan(dZ/dR)) + 90. Этот режим включен по умолчанию."),
+        new CompatibilityModeOption(
+            RecommendedAlfaModes.Minus90,
+            "Как у нас",
+            "RecommendedAlfa считается по формуле 90 - round(-atan(dZ/dR)). Это альтернативная локальная трактовка угла.")
+    };
+
+    public string RecommendedAlfaCompatibilityDescription
+        => RecommendedAlfaCompatibilityOptions.FirstOrDefault(x => x.Value == RecommendedAlfaMode)?.Description
+           ?? "RecommendedAlfa считается по формуле round(-atan(dZ/dR)) + 90.";
+
+    public void ToggleExcelCompatibilityVisibility()
+        => IsExcelCompatibilityVisible = !IsExcelCompatibilityVisible;
+
+    public IReadOnlyList<CompatibilityModeOption> CalculationOriginModeOptions { get; } = new[]
+    {
+        new CompatibilityModeOption(
+            CalculationOriginModes.ExcelFirstRow,
+            "Как в Excel",
+            "База Xr0/Yx0/Zr0 берется всегда из первой строки рецепта. Это повторяет workbook и может изменить dX/dY/dZ, если в начале есть служебные строки."),
+        new CompatibilityModeOption(
+            CalculationOriginModes.CurrentFirstWorking,
+            "Как у нас",
+            "База расчета берется из первой рабочей точки с Act=1 и Safe=0. Это устойчивее к служебным строкам, но не совпадает один в один с workbook.")
+    };
+
+    public string CalculationOriginMode
+    {
+        get => CalculationOriginModes.Normalize(_settings.Settings.CalculationOriginMode);
+        set
+        {
+            _settings.Settings.CalculationOriginMode = CalculationOriginModes.Normalize(value);
+            RaisePropertyChanged();
+            RaisePropertyChanged(nameof(CalculationOriginModeDescription));
+        }
+    }
+
+    public string CalculationOriginModeDescription
+        => CalculationOriginModeOptions.FirstOrDefault(x => x.Value == CalculationOriginMode)?.Description
+           ?? "База Xr0/Yx0/Zr0 берется из первой строки рецепта.";
+
+    public IReadOnlyList<CompatibilityModeOption> ANozzleKinematicsModeOptions { get; } = new[]
+    {
+        new CompatibilityModeOption(
+            ANozzleKinematicsModes.ExcelFirstRow,
+            "Как в Excel",
+            "Во всей кинематике используется a_nozzle первой строки. Это повторяет CALC workbook."),
+        new CompatibilityModeOption(
+            ANozzleKinematicsModes.CurrentPerPoint,
+            "Как у нас",
+            "Каждая точка использует свой a_nozzle. Это позволяет менять длину сопла по траектории.")
+    };
+
+    public string ANozzleKinematicsMode
+    {
+        get => ANozzleKinematicsModes.Normalize(_settings.Settings.ANozzleKinematicsMode);
+        set
+        {
+            _settings.Settings.ANozzleKinematicsMode = ANozzleKinematicsModes.Normalize(value);
+            RaisePropertyChanged();
+            RaisePropertyChanged(nameof(ANozzleKinematicsModeDescription));
+        }
+    }
+
+    public string ANozzleKinematicsModeDescription
+        => ANozzleKinematicsModeOptions.FirstOrDefault(x => x.Value == ANozzleKinematicsMode)?.Description
+           ?? "Во всей кинематике используется a_nozzle первой строки.";
+
+    public IReadOnlyList<CompatibilityModeOption> VelocityCalculationModeOptions { get; } = new[]
+    {
+        new CompatibilityModeOption(
+            VelocityCalculationModes.ExcelExact,
+            "Как в Excel",
+            "Vel считается без округления. Это точнее повторяет UI workbook и влияет на точность рекомендованного Flow."),
+        new CompatibilityModeOption(
+            VelocityCalculationModes.CurrentRounded,
+            "Как у нас",
+            "Vel округляется до целого мм/мин. Это повторяет текущее поведение приложения.")
+    };
+
+    public string VelocityCalculationMode
+    {
+        get => VelocityCalculationModes.Normalize(_settings.Settings.VelocityCalculationMode);
+        set
+        {
+            _settings.Settings.VelocityCalculationMode = VelocityCalculationModes.Normalize(value);
+            RaisePropertyChanged();
+            RaisePropertyChanged(nameof(VelocityCalculationModeDescription));
+        }
+    }
+
+    public string VelocityCalculationModeDescription
+        => VelocityCalculationModeOptions.FirstOrDefault(x => x.Value == VelocityCalculationMode)?.Description
+           ?? "Vel считается без округления.";
+
+    public IReadOnlyList<CompatibilityModeOption> TopLowPulseModeOptions { get; } = new[]
+    {
+        new CompatibilityModeOption(
+            TopLowPulseModes.ExcelLinked,
+            "Как в Excel",
+            "Top_puls принудительно берется из Low_puls. Отдельный PulseTop в расчете не используется."),
+        new CompatibilityModeOption(
+            TopLowPulseModes.CurrentIndependent,
+            "Как у нас",
+            "Top_puls и Low_puls считаются независимо по PulseTop и PulseLow.")
+    };
+
+    public string TopLowPulseMode
+    {
+        get => TopLowPulseModes.Normalize(_settings.Settings.TopLowPulseMode);
+        set
+        {
+            _settings.Settings.TopLowPulseMode = TopLowPulseModes.Normalize(value);
+            RaisePropertyChanged();
+            RaisePropertyChanged(nameof(TopLowPulseModeDescription));
+        }
+    }
+
+    public string TopLowPulseModeDescription
+        => TopLowPulseModeOptions.FirstOrDefault(x => x.Value == TopLowPulseMode)?.Description
+           ?? "Top_puls берется из Low_puls.";
+
+    public IReadOnlyList<CompatibilityModeOption> ExcelExportModeOptions { get; } = new[]
+    {
+        new CompatibilityModeOption(
+            ExcelExportModes.Workbook,
+            "Как в Excel",
+            "Экспортирует книгу UI/CALC/CONST/SAVE. Подходит для обмена с исходным workbook."),
+        new CompatibilityModeOption(
+            ExcelExportModes.FlatPoints,
+            "Как у нас",
+            "Экспортирует один плоский лист Points с данными рецепта.")
+    };
+
+    public string ExcelExportMode
+    {
+        get => ExcelExportModes.Normalize(_settings.Settings.ExcelExportMode);
+        set
+        {
+            _settings.Settings.ExcelExportMode = ExcelExportModes.Normalize(value);
+            RaisePropertyChanged();
+            RaisePropertyChanged(nameof(ExcelExportModeDescription));
+        }
+    }
+
+    public string ExcelExportModeDescription
+        => ExcelExportModeOptions.FirstOrDefault(x => x.Value == ExcelExportMode)?.Description
+           ?? "Экспортирует книгу UI/CALC/CONST/SAVE.";
+
+    public IReadOnlyList<CompatibilityModeOption> RecommendedFlowBulkModeOptions { get; } = new[]
+    {
+        new CompatibilityModeOption(
+            RecommendedFlowBulkModes.Disabled,
+            "Как в Excel",
+            "Массовое применение рекомендованного расхода отключено. В workbook такого действия нет."),
+        new CompatibilityModeOption(
+            RecommendedFlowBulkModes.IceRateHeader,
+            "Как у нас",
+            "По клику на хедер Ice.R можно подтвердить заполнение IceRate текущими значениями RecommendedIceRate для всех точек.")
+    };
+
+    public string RecommendedFlowBulkMode
+    {
+        get => RecommendedFlowBulkModes.Normalize(_settings.Settings.RecommendedFlowBulkMode);
+        set
+        {
+            _settings.Settings.RecommendedFlowBulkMode = RecommendedFlowBulkModes.Normalize(value);
+            RaisePropertyChanged();
+            RaisePropertyChanged(nameof(RecommendedFlowBulkModeDescription));
+        }
+    }
+
+    public string RecommendedFlowBulkModeDescription
+        => RecommendedFlowBulkModeOptions.FirstOrDefault(x => x.Value == RecommendedFlowBulkMode)?.Description
+           ?? "Массовое применение рекомендованного расхода отключено.";
 
     public double AlfaMinDeg { get => _settings.Settings.AlfaMinDeg; set { _settings.Settings.AlfaMinDeg = value; RaisePropertyChanged(); } }
     public double AlfaMaxDeg { get => _settings.Settings.AlfaMaxDeg; set { _settings.Settings.AlfaMaxDeg = value; RaisePropertyChanged(); } }
@@ -384,6 +601,13 @@ public sealed class SettingsViewModel : ViewModelBase
                 _settings.Settings.Ym = defaults.Ym;
                 _settings.Settings.Zm = defaults.Zm;
                 _settings.Settings.Lz = defaults.Lz;
+                _settings.Settings.CalculationOriginMode = defaults.CalculationOriginMode;
+                _settings.Settings.ANozzleKinematicsMode = defaults.ANozzleKinematicsMode;
+                _settings.Settings.VelocityCalculationMode = defaults.VelocityCalculationMode;
+                _settings.Settings.TopLowPulseMode = defaults.TopLowPulseMode;
+                _settings.Settings.ExcelExportMode = defaults.ExcelExportMode;
+                _settings.Settings.RecommendedFlowBulkMode = defaults.RecommendedFlowBulkMode;
+                _settings.Settings.RecommendedAlfaMode = defaults.RecommendedAlfaMode;
                 _settings.Settings.NozzleOrientationMode = defaults.NozzleOrientationMode;
                 _settings.Settings.AlfaMinDeg = defaults.AlfaMinDeg;
                 _settings.Settings.AlfaMaxDeg = defaults.AlfaMaxDeg;
@@ -397,6 +621,21 @@ public sealed class SettingsViewModel : ViewModelBase
                 RaisePropertyChanged(nameof(Ym));
                 RaisePropertyChanged(nameof(Zm));
                 RaisePropertyChanged(nameof(Lz));
+                RaisePropertyChanged(nameof(CalculationOriginMode));
+                RaisePropertyChanged(nameof(CalculationOriginModeDescription));
+                RaisePropertyChanged(nameof(ANozzleKinematicsMode));
+                RaisePropertyChanged(nameof(ANozzleKinematicsModeDescription));
+                RaisePropertyChanged(nameof(VelocityCalculationMode));
+                RaisePropertyChanged(nameof(VelocityCalculationModeDescription));
+                RaisePropertyChanged(nameof(TopLowPulseMode));
+                RaisePropertyChanged(nameof(TopLowPulseModeDescription));
+                RaisePropertyChanged(nameof(ExcelExportMode));
+                RaisePropertyChanged(nameof(ExcelExportModeDescription));
+                RaisePropertyChanged(nameof(RecommendedFlowBulkMode));
+                RaisePropertyChanged(nameof(RecommendedFlowBulkModeDescription));
+                RaisePropertyChanged(nameof(RecommendedAlfaMode));
+                RaisePropertyChanged(nameof(RecommendedAlfaModeDescription));
+                RaisePropertyChanged(nameof(RecommendedAlfaCompatibilityDescription));
                 RaisePropertyChanged(nameof(NozzleOrientationMode));
                 RaisePropertyChanged(nameof(NozzleOrientationModeDescription));
                 RaisePropertyChanged(nameof(AlfaMinDeg));
@@ -558,6 +797,13 @@ public sealed class SettingsViewModel : ViewModelBase
                 target.Ym = source.Ym;
                 target.Zm = source.Zm;
                 target.Lz = source.Lz;
+                target.CalculationOriginMode = source.CalculationOriginMode;
+                target.ANozzleKinematicsMode = source.ANozzleKinematicsMode;
+                target.VelocityCalculationMode = source.VelocityCalculationMode;
+                target.TopLowPulseMode = source.TopLowPulseMode;
+                target.ExcelExportMode = source.ExcelExportMode;
+                target.RecommendedFlowBulkMode = source.RecommendedFlowBulkMode;
+                target.RecommendedAlfaMode = source.RecommendedAlfaMode;
                 target.NozzleOrientationMode = source.NozzleOrientationMode;
                 target.AlfaMinDeg = source.AlfaMinDeg;
                 target.AlfaMaxDeg = source.AlfaMaxDeg;
@@ -646,6 +892,21 @@ public sealed class SettingsViewModel : ViewModelBase
         RaisePropertyChanged(nameof(Ym));
         RaisePropertyChanged(nameof(Zm));
         RaisePropertyChanged(nameof(Lz));
+        RaisePropertyChanged(nameof(CalculationOriginMode));
+        RaisePropertyChanged(nameof(CalculationOriginModeDescription));
+        RaisePropertyChanged(nameof(ANozzleKinematicsMode));
+        RaisePropertyChanged(nameof(ANozzleKinematicsModeDescription));
+        RaisePropertyChanged(nameof(VelocityCalculationMode));
+        RaisePropertyChanged(nameof(VelocityCalculationModeDescription));
+        RaisePropertyChanged(nameof(TopLowPulseMode));
+        RaisePropertyChanged(nameof(TopLowPulseModeDescription));
+        RaisePropertyChanged(nameof(ExcelExportMode));
+        RaisePropertyChanged(nameof(ExcelExportModeDescription));
+        RaisePropertyChanged(nameof(RecommendedFlowBulkMode));
+        RaisePropertyChanged(nameof(RecommendedFlowBulkModeDescription));
+        RaisePropertyChanged(nameof(RecommendedAlfaMode));
+        RaisePropertyChanged(nameof(RecommendedAlfaModeDescription));
+        RaisePropertyChanged(nameof(RecommendedAlfaCompatibilityDescription));
         RaisePropertyChanged(nameof(NozzleOrientationMode));
         RaisePropertyChanged(nameof(NozzleOrientationModeDescription));
         RaisePropertyChanged(nameof(AlfaMinDeg));
@@ -699,5 +960,7 @@ public sealed class SettingsViewModel : ViewModelBase
     }
 
     public sealed record NozzleOrientationModeOption(string Value, string Label, string Description);
+    public sealed record CompatibilityModeOption(string Value, string Label, string Description);
+    public sealed record RecommendedAlfaModeOption(string Value, string Label, string Description);
     public sealed record SimulationSpriteVersionOption(string Value, string Label);
 }
