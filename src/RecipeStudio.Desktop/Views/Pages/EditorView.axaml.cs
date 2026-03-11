@@ -271,9 +271,6 @@ public sealed partial class EditorView : UserControl
         if (_vm is null)
             return;
 
-        if (RecommendedFlowBulkModes.Normalize(_vm.AppSettings.RecommendedFlowBulkMode) != RecommendedFlowBulkModes.IceRateHeader)
-            return;
-
         if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
             return;
 

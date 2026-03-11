@@ -71,13 +71,7 @@
             <DataGrid.Columns>
               <DataGridTextColumn Binding="{Binding NPoint}" IsReadOnly="True" Width="45">
                 <DataGridTextColumn.Header>
-                  <Border Classes="bulk-header-hitbox"
-                          Background="Transparent"
-                          Cursor="Hand"
-                          PointerPressed="BulkRecommendedFlowHeader_PointerPressed"
-                          Tag="ApplyRecommendedIceRate">
                   <TextBlock Text="#" Classes="grid-hdr" ToolTip.Tip="Порядковый номер точки" />
-                  </Border>
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
@@ -235,19 +229,19 @@
 
               <DataGridTextColumn Binding="{Binding IceRate}" Width="65">
                 <DataGridTextColumn.Header>
-                  <Border Classes="bulk-header-hitbox"
-                          Background="Transparent"
-                          Cursor="Hand"
-                          PointerPressed="BulkRecommendedFlowHeader_PointerPressed"
-                          Tag="ApplyRecommendedIceRate">
                   <TextBlock Text="Ice.R" Classes="grid-hdr hdr-violet" ToolTip.Tip="G_изм, кг/ч — фактический расход" />
-                  </Border>
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
               <DataGridTextColumn Binding="{Binding IceGrind}" Width="65">
                 <DataGridTextColumn.Header>
-                  <TextBlock Text="Ice.G" Classes="grid-hdr hdr-violet" ToolTip.Tip="Степень помола/настройка льда" />
+                  <Border Classes="bulk-header-hitbox"
+                          Background="Transparent"
+                          Cursor="Hand"
+                          PointerPressed="BulkRecommendedFlowHeader_PointerPressed"
+                          Tag="ApplyRecommendedIceRate">
+                    <TextBlock Text="Ice.G" Classes="grid-hdr hdr-violet" ToolTip.Tip="Степень помола/настройка льда" />
+                  </Border>
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 

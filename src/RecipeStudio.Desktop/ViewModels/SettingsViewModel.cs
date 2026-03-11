@@ -333,7 +333,7 @@ public sealed class SettingsViewModel : ViewModelBase
         new CompatibilityModeOption(
             RecommendedFlowBulkModes.IceRateHeader,
             "Как у нас",
-            "По клику на хедер Ice.R можно подтвердить заполнение IceRate текущими значениями RecommendedIceRate для всех точек.")
+            "По клику на хедер Ice.G можно подтвердить заполнение IceRate текущими значениями RecommendedIceRate для всех точек.")
     };
 
     public string RecommendedFlowBulkMode

@@ -43,6 +43,14 @@ public sealed partial class BulkFlagActionDialog : Window
         SetAllButton.Content = setAllButtonText;
         CancelButton.Content = cancelButtonText;
         ClearAllButton.IsVisible = showClearAllButton;
+
+        if (!showClearAllButton)
+        {
+            Width = 420;
+            Height = 190;
+            SetAllButton.Width = 140;
+            CancelButton.Width = 140;
+        }
     }
 
     private void Header_PointerPressed(object? sender, PointerPressedEventArgs e)
