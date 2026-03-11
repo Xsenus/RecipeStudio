@@ -183,6 +183,12 @@ public sealed partial class EditorView : UserControl
         if (header?.Content is not Control { Tag: string tag } content)
             return;
 
+        if (tag == "ApplyRecommendedIceRate")
+        {
+            BulkRecommendedIceRateHeader_PointerPressed(content, e);
+            return;
+        }
+
         if (tag is "Act" or "Top" or "Hidden")
         {
             BulkFlagHeader_PointerPressed(content, e);
@@ -258,6 +264,35 @@ public sealed partial class EditorView : UserControl
             return;
 
         ApplyBulkNumericField(fieldKey, value.Value);
+    }
+
+    private async void BulkRecommendedIceRateHeader_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (_vm is null)
+            return;
+
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            return;
+
+        if (sender is not Control { Tag: "ApplyRecommendedIceRate" })
+            return;
+
+        e.Handled = true;
+
+        var owner = TopLevel.GetTopLevel(this) as Window;
+        if (owner is null)
+            return;
+
+        var dialog = new BulkFlagActionDialog(
+            "Массовое изменение",
+            "Применить рекомендованный расход?",
+            "Да",
+            "Отмена",
+            showClearAllButton: false);
+
+        var action = await dialog.ShowDialog<BulkFlagAction>(owner);
+        if (action == BulkFlagAction.SetAll)
+            _vm.ApplyRecommendedIceRateForAll();
     }
 
     private void ApplySavedGridColumnWidths()

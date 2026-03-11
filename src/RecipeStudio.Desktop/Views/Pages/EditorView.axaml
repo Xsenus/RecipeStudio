@@ -235,7 +235,13 @@
 
               <DataGridTextColumn Binding="{Binding IceGrind}" Width="65">
                 <DataGridTextColumn.Header>
-                  <TextBlock Text="Ice.G" Classes="grid-hdr hdr-violet" ToolTip.Tip="Степень помола/настройка льда" />
+                  <Border Classes="bulk-header-hitbox"
+                          Background="Transparent"
+                          Cursor="Hand"
+                          PointerPressed="BulkRecommendedIceRateHeader_PointerPressed"
+                          Tag="ApplyRecommendedIceRate">
+                    <TextBlock Text="Ice.G" Classes="grid-hdr hdr-violet" ToolTip.Tip="Степень помола/настройка льда" />
+                  </Border>
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 

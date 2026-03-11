@@ -431,6 +431,9 @@ public sealed class EditorViewModel : ViewModelBase
     public void SetAirTempForAll(double value)
         => ApplyNumericToAll((point, numericValue) => point.AirTemp = numericValue, value, recalculate: false);
 
+    public void ApplyRecommendedIceRateForAll()
+        => ApplyFlagToAll(point => point.IceRate = point.RecommendedIceRate, recalculate: true);
+
     private void AddPoint()
     {
         if (Document is null) return;

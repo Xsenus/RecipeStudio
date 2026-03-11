@@ -32,6 +32,19 @@ public sealed partial class BulkFlagActionDialog : Window
         MessageBlock.Text = message;
     }
 
+    public BulkFlagActionDialog(
+        string title,
+        string message,
+        string setAllButtonText,
+        string cancelButtonText,
+        bool showClearAllButton)
+        : this(title, message)
+    {
+        SetAllButton.Content = setAllButtonText;
+        CancelButton.Content = cancelButtonText;
+        ClearAllButton.IsVisible = showClearAllButton;
+    }
+
     private void Header_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)

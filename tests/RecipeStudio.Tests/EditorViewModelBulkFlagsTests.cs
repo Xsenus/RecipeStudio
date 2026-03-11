@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using RecipeStudio.Desktop.Models;
 using RecipeStudio.Desktop.Services;
 using RecipeStudio.Desktop.ViewModels;
@@ -78,6 +79,24 @@ public sealed class EditorViewModelBulkFlagsTests : IDisposable
             Assert.Equal(4, point.SpeedTable, precision: 6);
             Assert.Equal(15, point.TimeSec, precision: 6);
         });
+    }
+
+    [Fact]
+    public void ApplyRecommendedIceRateForAll_CopiesRecommendedValuesToIceRate()
+    {
+        var vm = CreateViewModel();
+        vm.LoadDocument(CreateDocument());
+        var expected = vm.Points.Select(point => point.RecommendedIceRate).ToArray();
+
+        vm.Points[1].IceRate = 10;
+
+        vm.ApplyRecommendedIceRateForAll();
+
+        for (var i = 0; i < vm.Points.Count; i++)
+        {
+            Assert.Equal(expected[i], vm.Points[i].IceRate, precision: 6);
+            Assert.Equal(expected[i], vm.Points[i].RecommendedIceRate, precision: 6);
+        }
     }
 
     public void Dispose()
