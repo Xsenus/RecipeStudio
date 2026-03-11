@@ -67,6 +67,7 @@ public sealed partial class EditorView : UserControl
             _vm.RequestImportExcel -= OnRequestImportExcel;
             _vm.RequestExportExcel -= OnRequestExportExcel;
             _vm.RequestShowCharts -= OnRequestShowCharts;
+            _vm.SaveCompleted -= OnSaveCompleted;
             _vm.PropertyChanged -= OnVmPropertyChanged;
         }
 
@@ -76,6 +77,7 @@ public sealed partial class EditorView : UserControl
             _vm.RequestImportExcel += OnRequestImportExcel;
             _vm.RequestExportExcel += OnRequestExportExcel;
             _vm.RequestShowCharts += OnRequestShowCharts;
+            _vm.SaveCompleted += OnSaveCompleted;
             _vm.PropertyChanged += OnVmPropertyChanged;
         }
 
@@ -299,6 +301,7 @@ public sealed partial class EditorView : UserControl
 
         var savedNamed = _vm.AppSettings.EditorGridColumns;
         var savedLegacy = _vm.AppSettings.EditorGridColumnWidths;
+        var migratedFromNamed = false;
         var migratedFromLegacy = false;
 
         _isApplyingSavedColumnWidths = true;
@@ -311,6 +314,16 @@ public sealed partial class EditorView : UserControl
                     .GroupBy(x => x.Name, StringComparer.Ordinal)
                     .ToDictionary(g => g.Key, g => g.Last().Width, StringComparer.Ordinal);
 
+                // Migrate the old narrow C column width to match Top.
+                if (byName.TryGetValue("C", out var cWidth) &&
+                    cWidth <= 25.5 &&
+                    byName.TryGetValue("Top", out var topWidth) &&
+                    topWidth > 0)
+                {
+                    byName["C"] = topWidth;
+                    migratedFromNamed = true;
+                }
+
                 for (var i = 0; i < PointsGrid.Columns.Count; i++)
                 {
                     var key = GetColumnName(PointsGrid.Columns[i], i);
@@ -319,28 +332,28 @@ public sealed partial class EditorView : UserControl
 
                     PointsGrid.Columns[i].Width = new DataGridLength(width);
                 }
-
-                return;
             }
-
-            if (savedLegacy is not { Count: > 0 })
-                return;
-
-            migratedFromLegacy = true;
-            var count = Math.Min(savedLegacy.Count, PointsGrid.Columns.Count);
-            for (var i = 0; i < count; i++)
+            else if (savedLegacy is { Count: > 0 })
             {
-                var width = savedLegacy[i];
-                if (!IsFinite(width) || width <= 0)
-                    continue;
+                migratedFromLegacy = true;
+                var count = Math.Min(savedLegacy.Count, PointsGrid.Columns.Count);
+                for (var i = 0; i < count; i++)
+                {
+                    var width = savedLegacy[i];
+                    if (!IsFinite(width) || width <= 0)
+                        continue;
 
-                PointsGrid.Columns[i].Width = new DataGridLength(width);
+                    PointsGrid.Columns[i].Width = new DataGridLength(width);
+                }
             }
         }
         finally
         {
             _isApplyingSavedColumnWidths = false;
         }
+
+        if (migratedFromNamed)
+            PersistGridColumnWidths(force: true);
 
         if (migratedFromLegacy)
             PersistGridColumnWidths(force: true);
@@ -588,7 +601,38 @@ public sealed partial class EditorView : UserControl
         var path = file.Path.LocalPath;
         if (string.IsNullOrWhiteSpace(path)) return;
 
-        _vm.ExportToExcel(path);
+        var owner = TopLevel.GetTopLevel(this) as Window;
+        if (owner is null)
+            return;
+
+        try
+        {
+            _vm.ExportToExcel(path);
+
+            var dialog = new InfoDialog(
+                "Экспорт Excel",
+                $"Файл Excel успешно сохранен.\n{path}",
+                "OK");
+            await dialog.ShowDialog(owner);
+        }
+        catch (Exception ex)
+        {
+            var dialog = new InfoDialog(
+                "Ошибка экспорта",
+                $"Не удалось экспортировать файл Excel.\n{ex.Message}",
+                "OK");
+            await dialog.ShowDialog(owner);
+        }
+    }
+
+    private async void OnSaveCompleted(bool success, string title, string message)
+    {
+        var owner = TopLevel.GetTopLevel(this) as Window;
+        if (owner is null)
+            return;
+
+        var dialog = new InfoDialog(title, message, success ? "OK" : "Закрыть");
+        await dialog.ShowDialog(owner);
     }
 
     private void InitializePanelsLayout()

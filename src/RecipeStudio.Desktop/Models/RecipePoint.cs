@@ -9,6 +9,7 @@ public sealed class RecipePoint : ViewModelBase
     private int _nPoint;
     private bool _act;
     private bool _safe;
+    private bool _c;
 
     private double _rCrd;
     private double _zCrd;
@@ -61,6 +62,7 @@ public sealed class RecipePoint : ViewModelBase
     public int NPoint { get => _nPoint; set => SetProperty(ref _nPoint, value); }
     public bool Act { get => _act; set => SetProperty(ref _act, value); }
     public bool Safe { get => _safe; set => SetProperty(ref _safe, value); }
+    public bool C { get => _c; set => SetProperty(ref _c, value); }
 
     public double RCrd { get => _rCrd; set => SetProperty(ref _rCrd, value); }
     public double ZCrd { get => _zCrd; set => SetProperty(ref _zCrd, value); }
@@ -155,7 +157,7 @@ public sealed class RecipePoint : ViewModelBase
     }
 
     public override string ToString()
-        => $"#{NPoint} R={RCrd} Z={ZCrd} Place={Place} Safe={(Safe ? 1 : 0)}";
+        => $"#{NPoint} R={RCrd} Z={ZCrd} Place={Place} Safe={(Safe ? 1 : 0)} C={(C ? 1 : 0)}";
 
     public RecipePoint Clone()
         => (RecipePoint)MemberwiseClone();

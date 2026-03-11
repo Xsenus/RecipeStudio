@@ -156,55 +156,58 @@ public sealed class RecipeExcelServiceTests
                 ui.Cell(1, 2).Value = "n_point";
                 ui.Cell(1, 3).Value = "Act";
                 ui.Cell(1, 4).Value = "Safe";
-                ui.Cell(1, 5).Value = "r_crd";
-                ui.Cell(1, 6).Value = "z_crd";
-                ui.Cell(1, 7).Value = "place";
-                ui.Cell(1, 8).Value = "hidden";
-                ui.Cell(1, 9).Value = "a_nozzle";
-                ui.Cell(1, 10).Value = "recommended_alfa";
-                ui.Cell(1, 11).Value = "alfa_crd";
-                ui.Cell(1, 12).Value = "betta_crd";
-                ui.Cell(1, 13).Value = "speed_table";
-                ui.Cell(1, 14).Value = "time_sec";
-                ui.Cell(1, 15).Value = "v_mm_min";
-                ui.Cell(1, 16).Value = "recommended_ice_rate";
-                ui.Cell(1, 17).Value = "ice_rate";
+                ui.Cell(1, 5).Value = "C";
+                ui.Cell(1, 6).Value = "r_crd";
+                ui.Cell(1, 7).Value = "z_crd";
+                ui.Cell(1, 8).Value = "place";
+                ui.Cell(1, 9).Value = "hidden";
+                ui.Cell(1, 10).Value = "a_nozzle";
+                ui.Cell(1, 11).Value = "recommended_alfa";
+                ui.Cell(1, 12).Value = "alfa_crd";
+                ui.Cell(1, 13).Value = "betta_crd";
+                ui.Cell(1, 14).Value = "speed_table";
+                ui.Cell(1, 15).Value = "time_sec";
+                ui.Cell(1, 16).Value = "v_mm_min";
+                ui.Cell(1, 17).Value = "recommended_ice_rate";
+                ui.Cell(1, 18).Value = "ice_rate";
 
                 ui.Cell(2, 1).Value = "#";
                 ui.Cell(2, 2).Value = "Точка";
                 ui.Cell(2, 3).Value = "Актив.";
                 ui.Cell(2, 4).Value = "Safe";
-                ui.Cell(2, 5).Value = "R";
-                ui.Cell(2, 6).Value = "Z";
-                ui.Cell(2, 7).Value = "Top";
-                ui.Cell(2, 8).Value = "Micro";
-                ui.Cell(2, 9).Value = "a";
-                ui.Cell(2, 10).Value = "α rec";
-                ui.Cell(2, 11).Value = "α";
-                ui.Cell(2, 12).Value = "β";
-                ui.Cell(2, 13).Value = "ω";
-                ui.Cell(2, 14).Value = "t";
-                ui.Cell(2, 15).Value = "V";
-                ui.Cell(2, 16).Value = "Flow";
-                ui.Cell(2, 17).Value = "Ice.R";
+                ui.Cell(2, 5).Value = "C";
+                ui.Cell(2, 6).Value = "R";
+                ui.Cell(2, 7).Value = "Z";
+                ui.Cell(2, 8).Value = "Top";
+                ui.Cell(2, 9).Value = "Micro";
+                ui.Cell(2, 10).Value = "a";
+                ui.Cell(2, 11).Value = "α rec";
+                ui.Cell(2, 12).Value = "α";
+                ui.Cell(2, 13).Value = "β";
+                ui.Cell(2, 14).Value = "ω";
+                ui.Cell(2, 15).Value = "t";
+                ui.Cell(2, 16).Value = "V";
+                ui.Cell(2, 17).Value = "Flow";
+                ui.Cell(2, 18).Value = "Ice.R";
 
                 ui.Cell(3, 1).Value = "H340";
                 ui.Cell(3, 2).Value = 1;
                 ui.Cell(3, 3).Value = 1;
                 ui.Cell(3, 4).Value = 0;
-                ui.Cell(3, 5).Value = 364;
-                ui.Cell(3, 6).Value = 354;
-                ui.Cell(3, 7).Value = 0;
+                ui.Cell(3, 5).Value = 1;
+                ui.Cell(3, 6).Value = 364;
+                ui.Cell(3, 7).Value = 354;
                 ui.Cell(3, 8).Value = 0;
-                ui.Cell(3, 9).Value = 20;
-                ui.Cell(3, 10).Value = 0;
-                ui.Cell(3, 11).Value = -30;
-                ui.Cell(3, 12).Value = 12;
-                ui.Cell(3, 13).Value = 3;
-                ui.Cell(3, 14).Value = 20;
-                ui.Cell(3, 15).Value = 6857.76;
-                ui.Cell(3, 16).Value = 100;
+                ui.Cell(3, 9).Value = 0;
+                ui.Cell(3, 10).Value = 20;
+                ui.Cell(3, 11).Value = 0;
+                ui.Cell(3, 12).Value = -30;
+                ui.Cell(3, 13).Value = 12;
+                ui.Cell(3, 14).Value = 3;
+                ui.Cell(3, 15).Value = 20;
+                ui.Cell(3, 16).Value = 6857.76;
                 ui.Cell(3, 17).Value = 100;
+                ui.Cell(3, 18).Value = 100;
 
                 wb.SaveAs(path);
             }
@@ -215,6 +218,7 @@ public sealed class RecipeExcelServiceTests
             Assert.Single(result.Document.Points);
             Assert.Equal("H340", result.Document.RecipeCode);
             Assert.Equal(1, result.Document.Points[0].NPoint);
+            Assert.True(result.Document.Points[0].C);
             Assert.Equal(364, result.Document.Points[0].RCrd);
             Assert.Equal(354, result.Document.Points[0].ZCrd);
             Assert.Equal(20, result.Document.Points[0].ANozzle);
@@ -246,7 +250,10 @@ public sealed class RecipeExcelServiceTests
             Assert.NotNull(wb.Worksheet("CONST"));
             Assert.NotNull(wb.Worksheet("SAVE"));
             Assert.Equal("recipe_code", wb.Worksheet("UI").Cell(1, 1).GetString());
-            Assert.Equal("Ice.R", wb.Worksheet("UI").Cell(2, 17).GetString());
+            Assert.Equal("C", wb.Worksheet("UI").Cell(1, 5).GetString());
+            Assert.Equal("C", wb.Worksheet("UI").Cell(2, 5).GetString());
+            Assert.Equal("Ice.R", wb.Worksheet("UI").Cell(2, 18).GetString());
+            Assert.Equal(1, wb.Worksheet("UI").Cell(3, 5).GetDouble(), precision: 6);
         }
         finally
         {
@@ -296,6 +303,7 @@ public sealed class RecipeExcelServiceTests
             NPoint = 1,
             Act = true,
             Safe = false,
+            C = true,
             RCrd = 364,
             ZCrd = 354,
             Place = 0,

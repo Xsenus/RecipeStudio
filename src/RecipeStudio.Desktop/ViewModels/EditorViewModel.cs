@@ -190,6 +190,7 @@ public sealed class EditorViewModel : ViewModelBase
     public event Action? RequestExportExcel;
     public event Action? RequestImportExcel;
     public event Action? RequestShowCharts;
+    public event Action<bool, string, string>? SaveCompleted;
 
     public RelayCommand AddPointCommand { get; }
     public RelayCommand RemovePointCommand { get; }
@@ -341,9 +342,27 @@ public sealed class EditorViewModel : ViewModelBase
 
     private void Save()
     {
-        if (Document is null) return;
-        Recalculate();
-        _repo.Save(Document);
+        if (Document is null)
+            return;
+
+        try
+        {
+            Recalculate();
+            _repo.Save(Document);
+
+            var recipeName = string.IsNullOrWhiteSpace(Document.RecipeCode) ? "Без имени" : Document.RecipeCode;
+            SaveCompleted?.Invoke(
+                true,
+                "Сохранение",
+                $"Рецепт \"{recipeName}\" сохранен.\nID: {Document.RecipeId}");
+        }
+        catch (Exception ex)
+        {
+            SaveCompleted?.Invoke(
+                false,
+                "Ошибка сохранения",
+                $"Не удалось сохранить рецепт.\n{ex.Message}");
+        }
     }
 
     private void ExportExcelRequested()

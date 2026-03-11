@@ -109,6 +109,12 @@
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
 
+              <DataGridCheckBoxColumn Binding="{Binding C}" Width="45">
+                <DataGridCheckBoxColumn.Header>
+                  <TextBlock Text="C" Classes="grid-hdr" ToolTip.Tip="Флаг C" />
+                </DataGridCheckBoxColumn.Header>
+              </DataGridCheckBoxColumn>
+
               <DataGridTemplateColumn Width="50">
                 <DataGridTemplateColumn.Header>
                   <TextBlock Text="R" Classes="grid-hdr hdr-green" ToolTip.Tip="Радиальная координата, мм" />
@@ -565,7 +571,7 @@
                         <Border Classes="point-detail-group">
                           <StackPanel Spacing="10">
                             <TextBlock Text="Flags / Top" Classes="point-detail-group-title" />
-                            <Grid ColumnDefinitions="150,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
+                            <Grid ColumnDefinitions="150,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="10">
                               <TextBlock Text="#" Classes="point-detail-label" />
                               <TextBlock Grid.Column="1" Text="{Binding NPoint}" Classes="point-detail-value" />
 
@@ -584,13 +590,18 @@
                                         Classes="point-detail-flag"
                                         IsChecked="{Binding Safe, Mode=TwoWay}" />
 
-                              <TextBlock Grid.Row="4" Text="Micro" Classes="point-detail-label" />
+                              <TextBlock Grid.Row="4" Text="C" Classes="point-detail-label" />
                               <CheckBox Grid.Row="4" Grid.Column="1"
+                                        Classes="point-detail-flag"
+                                        IsChecked="{Binding C, Mode=TwoWay}" />
+
+                              <TextBlock Grid.Row="5" Text="Micro" Classes="point-detail-label" />
+                              <CheckBox Grid.Row="5" Grid.Column="1"
                                         Classes="point-detail-flag"
                                         IsChecked="{Binding Hidden, Mode=TwoWay}" />
 
-                              <TextBlock Grid.Row="5" Text="Container" Classes="point-detail-label" />
-                              <CheckBox Grid.Row="5" Grid.Column="1"
+                              <TextBlock Grid.Row="6" Text="Container" Classes="point-detail-label" />
+                              <CheckBox Grid.Row="6" Grid.Column="1"
                                         Classes="point-detail-flag"
                                         IsChecked="{Binding Container, Mode=TwoWay}" />
                             </Grid>

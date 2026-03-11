@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS recipe_points (
   n_point INTEGER NOT NULL,
   act INTEGER NOT NULL,
   safe INTEGER NOT NULL,
+  c_flag INTEGER NOT NULL DEFAULT 0,
 
   r_crd REAL NOT NULL,
   z_crd REAL NOT NULL,
@@ -129,6 +130,32 @@ CREATE TABLE IF NOT EXISTS recipe_points (
 CREATE INDEX IF NOT EXISTS idx_recipe_points_recipe_id ON recipe_points(recipe_id, n_point);
 ";
         cmd.ExecuteNonQuery();
+        EnsureRecipePointsColumn(conn, "c_flag", "INTEGER NOT NULL DEFAULT 0");
+    }
+
+    private static void EnsureRecipePointsColumn(SqliteConnection conn, string columnName, string definition)
+    {
+        if (HasColumn(conn, "recipe_points", columnName))
+            return;
+
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = $"ALTER TABLE recipe_points ADD COLUMN {columnName} {definition};";
+        cmd.ExecuteNonQuery();
+    }
+
+    private static bool HasColumn(SqliteConnection conn, string tableName, string columnName)
+    {
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = $"PRAGMA table_info({tableName});";
+
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read())
+        {
+            if (string.Equals(reader.GetString(1), columnName, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
     }
 
     private void EnsureSeedData()
@@ -306,7 +333,7 @@ WHERE id = $id;";
         using var cmd2 = conn.CreateCommand();
         cmd2.CommandText = @"
 SELECT
-  n_point, act, safe,
+  n_point, act, safe, c_flag,
   r_crd, z_crd, place, hidden,
   a_nozzle, recommended_alfa, alfa, betta,
   speed_table, time_sec, nozzle_speed_mm_min,
@@ -329,52 +356,53 @@ ORDER BY n_point;";
                 NPoint = r2.GetInt32(0),
                 Act = r2.GetInt32(1) != 0,
                 Safe = r2.GetInt32(2) != 0,
+                C = r2.GetInt32(3) != 0,
 
-                RCrd = r2.GetDouble(3),
-                ZCrd = r2.GetDouble(4),
-                Place = r2.GetInt32(5),
-                Hidden = r2.GetInt32(6) != 0,
+                RCrd = r2.GetDouble(4),
+                ZCrd = r2.GetDouble(5),
+                Place = r2.GetInt32(6),
+                Hidden = r2.GetInt32(7) != 0,
 
-                ANozzle = r2.GetDouble(7),
-                RecommendedAlfa = r2.GetDouble(8),
-                Alfa = r2.GetDouble(9),
-                Betta = r2.GetDouble(10),
+                ANozzle = r2.GetDouble(8),
+                RecommendedAlfa = r2.GetDouble(9),
+                Alfa = r2.GetDouble(10),
+                Betta = r2.GetDouble(11),
 
-                SpeedTable = r2.GetDouble(11),
-                TimeSec = r2.GetDouble(12),
-                NozzleSpeedMmMin = r2.GetDouble(13),
+                SpeedTable = r2.GetDouble(12),
+                TimeSec = r2.GetDouble(13),
+                NozzleSpeedMmMin = r2.GetDouble(14),
 
-                RecommendedIceRate = r2.GetDouble(14),
-                IceRate = r2.GetDouble(15),
-                IceGrind = r2.GetDouble(16),
-                AirPressure = r2.GetDouble(17),
-                AirTemp = r2.GetDouble(18),
+                RecommendedIceRate = r2.GetDouble(15),
+                IceRate = r2.GetDouble(16),
+                IceGrind = r2.GetDouble(17),
+                AirPressure = r2.GetDouble(18),
+                AirTemp = r2.GetDouble(19),
 
-                Container = r2.GetInt32(19) != 0,
-                DClampForm = r2.GetDouble(20),
-                DClampCont = r2.GetDouble(21),
-                Description = r2.IsDBNull(22) ? null : r2.GetString(22),
+                Container = r2.GetInt32(20) != 0,
+                DClampForm = r2.GetDouble(21),
+                DClampCont = r2.GetDouble(22),
+                Description = r2.IsDBNull(23) ? null : r2.GetString(23),
 
-                Xr0 = r2.GetDouble(23),
-                Yx0 = r2.GetDouble(24),
-                Zr0 = r2.GetDouble(25),
-                DX = r2.GetDouble(26),
-                DY = r2.GetDouble(27),
-                DZ = r2.GetDouble(28),
-                DA = r2.GetDouble(29),
-                AB = r2.GetDouble(30),
+                Xr0 = r2.GetDouble(24),
+                Yx0 = r2.GetDouble(25),
+                Zr0 = r2.GetDouble(26),
+                DX = r2.GetDouble(27),
+                DY = r2.GetDouble(28),
+                DZ = r2.GetDouble(29),
+                DA = r2.GetDouble(30),
+                AB = r2.GetDouble(31),
 
-                XPuls = r2.GetDouble(31),
-                YPuls = r2.GetDouble(32),
-                ZPuls = r2.GetDouble(33),
-                APuls = r2.GetDouble(34),
-                BPuls = r2.GetDouble(35),
+                XPuls = r2.GetDouble(32),
+                YPuls = r2.GetDouble(33),
+                ZPuls = r2.GetDouble(34),
+                APuls = r2.GetDouble(35),
+                BPuls = r2.GetDouble(36),
 
-                TopPuls = r2.GetDouble(36),
-                TopHz = r2.GetDouble(37),
-                LowPuls = r2.GetDouble(38),
-                LowHz = r2.GetDouble(39),
-                ClampPuls = r2.GetDouble(40),
+                TopPuls = r2.GetDouble(37),
+                TopHz = r2.GetDouble(38),
+                LowPuls = r2.GetDouble(39),
+                LowHz = r2.GetDouble(40),
+                ClampPuls = r2.GetDouble(41),
             };
 
             doc.Points.Add(p);
@@ -483,7 +511,7 @@ WHERE id = $id;";
         ins.Transaction = tx;
         ins.CommandText = @"
 INSERT INTO recipe_points(
-  recipe_id, n_point, act, safe,
+  recipe_id, n_point, act, safe, c_flag,
   r_crd, z_crd, place, hidden,
   a_nozzle, recommended_alfa, alfa, betta,
   speed_table, time_sec, nozzle_speed_mm_min,
@@ -494,7 +522,7 @@ INSERT INTO recipe_points(
   top_puls, top_hz, low_puls, low_hz, clamp_puls
 )
 VALUES(
-  $recipe_id, $n_point, $act, $safe,
+  $recipe_id, $n_point, $act, $safe, $c_flag,
   $r_crd, $z_crd, $place, $hidden,
   $a_nozzle, $recommended_alfa, $alfa, $betta,
   $speed_table, $time_sec, $nozzle_speed,
@@ -510,6 +538,7 @@ VALUES(
         ins.Parameters.Add("$n_point", SqliteType.Integer);
         ins.Parameters.Add("$act", SqliteType.Integer);
         ins.Parameters.Add("$safe", SqliteType.Integer);
+        ins.Parameters.Add("$c_flag", SqliteType.Integer);
         ins.Parameters.Add("$r_crd", SqliteType.Real);
         ins.Parameters.Add("$z_crd", SqliteType.Real);
         ins.Parameters.Add("$place", SqliteType.Integer);
@@ -561,6 +590,7 @@ VALUES(
             ins.Parameters["$n_point"].Value = p.NPoint;
             ins.Parameters["$act"].Value = p.Act ? 1 : 0;
             ins.Parameters["$safe"].Value = p.Safe ? 1 : 0;
+            ins.Parameters["$c_flag"].Value = p.C ? 1 : 0;
             ins.Parameters["$r_crd"].Value = p.RCrd;
             ins.Parameters["$z_crd"].Value = p.ZCrd;
             ins.Parameters["$place"].Value = p.Place;

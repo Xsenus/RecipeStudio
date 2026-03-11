@@ -131,6 +131,7 @@ public sealed class RecipeExcelService
         Write(ws, columns, row, "n_point", p.NPoint);
         Write(ws, columns, row, "Act", p.Act ? 1 : 0);
         Write(ws, columns, row, "Safe", p.Safe ? 1 : 0);
+        Write(ws, columns, row, "C", p.C ? 1 : 0);
         Write(ws, columns, row, "r_crd", p.RCrd);
         Write(ws, columns, row, "z_crd", p.ZCrd);
         Write(ws, columns, row, "place", p.Place);
@@ -225,6 +226,7 @@ public sealed class RecipeExcelService
             "n_point" => "Point",
             "Act" => "A",
             "Safe" => "Safe",
+            "C" => "C",
             "r_crd" => "R",
             "z_crd" => "Z",
             "place" => "Top",
@@ -282,6 +284,7 @@ public sealed class RecipeExcelService
                 NPoint = GetInt(row, headerMap, "n_point"),
                 Act = GetInt(row, headerMap, "Act") != 0,
                 Safe = GetInt(row, headerMap, "Safe") != 0,
+                C = GetInt(row, headerMap, "C") != 0,
 
                 RCrd = GetDouble(row, headerMap, "r_crd"),
                 ZCrd = GetDouble(row, headerMap, "z_crd"),

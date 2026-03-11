@@ -6,6 +6,7 @@
 | Номер точки | `NPoint` | `n_point` | `n_point` |
 | Активность | `Act` | `Act` | `act` |
 | Safe | `Safe` | `Safe` | `safe` |
+| Флаг C | `C` | `C` | `c_flag` |
 | Радиус | `RCrd` | `r_crd` | `r_crd` |
 | Высота | `ZCrd` | `z_crd` | `z_crd` |
 | Положение (верх/низ) | `Place` | `place` | `place` |

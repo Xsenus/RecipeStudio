@@ -95,6 +95,33 @@ public sealed class EditorViewModelBulkFlagsTests : IDisposable
             Assert.Equal(expected[i], vm.Points[i].IceRate, precision: 6);
     }
 
+    [Fact]
+    public void SaveCommand_RaisesSaveCompleted_OnSuccess()
+    {
+        var vm = CreateViewModel();
+        vm.LoadDocument(CreateDocument());
+
+        var raised = false;
+        var success = false;
+        string? title = null;
+        string? message = null;
+
+        vm.SaveCompleted += (ok, dialogTitle, dialogMessage) =>
+        {
+            raised = true;
+            success = ok;
+            title = dialogTitle;
+            message = dialogMessage;
+        };
+
+        vm.SaveCommand.Execute(null);
+
+        Assert.True(raised);
+        Assert.True(success);
+        Assert.Equal("Сохранение", title);
+        Assert.Contains("BULK", message);
+    }
+
     public void Dispose()
     {
         try
