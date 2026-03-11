@@ -106,6 +106,44 @@ public sealed class SimulationOverlayGeometryTests
         Assert.Contains(displayed, point => SamePoint(point, new Point(secondX, secondY)));
     }
 
+    [Fact]
+    public void BuildDisplayedTargetPoints_ForStyledPoints_PreservesOrderAcrossOverlappingSafeAndWorkPoints()
+    {
+        var source = new List<StyledTargetPoint>
+        {
+            new(new Point(30, 40), safe: false),
+            new(new Point(30, 40), safe: true)
+        };
+
+        var displayed = SimulationOverlayGeometry.BuildDisplayedTargetPoints(
+            source,
+            mirrorAxisX: 100,
+            SimulationTargetDisplayModes.Full);
+
+        Assert.Collection(
+            displayed,
+            point =>
+            {
+                Assert.False(point.Safe);
+                AssertPoint(new Point(30, 40), point.Position);
+            },
+            point =>
+            {
+                Assert.False(point.Safe);
+                AssertPoint(new Point(170, 40), point.Position);
+            },
+            point =>
+            {
+                Assert.True(point.Safe);
+                AssertPoint(new Point(30, 40), point.Position);
+            },
+            point =>
+            {
+                Assert.True(point.Safe);
+                AssertPoint(new Point(170, 40), point.Position);
+            });
+    }
+
     private static void AssertPoint(Point expected, Point actual)
     {
         Assert.True(

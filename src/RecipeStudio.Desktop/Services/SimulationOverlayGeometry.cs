@@ -8,6 +8,8 @@ public readonly record struct PlotMarkerGeometry(Point ToolPoint, Point TargetPo
 
 public readonly record struct PairOverlayGeometry(Point TargetPoint, Point ToolPoint, Point NozzleTipPoint);
 
+public readonly record struct StyledTargetPoint(Point Position, bool Safe);
+
 public static class SimulationOverlayGeometry
 {
     public static Point ProjectWorldPoint(double x, double z, bool invertHorizontal, double verticalOffsetMm = 0)
@@ -66,6 +68,27 @@ public static class SimulationOverlayGeometry
 
         foreach (var point in source)
             AddDistinctPoint(result, MirrorPoint(point, mirrorAxisX));
+
+        return result;
+    }
+
+    public static List<StyledTargetPoint> BuildDisplayedTargetPoints(IList<StyledTargetPoint> source, double mirrorAxisX, string mode)
+    {
+        var normalizedMode = SimulationTargetDisplayModes.Normalize(mode);
+        if (normalizedMode == SimulationTargetDisplayModes.Original)
+            return source.ToList();
+
+        if (normalizedMode == SimulationTargetDisplayModes.Mirrored)
+            return source
+                .Select(point => point with { Position = MirrorPoint(point.Position, mirrorAxisX) })
+                .ToList();
+
+        var result = new List<StyledTargetPoint>(source.Count * 2);
+        foreach (var point in source)
+        {
+            result.Add(point);
+            result.Add(point with { Position = MirrorPoint(point.Position, mirrorAxisX) });
+        }
 
         return result;
     }

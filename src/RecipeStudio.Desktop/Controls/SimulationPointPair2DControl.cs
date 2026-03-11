@@ -389,9 +389,8 @@ public sealed class SimulationPointPair2DControl : Control
         var referenceHeightMm = Math.Max(100, ReferenceHeightMm);
         var mmPerPixel = ResolveMmPerPixel(referenceHeightMm);
         var partRectWorld = CreateWorldRectCenteredAtX(HorizontalOffsetMm, 0, _partImage, mmPerPixel, referenceHeightMm, ResolvePartWidthScaleFactor(PartWidthScalePercent));
-        var workTargetPoints = BuildVisibleTargetPoints(settings, safe: false);
-        var safeTargetPoints = BuildVisibleTargetPoints(settings, safe: true);
-        var allTargetPoints = workTargetPoints.Concat(safeTargetPoints).ToList();
+        var targetPoints = BuildVisibleTargetPoints(settings);
+        var allTargetPoints = targetPoints.Select(point => point.Position).ToList();
 
         var pairState = ResolvePairPoints();
         var point1 = pairState.TargetPoint;
@@ -425,8 +424,7 @@ public sealed class SimulationPointPair2DControl : Control
 
             DrawImageWorld(context, _partImage, partRectWorld);
             DrawImageWorld(context, _manipulatorImage, manipRectWorld);
-            DrawTargetPoints(context, safeTargetPoints, settings, safe: true);
-            DrawTargetPoints(context, workTargetPoints, settings, safe: false);
+            DrawTargetPoints(context, targetPoints, settings);
 
             // Red reference line should match the visible nozzle segment.
             if (ShowPairLink)
@@ -948,20 +946,23 @@ public sealed class SimulationPointPair2DControl : Control
         context.DrawLine(pen, WorldToScreen(point1), WorldToScreen(point2));
     }
 
-    private void DrawTargetPoints(DrawingContext context, IList<Point> worldPoints, AppSettings settings, bool safe)
+    private void DrawTargetPoints(DrawingContext context, IList<StyledTargetPoint> worldPoints, AppSettings settings)
     {
         if (worldPoints.Count == 0)
             return;
 
-        var targetColor = safe
-            ? ParseColorOrDefault(settings.PlotColorSafetyZone, Color.FromRgb(156, 163, 175))
-            : ParseColorOrDefault(settings.PlotColorWorkingZone, Color.FromRgb(34, 197, 94));
-        var fill = new SolidColorBrush(Color.FromArgb(235, targetColor.R, targetColor.G, targetColor.B));
+        var safeColor = ParseColorOrDefault(settings.PlotColorSafetyZone, Color.FromRgb(156, 163, 175));
+        var workColor = ParseColorOrDefault(settings.PlotColorWorkingZone, Color.FromRgb(34, 197, 94));
+        var safeFill = new SolidColorBrush(Color.FromArgb(235, safeColor.R, safeColor.G, safeColor.B));
+        var workFill = new SolidColorBrush(Color.FromArgb(235, workColor.R, workColor.G, workColor.B));
         var outline = new Pen(new SolidColorBrush(Color.FromRgb(226, 232, 240)), 1.1);
         var radius = Math.Max(3.2, settings.PlotPointRadius);
 
         foreach (var point in worldPoints)
-            context.DrawEllipse(fill, outline, WorldToScreen(point), radius, radius);
+        {
+            var fill = point.Safe ? safeFill : workFill;
+            context.DrawEllipse(fill, outline, WorldToScreen(point.Position), radius, radius);
+        }
     }
 
     private void DrawPointMarker(DrawingContext context, Point worldPoint, string label)
@@ -1033,14 +1034,15 @@ public sealed class SimulationPointPair2DControl : Control
     private static double ResolvePartWidthScaleFactor(double partWidthScalePercent)
         => Math.Clamp(partWidthScalePercent, 50.0, 150.0) / 100.0;
 
-    private List<Point> BuildVisibleTargetPoints(AppSettings settings, bool safe)
+    private List<StyledTargetPoint> BuildVisibleTargetPoints(AppSettings settings)
     {
         var points = FilterRenderablePoints(PlotPoints ?? Points)
-            .Where(p => p.Safe == safe)
             .Select(p =>
             {
                 var (xp, zp) = p.GetTargetPoint(settings.HZone);
-                return SimulationOverlayGeometry.ProjectWorldPoint(xp, zp, InvertHorizontal, VerticalOffsetMm);
+                return new StyledTargetPoint(
+                    SimulationOverlayGeometry.ProjectWorldPoint(xp, zp, InvertHorizontal, VerticalOffsetMm),
+                    p.Safe);
             })
             .ToList();
 
