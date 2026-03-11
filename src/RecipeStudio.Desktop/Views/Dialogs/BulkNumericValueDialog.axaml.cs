@@ -4,16 +4,9 @@ using Avalonia.Interactivity;
 
 namespace RecipeStudio.Desktop.Views.Dialogs;
 
-public enum BulkFlagAction
+public sealed partial class BulkNumericValueDialog : Window
 {
-    Cancel = 0,
-    SetAll = 1,
-    ClearAll = 2
-}
-
-public sealed partial class BulkFlagActionDialog : Window
-{
-    public BulkFlagActionDialog()
+    public BulkNumericValueDialog()
     {
         InitializeComponent();
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
@@ -22,14 +15,27 @@ public sealed partial class BulkFlagActionDialog : Window
         {
             TitleBlock.Text = "Массовое изменение";
             MessageBlock.Text = "Выставить для всех точек одинаковое значение?";
+            ValueBox.Value = 0;
         }
     }
 
-    public BulkFlagActionDialog(string title, string message)
+    public BulkNumericValueDialog(
+        string title,
+        string message,
+        double initialValue,
+        double minimum,
+        double maximum,
+        double increment = 0.1,
+        string formatString = "0.###")
         : this()
     {
         TitleBlock.Text = title;
         MessageBlock.Text = message;
+        ValueBox.Minimum = (decimal)minimum;
+        ValueBox.Maximum = (decimal)maximum;
+        ValueBox.Increment = (decimal)increment;
+        ValueBox.FormatString = formatString;
+        ValueBox.Value = (decimal)initialValue;
     }
 
     private void Header_PointerPressed(object? sender, PointerPressedEventArgs e)
@@ -44,12 +50,12 @@ public sealed partial class BulkFlagActionDialog : Window
             return;
 
         e.Handled = true;
-        Close(BulkFlagAction.Cancel);
+        Close(null);
     }
 
-    private void SetAll_Click(object? sender, RoutedEventArgs e) => Close(BulkFlagAction.SetAll);
+    private void Apply_Click(object? sender, RoutedEventArgs e)
+        => Close((double)(ValueBox.Value ?? 0m));
 
-    private void ClearAll_Click(object? sender, RoutedEventArgs e) => Close(BulkFlagAction.ClearAll);
-
-    private void Cancel_Click(object? sender, RoutedEventArgs e) => Close(BulkFlagAction.Cancel);
+    private void Cancel_Click(object? sender, RoutedEventArgs e)
+        => Close(null);
 }

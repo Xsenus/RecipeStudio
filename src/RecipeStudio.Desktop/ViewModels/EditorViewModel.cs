@@ -410,6 +410,27 @@ public sealed class EditorViewModel : ViewModelBase
     public void SetHiddenForAll(bool value)
         => ApplyFlagToAll(point => point.Hidden = value, recalculate: false);
 
+    public void SetANozzleForAll(double value)
+        => ApplyNumericToAll((point, numericValue) => point.ANozzle = numericValue, value, recalculate: true);
+
+    public void SetBettaForAll(double value)
+        => ApplyNumericToAll((point, numericValue) => point.Betta = numericValue, value, recalculate: true);
+
+    public void SetSpeedTableForAll(double value)
+        => ApplyNumericToAll((point, numericValue) => point.SpeedTable = numericValue, value, recalculate: true);
+
+    public void SetTimeForAll(double value)
+        => ApplyNumericToAll(
+            (point, numericValue) => point.SpeedTable = numericValue <= 0 ? 0 : 60.0 / numericValue,
+            value,
+            recalculate: true);
+
+    public void SetAirPressureForAll(double value)
+        => ApplyNumericToAll((point, numericValue) => point.AirPressure = numericValue, value, recalculate: false);
+
+    public void SetAirTempForAll(double value)
+        => ApplyNumericToAll((point, numericValue) => point.AirTemp = numericValue, value, recalculate: false);
+
     private void AddPoint()
     {
         if (Document is null) return;
@@ -448,6 +469,26 @@ public sealed class EditorViewModel : ViewModelBase
             Recalculate();
         else
             RecalculateTimeline();
+    }
+
+    private void ApplyNumericToAll(Action<RecipePoint, double> apply, double value, bool recalculate)
+    {
+        if (Document is null || Points.Count == 0)
+            return;
+
+        try
+        {
+            _suppressRecalc = true;
+            foreach (var point in Points)
+                apply(point, value);
+        }
+        finally
+        {
+            _suppressRecalc = false;
+        }
+
+        if (recalculate)
+            Recalculate();
     }
 
     private void DuplicateSelectedPoint()

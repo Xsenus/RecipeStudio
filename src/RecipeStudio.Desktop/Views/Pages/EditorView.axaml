@@ -77,7 +77,8 @@
 
               <DataGridTemplateColumn Width="25">
                 <DataGridTemplateColumn.Header>
-                  <Border Background="Transparent"
+                  <Border Classes="bulk-header-hitbox"
+                          Background="Transparent"
                           Cursor="Hand"
                           PointerPressed="BulkFlagHeader_PointerPressed"
                           Tag="Act">
@@ -150,7 +151,13 @@
 
               <DataGridTextColumn Binding="{Binding ANozzle}" Width="50">
                 <DataGridTextColumn.Header>
-                  <TextBlock Text="a" Classes="grid-hdr" ToolTip.Tip="Диаметр сопла a, мм" />
+                  <Border Classes="bulk-header-hitbox"
+                          Background="Transparent"
+                          Cursor="Hand"
+                          PointerPressed="BulkNumericHeader_PointerPressed"
+                          Tag="ANozzle">
+                    <TextBlock Text="a" Classes="grid-hdr" ToolTip.Tip="Диаметр сопла a, мм" />
+                  </Border>
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
@@ -162,13 +169,20 @@
 
               <DataGridTextColumn Binding="{Binding Betta}" Width="50">
                 <DataGridTextColumn.Header>
-                  <TextBlock Text="β" Classes="grid-hdr" ToolTip.Tip="Угол бета, °" />
+                  <Border Classes="bulk-header-hitbox"
+                          Background="Transparent"
+                          Cursor="Hand"
+                          PointerPressed="BulkNumericHeader_PointerPressed"
+                          Tag="Betta">
+                    <TextBlock Text="β" Classes="grid-hdr" ToolTip.Tip="Угол бета, °" />
+                  </Border>
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
               <DataGridCheckBoxColumn Binding="{Binding IsTop}" Width="45">
                 <DataGridCheckBoxColumn.Header>
-                  <Border Background="Transparent"
+                  <Border Classes="bulk-header-hitbox"
+                          Background="Transparent"
                           Cursor="Hand"
                           PointerPressed="BulkFlagHeader_PointerPressed"
                           Tag="Top">
@@ -179,7 +193,8 @@
 
               <DataGridCheckBoxColumn Binding="{Binding Hidden}" Width="45">
                 <DataGridCheckBoxColumn.Header>
-                  <Border Background="Transparent"
+                  <Border Classes="bulk-header-hitbox"
+                          Background="Transparent"
                           Cursor="Hand"
                           PointerPressed="BulkFlagHeader_PointerPressed"
                           Tag="Hidden">
@@ -190,13 +205,25 @@
 
               <DataGridTextColumn Binding="{Binding SpeedTable}" Width="45">
                 <DataGridTextColumn.Header>
-                  <TextBlock Text="Speed" Classes="grid-hdr" ToolTip.Tip="ω — скорость стола, об/мин" />
+                  <Border Classes="bulk-header-hitbox"
+                          Background="Transparent"
+                          Cursor="Hand"
+                          PointerPressed="BulkNumericHeader_PointerPressed"
+                          Tag="SpeedTable">
+                    <TextBlock Text="Speed" Classes="grid-hdr" ToolTip.Tip="ω — скорость стола, об/мин" />
+                  </Border>
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
               <DataGridTextColumn Binding="{Binding TimeSec}" IsReadOnly="True" Width="45">
                 <DataGridTextColumn.Header>
-                  <TextBlock Text="Time" Classes="grid-hdr" ToolTip.Tip="t, сек — время прохода" />
+                  <Border Classes="bulk-header-hitbox"
+                          Background="Transparent"
+                          Cursor="Hand"
+                          PointerPressed="BulkNumericHeader_PointerPressed"
+                          Tag="TimeSec">
+                    <TextBlock Text="Time" Classes="grid-hdr" ToolTip.Tip="t, сек — время прохода" />
+                  </Border>
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
@@ -214,13 +241,25 @@
 
               <DataGridTextColumn Binding="{Binding AirPressure}" Width="65">
                 <DataGridTextColumn.Header>
-                  <TextBlock Text="Air.P" Classes="grid-hdr hdr-violet" ToolTip.Tip="P, атм — давление воздуха" />
+                  <Border Classes="bulk-header-hitbox"
+                          Background="Transparent"
+                          Cursor="Hand"
+                          PointerPressed="BulkNumericHeader_PointerPressed"
+                          Tag="AirPressure">
+                    <TextBlock Text="Air.P" Classes="grid-hdr hdr-violet" ToolTip.Tip="P, атм — давление воздуха" />
+                  </Border>
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
               <DataGridTextColumn Binding="{Binding AirTemp}" Width="65">
                 <DataGridTextColumn.Header>
-                  <TextBlock Text="Air.T" Classes="grid-hdr hdr-violet" ToolTip.Tip="T, °C — температура воздуха" />
+                  <Border Classes="bulk-header-hitbox"
+                          Background="Transparent"
+                          Cursor="Hand"
+                          PointerPressed="BulkNumericHeader_PointerPressed"
+                          Tag="AirTemp">
+                    <TextBlock Text="Air.T" Classes="grid-hdr hdr-violet" ToolTip.Tip="T, °C — температура воздуха" />
+                  </Border>
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 

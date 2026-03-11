@@ -6,6 +6,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -102,6 +103,7 @@ public sealed partial class EditorView : UserControl
         Pair2DPlot.ZoomChanged += OnPair2DPlotZoomChanged;
         PointsGrid.PointerReleased -= OnPointsGridPointerReleased;
         PointsGrid.PointerReleased += OnPointsGridPointerReleased;
+        PointsGrid.AddHandler(InputElement.PointerPressedEvent, OnPointsGridHeaderPointerPressed, RoutingStrategies.Tunnel, true);
 
         ApplySavedTargetDisplayModes();
         ApplySavedPair2DOverlaySettings();
@@ -117,6 +119,7 @@ public sealed partial class EditorView : UserControl
         RecipePlot.ZoomChanged -= OnRecipePlotZoomChanged;
         Pair2DPlot.ZoomChanged -= OnPair2DPlotZoomChanged;
         PointsGrid.PointerReleased -= OnPointsGridPointerReleased;
+        PointsGrid.RemoveHandler(InputElement.PointerPressedEvent, OnPointsGridHeaderPointerPressed);
         PersistGridColumnWidths(force: true);
         PersistPanelsLayout(force: false);
         _panelsInitialized = false;
@@ -165,6 +168,31 @@ public sealed partial class EditorView : UserControl
         PersistGridColumnWidths(force: false);
     }
 
+    private void OnPointsGridHeaderPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (_vm is null || e.Handled)
+            return;
+
+        if (!e.GetCurrentPoint(PointsGrid).Properties.IsLeftButtonPressed)
+            return;
+
+        if (e.Source is not Visual source)
+            return;
+
+        var header = source as DataGridColumnHeader ?? source.FindAncestorOfType<DataGridColumnHeader>();
+        if (header?.Content is not Control { Tag: string tag } content)
+            return;
+
+        if (tag is "Act" or "Top" or "Hidden")
+        {
+            BulkFlagHeader_PointerPressed(content, e);
+            return;
+        }
+
+        if (tag is "ANozzle" or "Betta" or "SpeedTable" or "TimeSec" or "AirPressure" or "AirTemp")
+            BulkNumericHeader_PointerPressed(content, e);
+    }
+
     private async void BulkFlagHeader_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (_vm is null)
@@ -196,6 +224,40 @@ public sealed partial class EditorView : UserControl
                 ApplyBulkFlag(flagKey, value: false);
                 break;
         }
+    }
+
+    private async void BulkNumericHeader_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (_vm is null)
+            return;
+
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            return;
+
+        if (sender is not Control { Tag: string fieldKey })
+            return;
+
+        e.Handled = true;
+
+        var owner = TopLevel.GetTopLevel(this) as Window;
+        if (owner is null)
+            return;
+
+        var options = GetBulkNumericOptions(fieldKey);
+        var dialog = new BulkNumericValueDialog(
+            "Массовое изменение",
+            BuildBulkNumericMessage(fieldKey),
+            options.InitialValue,
+            options.Minimum,
+            options.Maximum,
+            options.Increment,
+            options.FormatString);
+
+        var value = await dialog.ShowDialog<double?>(owner);
+        if (value is null)
+            return;
+
+        ApplyBulkNumericField(fieldKey, value.Value);
     }
 
     private void ApplySavedGridColumnWidths()
@@ -321,6 +383,52 @@ public sealed partial class EditorView : UserControl
         };
     }
 
+    private string BuildBulkNumericMessage(string fieldKey)
+    {
+        var message = $"Выставить для всех точек одинаковое значение?\nПоле: {GetBulkNumericColumnName(fieldKey)}";
+        return fieldKey == "TimeSec"
+            ? message + "\nЗначение задается в секундах, Speed будет пересчитан автоматически."
+            : message;
+    }
+
+    private (double InitialValue, double Minimum, double Maximum, double Increment, string FormatString) GetBulkNumericOptions(string fieldKey)
+    {
+        var source = _vm?.SelectedPoint ?? _vm?.Points.FirstOrDefault();
+        var initialValue = source is null
+            ? 0
+            : fieldKey switch
+            {
+                "ANozzle" => source.ANozzle,
+                "Betta" => source.Betta,
+                "SpeedTable" => source.SpeedTable,
+                "TimeSec" => source.TimeSec,
+                "AirPressure" => source.AirPressure,
+                "AirTemp" => source.AirTemp,
+                _ => 0
+            };
+
+        return fieldKey switch
+        {
+            "Betta" => (initialValue, -50000d, 50000d, 0.1d, "0.###"),
+            "AirTemp" => (initialValue, -50000d, 50000d, 0.1d, "0.###"),
+            _ => (Math.Max(0, initialValue), 0d, 50000d, 0.1d, "0.###")
+        };
+    }
+
+    private static string GetBulkNumericColumnName(string fieldKey)
+    {
+        return fieldKey switch
+        {
+            "ANozzle" => "a",
+            "Betta" => "β",
+            "SpeedTable" => "Speed",
+            "TimeSec" => "Time",
+            "AirPressure" => "Air.P",
+            "AirTemp" => "Air.T",
+            _ => fieldKey
+        };
+    }
+
     private void ApplyBulkFlag(string flagKey, bool value)
     {
         if (_vm is null)
@@ -336,6 +444,34 @@ public sealed partial class EditorView : UserControl
                 break;
             case "Hidden":
                 _vm.SetHiddenForAll(value);
+                break;
+        }
+    }
+
+    private void ApplyBulkNumericField(string fieldKey, double value)
+    {
+        if (_vm is null)
+            return;
+
+        switch (fieldKey)
+        {
+            case "ANozzle":
+                _vm.SetANozzleForAll(value);
+                break;
+            case "Betta":
+                _vm.SetBettaForAll(value);
+                break;
+            case "SpeedTable":
+                _vm.SetSpeedTableForAll(value);
+                break;
+            case "TimeSec":
+                _vm.SetTimeForAll(value);
+                break;
+            case "AirPressure":
+                _vm.SetAirPressureForAll(value);
+                break;
+            case "AirTemp":
+                _vm.SetAirTempForAll(value);
                 break;
         }
     }

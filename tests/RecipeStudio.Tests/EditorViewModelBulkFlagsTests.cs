@@ -43,6 +43,43 @@ public sealed class EditorViewModelBulkFlagsTests : IDisposable
         });
     }
 
+    [Fact]
+    public void BulkNumericMethods_ApplyValuesToAllPoints()
+    {
+        var vm = CreateViewModel();
+        vm.LoadDocument(CreateDocument());
+
+        vm.SetANozzleForAll(42);
+        vm.SetBettaForAll(-7.5);
+        vm.SetSpeedTableForAll(6);
+        vm.SetAirPressureForAll(8.2);
+        vm.SetAirTempForAll(-15);
+
+        Assert.All(vm.Points, point =>
+        {
+            Assert.Equal(42, point.ANozzle);
+            Assert.Equal(-7.5, point.Betta);
+            Assert.Equal(6, point.SpeedTable);
+            Assert.Equal(8.2, point.AirPressure);
+            Assert.Equal(-15, point.AirTemp);
+        });
+    }
+
+    [Fact]
+    public void SetTimeForAll_RecalculatesSpeedAndTime()
+    {
+        var vm = CreateViewModel();
+        vm.LoadDocument(CreateDocument());
+
+        vm.SetTimeForAll(15);
+
+        Assert.All(vm.Points, point =>
+        {
+            Assert.Equal(4, point.SpeedTable, precision: 6);
+            Assert.Equal(15, point.TimeSec, precision: 6);
+        });
+    }
+
     public void Dispose()
     {
         try
