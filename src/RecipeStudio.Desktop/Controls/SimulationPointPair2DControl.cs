@@ -21,6 +21,9 @@ public sealed class SimulationPointPair2DControl : Control
     public static readonly StyledProperty<IList<RecipePoint>?> PlotPointsProperty =
         AvaloniaProperty.Register<SimulationPointPair2DControl, IList<RecipePoint>?>(nameof(PlotPoints));
 
+    public static readonly StyledProperty<RecipePoint?> SelectedPointProperty =
+        AvaloniaProperty.Register<SimulationPointPair2DControl, RecipePoint?>(nameof(SelectedPoint));
+
     public static readonly StyledProperty<double> ProgressProperty =
         AvaloniaProperty.Register<SimulationPointPair2DControl, double>(nameof(Progress));
 
@@ -50,6 +53,9 @@ public sealed class SimulationPointPair2DControl : Control
 
     public static readonly StyledProperty<double> CurrentBettaProperty =
         AvaloniaProperty.Register<SimulationPointPair2DControl, double>(nameof(CurrentBetta));
+
+    public static readonly StyledProperty<bool> IsPlayingProperty =
+        AvaloniaProperty.Register<SimulationPointPair2DControl, bool>(nameof(IsPlaying));
 
     public static readonly StyledProperty<double> ReferenceHeightMmProperty =
         AvaloniaProperty.Register<SimulationPointPair2DControl, double>(nameof(ReferenceHeightMm), SimulationBlueprint2DControl.DefaultReferenceHeightMm);
@@ -112,6 +118,12 @@ public sealed class SimulationPointPair2DControl : Control
         set => SetValue(PlotPointsProperty, value);
     }
 
+    public RecipePoint? SelectedPoint
+    {
+        get => GetValue(SelectedPointProperty);
+        set => SetValue(SelectedPointProperty, value);
+    }
+
     public double Progress
     {
         get => GetValue(ProgressProperty);
@@ -170,6 +182,12 @@ public sealed class SimulationPointPair2DControl : Control
     {
         get => GetValue(CurrentBettaProperty);
         set => SetValue(CurrentBettaProperty, value);
+    }
+
+    public bool IsPlaying
+    {
+        get => GetValue(IsPlayingProperty);
+        set => SetValue(IsPlayingProperty, value);
     }
 
     public double ReferenceHeightMm
@@ -239,6 +257,7 @@ public sealed class SimulationPointPair2DControl : Control
     {
         PointsProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
         PlotPointsProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
+        SelectedPointProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
         ProgressProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
         CurrentSegmentIndexProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
         CurrentSegmentTProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
@@ -249,6 +268,7 @@ public sealed class SimulationPointPair2DControl : Control
         SettingsProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
         CurrentAlfaProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
         CurrentBettaProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
+        IsPlayingProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
         ReferenceHeightMmProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
         InvertHorizontalProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
         ShowGridProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
@@ -502,8 +522,12 @@ public sealed class SimulationPointPair2DControl : Control
 
     private (Point TargetPoint, Point ToolPoint, Point NozzleTipPoint) ResolvePairPoints()
     {
-        var source = Points?.ToList() ?? new List<RecipePoint>();
         var settings = Settings ?? new AppSettings();
+        var selectedPair = !IsPlaying ? TryResolveSelectedPairPoints(settings) : null;
+        if (selectedPair is { } selected)
+            return selected;
+
+        var source = Points?.ToList() ?? new List<RecipePoint>();
         var hZone = settings.HZone;
         var absoluteRobot = RobotCoordinateResolver.BuildAbsolutePositions(source);
         var animTarget = new List<Point>();
@@ -546,6 +570,66 @@ public sealed class SimulationPointPair2DControl : Control
             usePhysicalOrientation,
             ResolveDisplayedNozzleLengthMm(settings));
         return (pair.TargetPoint, pair.ToolPoint, pair.NozzleTipPoint);
+    }
+
+    private (Point TargetPoint, Point ToolPoint, Point NozzleTipPoint)? TryResolveSelectedPairPoints(AppSettings settings)
+    {
+        if (SelectedPoint is null)
+            return null;
+
+        var source = (PlotPoints ?? Points)?.ToList() ?? new List<RecipePoint>();
+        var index = FindPointIndex(source, SelectedPoint);
+        if (index < 0)
+        {
+            source = new List<RecipePoint> { SelectedPoint };
+            index = 0;
+        }
+
+        if (source.Count == 0)
+            return null;
+
+        var absoluteRobot = RobotCoordinateResolver.BuildAbsolutePositions(source);
+        if (absoluteRobot.Count == 0)
+            return null;
+
+        var selected = source[index];
+        var rawTool = absoluteRobot[Math.Min(index, absoluteRobot.Count - 1)];
+        var (targetX, targetZ) = selected.GetTargetPoint(settings.HZone);
+        var usePhysicalOrientation = NozzleOrientationPolicy.UsePhysicalOrientation(settings.NozzleOrientationMode);
+        var physicalDirection = usePhysicalOrientation
+            ? GetPhysicalProjectedVector(settings, selected.Alfa, selected.Betta, selected.Place)
+            : default;
+        var marker = SimulationOverlayGeometry.ResolvePlotMarkerGeometry(
+            default,
+            default,
+            new Point(rawTool.X, rawTool.Z),
+            new Point(targetX, targetZ),
+            InvertHorizontal,
+            usePhysicalOrientation,
+            physicalDirection);
+        var pair = SimulationOverlayGeometry.ResolvePairOverlayGeometry(
+            marker,
+            VerticalOffsetMm,
+            usePhysicalOrientation,
+            ResolveDisplayedNozzleLengthMm(settings));
+        return (pair.TargetPoint, pair.ToolPoint, pair.NozzleTipPoint);
+    }
+
+    private static int FindPointIndex(IList<RecipePoint> source, RecipePoint selectedPoint)
+    {
+        for (var i = 0; i < source.Count; i++)
+        {
+            if (ReferenceEquals(source[i], selectedPoint))
+                return i;
+        }
+
+        for (var i = 0; i < source.Count; i++)
+        {
+            if (source[i].NPoint == selectedPoint.NPoint)
+                return i;
+        }
+
+        return -1;
     }
 
     private static (Point ToolPosition, Point TargetPosition, Point Direction, Point ToolSegmentDirection, int SegmentIndex, double SegmentT) GetToolState(

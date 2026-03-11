@@ -21,6 +21,8 @@
     <SolidColorBrush x:Key="B_Accent" Color="{StaticResource C_Accent}" />
     <SolidColorBrush x:Key="B_Accent2" Color="{StaticResource C_Accent2}" />
     <SolidColorBrush x:Key="B_Danger" Color="{StaticResource C_Danger}" />
+    <SolidColorBrush x:Key="DataGridCellFocusVisualPrimaryBrush" Color="Transparent" />
+    <SolidColorBrush x:Key="DataGridCellFocusVisualSecondaryBrush" Color="Transparent" />
     <x:Double x:Key="DataGridSortIconMinWidth">0</x:Double>
   </Styles.Resources>
 
@@ -552,10 +554,10 @@
   </Style>
 
   <Style Selector="DataGrid.editor-grid DataGridCell:current">
-    <Setter Property="Background" Value="#2E4A6A" />
-    <Setter Property="Foreground" Value="#E8F0FF" />
-    <Setter Property="BorderBrush" Value="#5EA2ED" />
-    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="#8FA6C9" />
+    <Setter Property="BorderBrush" Value="#252D3B" />
+    <Setter Property="BorderThickness" Value="0,0,1,1" />
   </Style>
 
   <Style Selector="DataGrid.editor-grid DataGridCell">
@@ -563,8 +565,34 @@
     <Setter Property="BorderBrush" Value="#252D3B" />
     <Setter Property="BorderThickness" Value="0,0,1,1" />
     <Setter Property="Padding" Value="1,0" />
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
     <Setter Property="HorizontalContentAlignment" Value="Right" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridCell:focus">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="#252D3B" />
+    <Setter Property="BorderThickness" Value="0,0,1,1" />
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridCell:current:focus">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="#8FA6C9" />
+    <Setter Property="BorderBrush" Value="#252D3B" />
+    <Setter Property="BorderThickness" Value="0,0,1,1" />
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid:focus DataGridCell:current /template/ Grid#FocusVisual">
+    <Setter Property="Opacity" Value="0" />
+    <Setter Property="IsHitTestVisible" Value="False" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridCell:current /template/ Grid#FocusVisual">
+    <Setter Property="Opacity" Value="0" />
+    <Setter Property="IsHitTestVisible" Value="False" />
   </Style>
 
   <Style Selector="DataGrid.editor-grid DataGridCell TextBlock">
@@ -576,6 +604,17 @@
     <Setter Property="HorizontalAlignment" Value="Stretch" />
     <Setter Property="TextAlignment" Value="Right" />
     <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
+  </Style>
+
+  <Style Selector="DataGrid.editor-grid DataGridCell TextBox:focus">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
   </Style>
 
   <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(2)">

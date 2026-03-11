@@ -34,6 +34,9 @@ public sealed class RecipePlotControl : Control
     public static readonly StyledProperty<double> CurrentBettaProperty =
         AvaloniaProperty.Register<RecipePlotControl, double>(nameof(CurrentBetta));
 
+    public static readonly StyledProperty<bool> IsPlayingProperty =
+        AvaloniaProperty.Register<RecipePlotControl, bool>(nameof(IsPlaying));
+
     public static readonly StyledProperty<int> CurrentSegmentIndexProperty =
         AvaloniaProperty.Register<RecipePlotControl, int>(nameof(CurrentSegmentIndex), -1);
 
@@ -130,6 +133,12 @@ public sealed class RecipePlotControl : Control
         set => SetValue(CurrentBettaProperty, value);
     }
 
+    public bool IsPlaying
+    {
+        get => GetValue(IsPlayingProperty);
+        set => SetValue(IsPlayingProperty, value);
+    }
+
     public int CurrentSegmentIndex
     {
         get => GetValue(CurrentSegmentIndexProperty);
@@ -208,6 +217,7 @@ public sealed class RecipePlotControl : Control
         ProgressProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         CurrentAlfaProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         CurrentBettaProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
+        IsPlayingProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         CurrentSegmentIndexProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         CurrentSegmentTProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
         ToolXRawProperty.Changed.AddClassHandler<RecipePlotControl>((c, _) => c.InvalidateVisual());
@@ -389,6 +399,26 @@ public sealed class RecipePlotControl : Control
             }
         }
 
+        var usePhysicalOrientation = NozzleOrientationPolicy.UsePhysicalOrientation(settings.NozzleOrientationMode);
+        var selectedMarker = !IsPlaying
+            ? TryResolveSelectedMarker(settings, usePhysicalOrientation)
+            : null;
+        PairOverlayGeometry? selectedVisibleNozzle = null;
+        if (selectedMarker is { } marker)
+        {
+            selectedVisibleNozzle = SimulationOverlayGeometry.ResolvePairOverlayGeometry(
+                marker,
+                verticalOffsetMm: 0,
+                usePhysicalOrientation,
+                ResolveDisplayedNozzleLengthMm(settings));
+        }
+        var selectedOverlayXs = selectedVisibleNozzle is { } selectedOverlay
+            ? new[] { selectedOverlay.TargetPoint.X, selectedOverlay.ToolPoint.X, selectedOverlay.NozzleTipPoint.X }
+            : Array.Empty<double>();
+        var selectedOverlayYs = selectedVisibleNozzle is { } selectedOverlayY
+            ? new[] { selectedOverlayY.TargetPoint.Y, selectedOverlayY.ToolPoint.Y, selectedOverlayY.NozzleTipPoint.Y }
+            : Array.Empty<double>();
+
         // Determine bounds including clamp rectangles
         var dClamp = points[0].Container ? points[0].DClampCont : points[0].DClampForm;
         var halfClamp = Math.Max(10, dClamp / 2.0);
@@ -398,8 +428,12 @@ public sealed class RecipePlotControl : Control
         var xs = target.Select(p => p.X)
             .Concat(mirroredTarget.Select(p => p.X))
             .Concat(tool.Select(p => p.X))
+            .Concat(selectedOverlayXs)
             .Concat(new[] { -halfClamp, halfClamp, 0.0 });
-        var ys = target.Select(p => p.Y).Concat(tool.Select(p => p.Y)).Concat(new[] { 0.0, settings.HZone, settings.HContMax, hFreeZ });
+        var ys = target.Select(p => p.Y)
+            .Concat(tool.Select(p => p.Y))
+            .Concat(selectedOverlayYs)
+            .Concat(new[] { 0.0, settings.HZone, settings.HContMax, hFreeZ });
 
         var minX = xs.Min();
         var maxX = xs.Max();
@@ -509,26 +543,36 @@ public sealed class RecipePlotControl : Control
             DrawPoints(context, points, settings, settings.HZone, showOriginalTarget, showMirroredTarget);
             DrawRobotPoints(context, robotPoints, robotToolMap, settings);
 
-            // Tool marker rendered as a smooth nozzle link Target->Robot.
-            var toolState = GetToolState(animTool, animTarget, Progress, CurrentSegmentIndex, CurrentSegmentT);
-            var usePhysicalOrientation = NozzleOrientationPolicy.UsePhysicalOrientation(settings.NozzleOrientationMode);
-            var physicalDirection = usePhysicalOrientation
-                ? ApplyTransitionLiftOrientation(animSrc, animTool, toolState, settings)
-                : default;
-            var marker = SimulationOverlayGeometry.ResolvePlotMarkerGeometry(
-                toolState.ToolPosition,
-                toolState.TargetPosition,
-                double.IsFinite(ToolXRaw) && double.IsFinite(ToolZRaw) ? new Point(ToolXRaw, ToolZRaw) : null,
-                double.IsFinite(TargetXRaw) && double.IsFinite(TargetZRaw) ? new Point(TargetXRaw, TargetZRaw) : null,
-                InvertHorizontal,
-                usePhysicalOrientation,
-                physicalDirection);
-            var visibleNozzle = SimulationOverlayGeometry.ResolvePairOverlayGeometry(
-                marker,
-                verticalOffsetMm: 0,
-                usePhysicalOrientation,
-                ResolveDisplayedNozzleLengthMm(settings));
-            DrawToolMarker(context, visibleNozzle.ToolPoint, visibleNozzle.TargetPoint, visibleNozzle.NozzleTipPoint, marker.Direction);
+            // In the editor, the red overlay follows the selected row when it exists.
+            PairOverlayGeometry visibleNozzle;
+            Point markerDirection;
+            if (selectedMarker is { } selectedGeometry && selectedVisibleNozzle is { } selectedPair)
+            {
+                visibleNozzle = selectedPair;
+                markerDirection = selectedGeometry.Direction;
+            }
+            else
+            {
+                var toolState = GetToolState(animTool, animTarget, Progress, CurrentSegmentIndex, CurrentSegmentT);
+                var physicalDirection = usePhysicalOrientation
+                    ? ApplyTransitionLiftOrientation(animSrc, animTool, toolState, settings)
+                    : default;
+                var animatedMarker = SimulationOverlayGeometry.ResolvePlotMarkerGeometry(
+                    toolState.ToolPosition,
+                    toolState.TargetPosition,
+                    double.IsFinite(ToolXRaw) && double.IsFinite(ToolZRaw) ? new Point(ToolXRaw, ToolZRaw) : null,
+                    double.IsFinite(TargetXRaw) && double.IsFinite(TargetZRaw) ? new Point(TargetXRaw, TargetZRaw) : null,
+                    InvertHorizontal,
+                    usePhysicalOrientation,
+                    physicalDirection);
+                visibleNozzle = SimulationOverlayGeometry.ResolvePairOverlayGeometry(
+                    animatedMarker,
+                    verticalOffsetMm: 0,
+                    usePhysicalOrientation,
+                    ResolveDisplayedNozzleLengthMm(settings));
+                markerDirection = animatedMarker.Direction;
+            }
+            DrawToolMarker(context, visibleNozzle.ToolPoint, visibleNozzle.TargetPoint, visibleNozzle.NozzleTipPoint, markerDirection);
         }
 
         // Legend
@@ -821,6 +865,62 @@ public sealed class RecipePlotControl : Control
 
     private static Point MirrorWorldX(Point point)
         => new(-point.X, point.Y);
+
+    private PlotMarkerGeometry? TryResolveSelectedMarker(AppSettings settings, bool usePhysicalOrientation)
+    {
+        if (SelectedPoint is null)
+            return null;
+
+        var source = Points?.ToList() ?? new List<RecipePoint>();
+        var index = FindPointIndex(source, SelectedPoint);
+        if (index < 0)
+        {
+            source = new List<RecipePoint> { SelectedPoint };
+            index = 0;
+        }
+
+        if (source.Count == 0)
+            return null;
+
+        var absoluteRobot = RobotCoordinateResolver.BuildAbsolutePositions(source);
+        if (absoluteRobot.Count == 0)
+            return null;
+
+        var selected = source[index];
+        var rawTool = absoluteRobot[Math.Min(index, absoluteRobot.Count - 1)];
+        var (targetX, targetZ) = selected.GetTargetPoint(settings.HZone);
+        var rawToolPoint = new Point(rawTool.X, rawTool.Z);
+        var rawTargetPoint = new Point(targetX, targetZ);
+        var physicalDirection = usePhysicalOrientation
+            ? GetPhysicalProjectedVector(settings, selected.Alfa, selected.Betta, selected.Place)
+            : default;
+
+        return SimulationOverlayGeometry.ResolvePlotMarkerGeometry(
+            default,
+            default,
+            rawToolPoint,
+            rawTargetPoint,
+            InvertHorizontal,
+            usePhysicalOrientation,
+            physicalDirection);
+    }
+
+    private static int FindPointIndex(IList<RecipePoint> source, RecipePoint selectedPoint)
+    {
+        for (var i = 0; i < source.Count; i++)
+        {
+            if (ReferenceEquals(source[i], selectedPoint))
+                return i;
+        }
+
+        for (var i = 0; i < source.Count; i++)
+        {
+            if (source[i].NPoint == selectedPoint.NPoint)
+                return i;
+        }
+
+        return -1;
+    }
 
     private bool ShouldDrawOriginalTarget()
         => SimulationTargetDisplayModes.Normalize(TargetDisplayMode) != SimulationTargetDisplayModes.Mirrored;
