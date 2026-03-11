@@ -27,4 +27,25 @@ public sealed class SimulationSpriteAnchorsTests
             SimulationSpriteAnchors.ManipulatorPivotAnchorX,
             SimulationSpriteAnchors.ManipulatorPivotAnchorY));
     }
+
+    [Fact]
+    public void Version2Anchors_MatchMeasuredSpritePivotMarkers()
+    {
+        Assert.Equal(13.0 / 676.0, SimulationSpriteAnchors.GetManipulatorPivotAnchorX(SimulationSpriteVersions.Version2), 6);
+        Assert.Equal(595.0 / 606.0, SimulationSpriteAnchors.GetManipulatorPivotAnchorY(SimulationSpriteVersions.Version2), 6);
+        Assert.Equal(135.0 / 147.0, SimulationSpriteAnchors.GetNozzlePivotAnchorX(SimulationSpriteVersions.Version2), 6);
+        Assert.Equal(12.0 / 24.0, SimulationSpriteAnchors.GetNozzlePivotAnchorY(SimulationSpriteVersions.Version2), 6);
+    }
+
+    [Fact]
+    public void UsesDefaultManipulatorPivot_DetectsKnownDefaults_ForBothVersions()
+    {
+        Assert.True(SimulationSpriteAnchors.UsesDefaultManipulatorPivot(
+            SimulationSpriteAnchors.ManipulatorPivotAnchorX,
+            SimulationSpriteAnchors.ManipulatorPivotAnchorY));
+        Assert.True(SimulationSpriteAnchors.UsesDefaultManipulatorPivot(
+            SimulationSpriteAnchors.GetManipulatorPivotAnchorX(SimulationSpriteVersions.Version2),
+            SimulationSpriteAnchors.GetManipulatorPivotAnchorY(SimulationSpriteVersions.Version2)));
+        Assert.False(SimulationSpriteAnchors.UsesDefaultManipulatorPivot(0.123, 0.456));
+    }
 }

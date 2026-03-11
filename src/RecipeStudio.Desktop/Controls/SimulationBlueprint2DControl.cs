@@ -27,7 +27,6 @@ public sealed class SimulationBlueprint2DControl : Control
     public const double DefaultPartWidthScalePercent = 98.0;
     private const double MinPartScalePercent = 50.0;
     private const double MaxPartScalePercent = 150.0;
-    private const double NozzlePivotAnchorX = SimulationSpriteAnchors.NozzlePivotAnchorX;
     private const double ApproachPhase = 0.15;
     private const double CenterTransferPhase = 0.10;
     private const double ApproachDistanceFactor = 0.45;
@@ -134,9 +133,10 @@ public sealed class SimulationBlueprint2DControl : Control
     private Point _factPivotWorld;
 
     private readonly Bitmap? _partImage;
-    private readonly Bitmap? _manipulatorImage;
-    private readonly Bitmap? _nozzleImage;
+    private Bitmap? _manipulatorImage;
+    private Bitmap? _nozzleImage;
     private readonly EdgeMap? _partEdgeMap;
+    private string _loadedSpriteVersion = string.Empty;
 
     private sealed class EdgeMap
     {
@@ -309,10 +309,9 @@ public sealed class SimulationBlueprint2DControl : Control
     public SimulationBlueprint2DControl()
     {
         ClipToBounds = true;
-        _partImage = TryLoadBitmap("avares://RecipeStudio.Desktop/Assets/Images/H340_KAMA_1.fw.png");
-        _manipulatorImage = TryLoadBitmap("avares://RecipeStudio.Desktop/Assets/Images/manipulator.fw.png");
-        _nozzleImage = TryLoadBitmap("avares://RecipeStudio.Desktop/Assets/Images/soplo.fw.png");
+        _partImage = TryLoadBitmap(SimulationSpriteAssets.PartUri);
         _partEdgeMap = TryBuildEdgeMap(_partImage);
+        EnsureSelectedSpriteImagesLoaded();
         SyncPartHeightScalePercentFromReferenceHeight();
     }
 
@@ -420,6 +419,7 @@ public sealed class SimulationBlueprint2DControl : Control
     {
         base.Render(context);
         context.FillRectangle(new SolidColorBrush(Color.FromRgb(18, 22, 30)), Bounds);
+        EnsureSelectedSpriteImagesLoaded();
 
         var points = SelectRenderablePoints(Points?.ToList() ?? new List<RecipePoint>());
         var hZone = Settings?.HZone ?? 1200;
@@ -495,18 +495,19 @@ public sealed class SimulationBlueprint2DControl : Control
 
         var tipMotionPath = BuildMotionPath(path, centerTip, approachStartTip);
         var pivotMotionPath = BuildMotionPath(processPivotPath, centerNozzlePivot, approachStartPivot);
+        var (manipAnchorX, manipAnchorY) = ResolveManipulatorAnchors();
         var manipEnvelope = BuildMovingImageEnvelope(
             pivotMotionPath,
             _manipulatorImage,
             mmPerPixel,
-            Math.Clamp(ManipulatorAnchorX, 0.0, 1.0),
-            Math.Clamp(ManipulatorAnchorY, 0.0, 1.0));
+            manipAnchorX,
+            manipAnchorY);
         var nozzleEnvelope = BuildMovingImageEnvelope(
             pivotMotionPath,
             _nozzleImage,
             mmPerPixel,
-            NozzlePivotAnchorX,
-            Math.Clamp(NozzleAnchorY, 0.0, 1.0));
+            ResolveNozzlePivotAnchorX(),
+            ResolveNozzlePivotAnchorY());
         var worldBounds = ComputeWorldBounds(
             tipMotionPath.Count > 0 ? tipMotionPath : path,
             partRectWorld,
@@ -634,6 +635,57 @@ public sealed class SimulationBlueprint2DControl : Control
         {
             return null;
         }
+    }
+
+    private void EnsureSelectedSpriteImagesLoaded()
+    {
+        var spriteVersion = SimulationSpriteVersions.Normalize(Settings?.SimulationPanels?.SpriteVersion);
+        if (_loadedSpriteVersion == spriteVersion)
+            return;
+
+        _manipulatorImage?.Dispose();
+        _nozzleImage?.Dispose();
+        _manipulatorImage = TryLoadBitmap(SimulationSpriteAssets.GetManipulatorUri(spriteVersion));
+        _nozzleImage = TryLoadBitmap(SimulationSpriteAssets.GetNozzleUri(spriteVersion));
+        _loadedSpriteVersion = spriteVersion;
+        _needsRefit = true;
+    }
+
+    private string GetSpriteVersion()
+        => SimulationSpriteVersions.Normalize(Settings?.SimulationPanels?.SpriteVersion);
+
+    private (double X, double Y) ResolveManipulatorAnchors()
+    {
+        var anchorX = Math.Clamp(ManipulatorAnchorX, 0.0, 1.0);
+        var anchorY = Math.Clamp(ManipulatorAnchorY, 0.0, 1.0);
+        if (!SimulationSpriteAnchors.UsesDefaultManipulatorPivot(anchorX, anchorY))
+            return (anchorX, anchorY);
+
+        var spriteVersion = GetSpriteVersion();
+        return (
+            SimulationSpriteAnchors.GetManipulatorPivotAnchorX(spriteVersion),
+            SimulationSpriteAnchors.GetManipulatorPivotAnchorY(spriteVersion));
+    }
+
+    private double ResolveNozzleTipAnchorX()
+    {
+        var anchorX = Math.Clamp(NozzleAnchorX, 0.0, 1.0);
+        if (Math.Abs(anchorX - DefaultNozzleAnchorX) > 1e-6)
+            return anchorX;
+
+        return SimulationSpriteAnchors.GetNozzleTipAnchorX(GetSpriteVersion());
+    }
+
+    private double ResolveNozzlePivotAnchorX()
+        => SimulationSpriteAnchors.GetNozzlePivotAnchorX(GetSpriteVersion());
+
+    private double ResolveNozzlePivotAnchorY()
+    {
+        var anchorY = Math.Clamp(NozzleAnchorY, 0.0, 1.0);
+        if (Math.Abs(anchorY - DefaultNozzleAnchorY) > 1e-6)
+            return anchorY;
+
+        return SimulationSpriteAnchors.GetNozzlePivotAnchorY(GetSpriteVersion());
     }
 
     private static EdgeMap? TryBuildEdgeMap(Bitmap? image)
@@ -917,8 +969,7 @@ public sealed class SimulationBlueprint2DControl : Control
         var h = image.Size.Height * mmPerPixel;
 
         // Anchor manipulator to nozzle working point (near lower-left hinge in source image).
-        var tipX = Math.Clamp(ManipulatorAnchorX, 0.0, 1.0);
-        var tipY = Math.Clamp(ManipulatorAnchorY, 0.0, 1.0);
+        var (tipX, tipY) = ResolveManipulatorAnchors();
         var left = pivotWorld.X - w * tipX;
         var bottom = pivotWorld.Y - h * (1.0 - tipY);
         return new Rect(left, bottom, w, h);
@@ -1037,8 +1088,8 @@ public sealed class SimulationBlueprint2DControl : Control
             return;
 
         var pivotScreen = WorldToScreen(pivotWorld);
-        var anchorX = Math.Clamp(NozzlePivotAnchorX, 0.0, 1.0);
-        var anchorY = Math.Clamp(NozzleAnchorY, 0.0, 1.0);
+        var anchorX = Math.Clamp(ResolveNozzlePivotAnchorX(), 0.0, 1.0);
+        var anchorY = Math.Clamp(ResolveNozzlePivotAnchorY(), 0.0, 1.0);
         var dest = new Rect(
             pivotScreen.X - widthPx * anchorX,
             pivotScreen.Y - heightPx * anchorY,
@@ -1332,8 +1383,8 @@ public sealed class SimulationBlueprint2DControl : Control
         if (_nozzleImage is null || _nozzleImage.Size.Width <= 0)
             return 120;
 
-        var tipAnchor = Math.Clamp(NozzleAnchorX, 0.0, 1.0);
-        var pivotAnchor = Math.Clamp(NozzlePivotAnchorX, 0.0, 1.0);
+        var tipAnchor = Math.Clamp(ResolveNozzleTipAnchorX(), 0.0, 1.0);
+        var pivotAnchor = Math.Clamp(ResolveNozzlePivotAnchorX(), 0.0, 1.0);
         var widthMm = _nozzleImage.Size.Width * mmPerPixel;
         return Math.Max(1e-6, (pivotAnchor - tipAnchor) * widthMm);
     }

@@ -69,7 +69,7 @@ public sealed class SettingsViewModel : ViewModelBase
         SectionMachine => "Параметры станка",
         SectionCoefficients => "Коэффициенты и импульсы",
         SectionGraphics => "Графика",
-        SectionSimulation => "Окна симуляции",
+        SectionSimulation => "Симуляция",
         SectionLogging => "Логирование",
         _ => "Настройки"
     };
@@ -185,6 +185,28 @@ public sealed class SettingsViewModel : ViewModelBase
             RaisePropertyChanged();
         }
     }
+
+    public IReadOnlyList<SimulationSpriteVersionOption> SimulationSpriteVersionOptions { get; } = new[]
+    {
+        new SimulationSpriteVersionOption(SimulationSpriteVersions.Version2, "v2"),
+        new SimulationSpriteVersionOption(SimulationSpriteVersions.Version1, "v1")
+    };
+
+    public string SimSpriteVersion
+    {
+        get => SimulationSpriteVersions.Normalize(_settings.Settings.SimulationPanels.SpriteVersion);
+        set
+        {
+            _settings.Settings.SimulationPanels.SpriteVersion = SimulationSpriteVersions.Normalize(value);
+            RaisePropertyChanged();
+            RaisePropertyChanged(nameof(SimSpriteVersionDescription));
+        }
+    }
+
+    public string SimSpriteVersionDescription
+        => SimSpriteVersion == SimulationSpriteVersions.Version1
+            ? "Используются изображения из папки v1."
+            : "Используются изображения из папки v2. Это значение по умолчанию.";
 
     private SimulationPanelsAccessSettings SimulationPanelsAccess =>
         _settings.Settings.SimulationPanels.Access ??= new SimulationPanelsAccessSettings();
@@ -460,6 +482,7 @@ public sealed class SettingsViewModel : ViewModelBase
                 _settings.Settings.SimulationPanels.View2DPairTargetDisplayMode = defaults.SimulationPanels.View2DPairTargetDisplayMode;
                 _settings.Settings.SimulationPanels.View2DPairTargetDisplaySide = defaults.SimulationPanels.View2DPairTargetDisplaySide;
                 _settings.Settings.SimulationPanels.View2DPairShowRedLink = defaults.SimulationPanels.View2DPairShowRedLink;
+                _settings.Settings.SimulationPanels.SpriteVersion = defaults.SimulationPanels.SpriteVersion;
                 RaisePropertyChanged(nameof(SimAllowPlot));
                 RaisePropertyChanged(nameof(SimAllowTelemetry));
                 RaisePropertyChanged(nameof(SimAllowTopView));
@@ -469,6 +492,8 @@ public sealed class SettingsViewModel : ViewModelBase
                 RaisePropertyChanged(nameof(SimShowView2DPairRedLink));
                 RaisePropertyChanged(nameof(SimAllowView3D));
                 RaisePropertyChanged(nameof(SimShowCalibrationControls));
+                RaisePropertyChanged(nameof(SimSpriteVersion));
+                RaisePropertyChanged(nameof(SimSpriteVersionDescription));
                 break;
 
             case SectionLogging:
@@ -595,6 +620,7 @@ public sealed class SettingsViewModel : ViewModelBase
                 target.SimulationPanels.View2DPairTargetDisplayMode = source.SimulationPanels.View2DPairTargetDisplayMode;
                 target.SimulationPanels.View2DPairTargetDisplaySide = source.SimulationPanels.View2DPairTargetDisplaySide;
                 target.SimulationPanels.View2DPairShowRedLink = source.SimulationPanels.View2DPairShowRedLink;
+                target.SimulationPanels.SpriteVersion = SimulationSpriteVersions.Normalize(source.SimulationPanels.SpriteVersion);
                 break;
 
             case SectionLogging:
@@ -660,6 +686,8 @@ public sealed class SettingsViewModel : ViewModelBase
         RaisePropertyChanged(nameof(SimShowView2DPairRedLink));
         RaisePropertyChanged(nameof(SimAllowView3D));
         RaisePropertyChanged(nameof(SimShowCalibrationControls));
+        RaisePropertyChanged(nameof(SimSpriteVersion));
+        RaisePropertyChanged(nameof(SimSpriteVersionDescription));
 
         RaisePropertyChanged(nameof(LoggingEnabled));
         RaisePropertyChanged(nameof(LogRetentionDays));
@@ -671,4 +699,5 @@ public sealed class SettingsViewModel : ViewModelBase
     }
 
     public sealed record NozzleOrientationModeOption(string Value, string Label, string Description);
+    public sealed record SimulationSpriteVersionOption(string Value, string Label);
 }

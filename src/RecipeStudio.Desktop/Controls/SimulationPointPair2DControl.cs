@@ -82,9 +82,6 @@ public sealed class SimulationPointPair2DControl : Control
         AvaloniaProperty.Register<SimulationPointPair2DControl, bool>(nameof(ShowPairLink), true);
 
     private const double Pad = 20;
-    private const double NozzleStartAnchorX = SimulationSpriteAnchors.NozzleTipAnchorX;
-    private const double NozzleEndAnchorX = SimulationSpriteAnchors.NozzlePivotAnchorX;
-    private const double NozzleAnchorY = SimulationSpriteAnchors.NozzlePivotAnchorY;
     private Rect _fitWorldBounds;
     private Rect _worldBounds;
     private double _scale;
@@ -99,8 +96,9 @@ public sealed class SimulationPointPair2DControl : Control
     private bool _panWithRightButton;
 
     private readonly Bitmap? _partImage;
-    private readonly Bitmap? _manipulatorImage;
-    private readonly Bitmap? _nozzleImage;
+    private Bitmap? _manipulatorImage;
+    private Bitmap? _nozzleImage;
+    private string _loadedSpriteVersion = string.Empty;
 
     public IList<RecipePoint>? Points
     {
@@ -266,9 +264,8 @@ public sealed class SimulationPointPair2DControl : Control
     public SimulationPointPair2DControl()
     {
         ClipToBounds = true;
-        _partImage = TryLoadBitmap("avares://RecipeStudio.Desktop/Assets/Images/H340_KAMA_1.fw.png");
-        _manipulatorImage = TryLoadBitmap("avares://RecipeStudio.Desktop/Assets/Images/manipulator.fw.png");
-        _nozzleImage = TryLoadBitmap("avares://RecipeStudio.Desktop/Assets/Images/soplo.fw.png");
+        _partImage = TryLoadBitmap(SimulationSpriteAssets.PartUri);
+        EnsureSelectedSpriteImagesLoaded();
     }
 
     public void ZoomIn()
@@ -366,6 +363,7 @@ public sealed class SimulationPointPair2DControl : Control
     {
         base.Render(context);
         context.FillRectangle(new SolidColorBrush(Color.FromRgb(18, 22, 30)), Bounds);
+        EnsureSelectedSpriteImagesLoaded();
 
         var settings = Settings ?? new AppSettings();
         var referenceHeightMm = Math.Max(100, ReferenceHeightMm);
@@ -432,6 +430,45 @@ public sealed class SimulationPointPair2DControl : Control
         }
     }
 
+    private void EnsureSelectedSpriteImagesLoaded()
+    {
+        var spriteVersion = SimulationSpriteVersions.Normalize(Settings?.SimulationPanels?.SpriteVersion);
+        if (_loadedSpriteVersion == spriteVersion)
+            return;
+
+        _manipulatorImage?.Dispose();
+        _nozzleImage?.Dispose();
+        _manipulatorImage = TryLoadBitmap(SimulationSpriteAssets.GetManipulatorUri(spriteVersion));
+        _nozzleImage = TryLoadBitmap(SimulationSpriteAssets.GetNozzleUri(spriteVersion));
+        _loadedSpriteVersion = spriteVersion;
+        _needsRefit = true;
+    }
+
+    private string GetSpriteVersion()
+        => SimulationSpriteVersions.Normalize(Settings?.SimulationPanels?.SpriteVersion);
+
+    private (double X, double Y) ResolveManipulatorAnchors()
+    {
+        var anchorX = Math.Clamp(ManipulatorAnchorX, 0.0, 1.0);
+        var anchorY = Math.Clamp(ManipulatorAnchorY, 0.0, 1.0);
+        if (!SimulationSpriteAnchors.UsesDefaultManipulatorPivot(anchorX, anchorY))
+            return (anchorX, anchorY);
+
+        var spriteVersion = GetSpriteVersion();
+        return (
+            SimulationSpriteAnchors.GetManipulatorPivotAnchorX(spriteVersion),
+            SimulationSpriteAnchors.GetManipulatorPivotAnchorY(spriteVersion));
+    }
+
+    private double ResolveNozzleStartAnchorX()
+        => SimulationSpriteAnchors.GetNozzleTipAnchorX(GetSpriteVersion());
+
+    private double ResolveNozzleEndAnchorX()
+        => SimulationSpriteAnchors.GetNozzlePivotAnchorX(GetSpriteVersion());
+
+    private double ResolveNozzleAnchorY()
+        => SimulationSpriteAnchors.GetNozzlePivotAnchorY(GetSpriteVersion());
+
     private double ResolveMmPerPixel(double referenceHeightMm)
     {
         if (_partImage is null || _partImage.Size.Height <= 0)
@@ -457,8 +494,7 @@ public sealed class SimulationPointPair2DControl : Control
 
         var w = image.Size.Width * mmPerPixel;
         var h = image.Size.Height * mmPerPixel;
-        var anchorX = Math.Clamp(ManipulatorAnchorX, 0.0, 1.0);
-        var anchorY = Math.Clamp(ManipulatorAnchorY, 0.0, 1.0);
+        var (anchorX, anchorY) = ResolveManipulatorAnchors();
         var left = anchorWorld.X - w * anchorX;
         var bottom = anchorWorld.Y - h * (1.0 - anchorY);
         return new Rect(left, bottom, w, h);
@@ -802,10 +838,10 @@ public sealed class SimulationPointPair2DControl : Control
         var heightPx = Math.Max(1, heightMm * _scale);
         var sourceWidthPx = _nozzleImage.Size.Width;
         var sourceHeightPx = _nozzleImage.Size.Height;
-        var sourceStartX = Math.Clamp(NozzleStartAnchorX, 0.0, 1.0) * sourceWidthPx;
-        var sourceEndX = Math.Clamp(NozzleEndAnchorX, 0.0, 1.0) * sourceWidthPx;
+        var sourceStartX = Math.Clamp(ResolveNozzleStartAnchorX(), 0.0, 1.0) * sourceWidthPx;
+        var sourceEndX = Math.Clamp(ResolveNozzleEndAnchorX(), 0.0, 1.0) * sourceWidthPx;
         var sourceSpanX = Math.Max(1.0, sourceEndX - sourceStartX);
-        var anchorY = NozzleAnchorY * heightPx;
+        var anchorY = ResolveNozzleAnchorY() * heightPx;
 
         var transform =
             Matrix.CreateTranslation(0, -anchorY) *

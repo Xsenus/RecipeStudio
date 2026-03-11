@@ -157,9 +157,10 @@ public sealed class SettingsService
         settings.SimulationPanels.PlotTargetDisplaySide = SimulationTargetDisplayModes.NormalizeSide(settings.SimulationPanels.PlotTargetDisplaySide, settings.SimulationPanels.PlotTargetDisplayMode);
         settings.SimulationPanels.View2DPairTargetDisplayMode = SimulationTargetDisplayModes.Normalize(settings.SimulationPanels.View2DPairTargetDisplayMode);
         settings.SimulationPanels.View2DPairTargetDisplaySide = SimulationTargetDisplayModes.NormalizeSide(settings.SimulationPanels.View2DPairTargetDisplaySide, settings.SimulationPanels.View2DPairTargetDisplayMode);
+        settings.SimulationPanels.SpriteVersion = SimulationSpriteVersions.Normalize(settings.SimulationPanels.SpriteVersion);
         settings.SimulationPanels.Access ??= new SimulationPanelsAccessSettings();
         settings.SimulationPanels.Calibration2D ??= new Simulation2DCalibrationSettings();
-        MigrateLegacySimulationCalibration(settings.SimulationPanels.Calibration2D);
+        NormalizeManipulatorCalibration(settings.SimulationPanels.Calibration2D, settings.SimulationPanels.SpriteVersion);
         settings.SimulationPanels.Calibration2D.ReferenceHeightMm = Math.Clamp(settings.SimulationPanels.Calibration2D.ReferenceHeightMm, 100, 5000);
         settings.SimulationPanels.Calibration2D.VerticalOffsetMm = Math.Clamp(settings.SimulationPanels.Calibration2D.VerticalOffsetMm, -10000, 10000);
         settings.SimulationPanels.Calibration2D.HorizontalOffsetMm = Math.Clamp(settings.SimulationPanels.Calibration2D.HorizontalOffsetMm, -10000, 10000);
@@ -183,13 +184,13 @@ public sealed class SettingsService
         }
     }
 
-    private static void MigrateLegacySimulationCalibration(Simulation2DCalibrationSettings calibration)
+    private static void NormalizeManipulatorCalibration(Simulation2DCalibrationSettings calibration, string? spriteVersion)
     {
-        if (!SimulationSpriteAnchors.UsesLegacyManipulatorPivot(calibration.ManipulatorAnchorX, calibration.ManipulatorAnchorY))
+        if (!SimulationSpriteAnchors.UsesDefaultManipulatorPivot(calibration.ManipulatorAnchorX, calibration.ManipulatorAnchorY))
             return;
 
-        calibration.ManipulatorAnchorX = SimulationSpriteAnchors.ManipulatorPivotAnchorX;
-        calibration.ManipulatorAnchorY = SimulationSpriteAnchors.ManipulatorPivotAnchorY;
+        calibration.ManipulatorAnchorX = SimulationSpriteAnchors.GetManipulatorPivotAnchorX(spriteVersion);
+        calibration.ManipulatorAnchorY = SimulationSpriteAnchors.GetManipulatorPivotAnchorY(spriteVersion);
     }
 
     private static string ResolveSettingsRoot()

@@ -72,6 +72,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
     private bool _loggerConfigured;
     private DateTime _lastGlErrorLogUtc = DateTime.MinValue;
     private bool _loggedFramebufferInfo;
+    private string _loadedSpriteVersion = string.Empty;
 
     private List<Vector3> _toolPath = new();
     private List<Vector3> _targetPath = new();
@@ -130,9 +131,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             _quadMesh = BuildQuadMesh();
             _quadMesh.Upload(_gl);
 
-            _blueprintPartTex = TryLoadTexture("avares://RecipeStudio.Desktop/Assets/Images/H340_KAMA_1.fw.png");
-            _blueprintManipulatorTex = TryLoadTexture("avares://RecipeStudio.Desktop/Assets/Images/manipulator.fw.png");
-            _blueprintNozzleTex = TryLoadTexture("avares://RecipeStudio.Desktop/Assets/Images/soplo.fw.png");
+            EnsureBlueprintTexturesLoaded(forceReload: true);
 
             _dynamicLineVao = _gl.GenVertexArray();
             _dynamicLineVbo = _gl.GenBuffer();
@@ -215,6 +214,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         _hasRenderedFrame = false;
         _failureDetails = null;
         _geometryDirty = true;
+        _loadedSpriteVersion = string.Empty;
         if (_gl is null)
             return;
 
@@ -247,6 +247,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         try
         {
             EnsureGeometryBuilt();
+            EnsureBlueprintTexturesLoaded();
             _hasRenderedFrame = true;
 
             _gl.BindFramebuffer(FramebufferTarget.Framebuffer, (uint)fb);
@@ -1115,6 +1116,34 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
             LogWarn($"texture load skipped: {uri} ({ex.GetType().Name}: {ex.Message})");
             return 0;
         }
+    }
+
+    private void EnsureBlueprintTexturesLoaded(bool forceReload = false)
+    {
+        if (_gl is null)
+            return;
+
+        if (_blueprintPartTex == 0 || forceReload)
+        {
+            if (_blueprintPartTex != 0)
+                _gl.DeleteTexture(_blueprintPartTex);
+
+            _blueprintPartTex = TryLoadTexture(SimulationSpriteAssets.PartUri);
+        }
+
+        var spriteVersion = SimulationSpriteVersions.Normalize(Settings?.SimulationPanels?.SpriteVersion);
+        if (!forceReload && _loadedSpriteVersion == spriteVersion)
+            return;
+
+        if (_blueprintManipulatorTex != 0)
+            _gl.DeleteTexture(_blueprintManipulatorTex);
+
+        if (_blueprintNozzleTex != 0)
+            _gl.DeleteTexture(_blueprintNozzleTex);
+
+        _blueprintManipulatorTex = TryLoadTexture(SimulationSpriteAssets.GetManipulatorUri(spriteVersion));
+        _blueprintNozzleTex = TryLoadTexture(SimulationSpriteAssets.GetNozzleUri(spriteVersion));
+        _loadedSpriteVersion = spriteVersion;
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)

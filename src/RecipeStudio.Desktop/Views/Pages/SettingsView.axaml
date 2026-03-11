@@ -16,7 +16,7 @@
               <TreeViewItem Header="Параметры станка" Tag="machine" />
               <TreeViewItem Header="Коэффициенты" Tag="coefficients" />
               <TreeViewItem Header="Графика" Tag="graphics" />
-              <TreeViewItem Header="Симуляция (окна)" Tag="simulation" />
+              <TreeViewItem Header="Симуляция" Tag="simulation" />
               <TreeViewItem Header="Логирование" Tag="logging" />
             </TreeViewItem>
           </TreeView>
@@ -293,8 +293,37 @@
 
           <Border Classes="card" IsVisible="{Binding IsSimulationSection}">
             <StackPanel Spacing="12">
-              <TextBlock Text="Управление окнами на странице симуляции" FontSize="16" FontWeight="SemiBold" />
+              <TextBlock Text="Симуляция: окна и спрайты" FontSize="16" FontWeight="SemiBold" />
               <TextBlock Text="Выберите, какие кнопки и соответствующие окна доступны в строке запуска. После изменения нажмите «Сохранить»." Classes="muted" TextWrapping="Wrap" />
+
+              <Border Classes="card" Padding="12">
+                <StackPanel Spacing="10">
+                  <TextBlock Text="Спрайты симуляции" FontWeight="SemiBold" />
+                  <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto">
+                    <TextBlock Text="Версия изображений" VerticalAlignment="Center" ToolTip.Tip="Выбор набора картинок манипулятора и сопла для 2D/3D симуляции" Margin="0,0,0,8" />
+                    <ComboBox Grid.Column="1"
+                              Classes="value-box"
+                              ItemsSource="{Binding SimulationSpriteVersionOptions}"
+                              SelectedValue="{Binding SimSpriteVersion}"
+                              SelectedValueBinding="{Binding Value}"
+                              Margin="10,0,0,8"
+                              ToolTip.Tip="Выбор набора картинок манипулятора и сопла для 2D/3D симуляции">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                          <TextBlock Text="{Binding Label}" />
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+
+                    <TextBlock Grid.Row="1"
+                               Grid.Column="1"
+                               Margin="10,0,0,0"
+                               Text="{Binding SimSpriteVersionDescription}"
+                               Classes="muted tiny"
+                               TextWrapping="Wrap" />
+                  </Grid>
+                </StackPanel>
+              </Border>
 
               <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
                 <StackPanel Spacing="8">
