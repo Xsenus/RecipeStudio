@@ -48,6 +48,7 @@
               <Button Command="{Binding ImportExcelCommand}" Classes="ghost">Импорт Excel</Button>
               <Button Command="{Binding ExportExcelCommand}" Classes="ghost">Экспорт Excel</Button>
 
+              <Button Click="ShowCncInstruction_Click" Classes="ghost">&#1063;&#1055;&#1059;-&#1080;&#1085;&#1089;&#1090;&#1088;&#1091;&#1082;&#1094;&#1080;&#1103;</Button>
               <TextBlock Text="{Binding Document.RecipeId, StringFormat='ID: {0}'}" Classes="muted" Margin="12,0,0,0" VerticalAlignment="Center" />
             </StackPanel>
             <TextBlock Text="{Binding ImportDiagnosticsSummary}" Classes="muted" TextWrapping="Wrap" MaxLines="2" ToolTip.Tip="{Binding ImportDiagnosticsSummary}" />

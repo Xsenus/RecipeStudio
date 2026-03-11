@@ -14,6 +14,7 @@ using RecipeStudio.Desktop.Controls;
 using RecipeStudio.Desktop.Services;
 using RecipeStudio.Desktop.ViewModels;
 using RecipeStudio.Desktop.Views.Dialogs;
+using System.Threading.Tasks;
 
 namespace RecipeStudio.Desktop.Views.Pages;
 
@@ -531,8 +532,39 @@ public sealed partial class EditorView : UserControl
         await dialog.ShowDialog(owner);
     }
 
+    private async void ShowCncInstruction_Click(object? sender, RoutedEventArgs e)
+    {
+        if (_vm?.Document is null)
+            return;
+
+        var owner = TopLevel.GetTopLevel(this) as Window;
+        if (owner is null)
+            return;
+
+        if (_vm.Document.Points.Count == 0)
+        {
+            var info = new InfoDialog(
+                "\u0427\u041f\u0423-\u0438\u043d\u0441\u0442\u0440\u0443\u043a\u0446\u0438\u044f",
+                "\u0412 \u0440\u0435\u0446\u0435\u043f\u0442\u0435 \u043d\u0435\u0442 \u0442\u043e\u0447\u0435\u043a \u0434\u043b\u044f \u043e\u0442\u043e\u0431\u0440\u0430\u0436\u0435\u043d\u0438\u044f.",
+                "OK");
+            await info.ShowDialog(owner);
+            return;
+        }
+
+        var dialog = new CncInstructionDialog(_vm.Document, _vm.AppSettings, ExportCurrentRecipeAsync);
+        await dialog.ShowDialog(owner);
+    }
+
     private async void OnRequestImportExcel()
     {
+        var importOwner = TopLevel.GetTopLevel(this) as Window;
+        if (importOwner is null)
+            return;
+
+        await ImportCurrentRecipeAsync(importOwner);
+        return;
+
+#if false
         if (_vm is null) return;
 
         var top = TopLevel.GetTopLevel(this);
@@ -571,10 +603,19 @@ public sealed partial class EditorView : UserControl
         {
             _vm.ApplyImportedPreview(preview);
         }
+#endif
     }
 
     private async void OnRequestExportExcel()
     {
+        var exportOwner = TopLevel.GetTopLevel(this) as Window;
+        if (exportOwner is null)
+            return;
+
+        await ExportCurrentRecipeAsync(exportOwner);
+        return;
+
+#if false
         if (_vm is null) return;
 
         var top = TopLevel.GetTopLevel(this);
@@ -623,6 +664,7 @@ public sealed partial class EditorView : UserControl
                 "OK");
             await dialog.ShowDialog(owner);
         }
+#endif
     }
 
     private async void OnSaveCompleted(bool success, string title, string message)
@@ -633,6 +675,99 @@ public sealed partial class EditorView : UserControl
 
         var dialog = new InfoDialog(title, message, success ? "OK" : "Закрыть");
         await dialog.ShowDialog(owner);
+    }
+
+    private async Task<bool> ImportCurrentRecipeAsync(Window owner)
+    {
+        if (_vm is null)
+            return false;
+
+        var sp = owner.StorageProvider;
+        if (sp is null)
+            return false;
+
+        var files = await sp.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "РРјРїРѕСЂС‚ С‚РѕС‡РµРє РёР· Excel/CSV",
+            AllowMultiple = false,
+            FileTypeFilter = new[]
+            {
+                new FilePickerFileType("Excel/CSV")
+                {
+                    Patterns = new[] { "*.xlsx", "*.csv", "*.tsv" },
+                    AppleUniformTypeIdentifiers = new[] { "org.openxmlformats.spreadsheetml.sheet", "public.comma-separated-values-text", "public.tab-separated-values-text" },
+                    MimeTypes = new[] { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "text/csv", "text/tab-separated-values" }
+                }
+            }
+        });
+
+        var file = files.FirstOrDefault();
+        if (file is null)
+            return false;
+
+        var path = file.Path.LocalPath;
+        if (string.IsNullOrWhiteSpace(path))
+            return false;
+
+        var preview = _vm.PreviewImport(path);
+        var dialog = new ImportRecipeDialog(preview, allowRename: false, title: "РРјРїРѕСЂС‚ С‚РѕС‡РµРє РІ С‚РµРєСѓС‰РёР№ СЂРµС†РµРїС‚");
+        var confirmed = await dialog.ShowDialog<bool>(owner);
+        if (!confirmed)
+            return false;
+
+        return _vm.ApplyImportedPreview(preview);
+    }
+
+    private async Task ExportCurrentRecipeAsync(Window owner)
+    {
+        if (_vm is null)
+            return;
+
+        var sp = owner.StorageProvider;
+        if (sp is null)
+            return;
+
+        var suggested = string.IsNullOrWhiteSpace(_vm.RecipeCode) ? "recipe" : _vm.RecipeCode;
+        var file = await sp.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "\u042d\u043a\u0441\u043f\u043e\u0440\u0442 \u0440\u0435\u0446\u0435\u043f\u0442\u0430 \u0432 Excel",
+            SuggestedFileName = suggested + ".xlsx",
+            FileTypeChoices = new[]
+            {
+                new FilePickerFileType("Excel")
+                {
+                    Patterns = new[] { "*.xlsx" },
+                    AppleUniformTypeIdentifiers = new[] { "org.openxmlformats.spreadsheetml.sheet" },
+                    MimeTypes = new[] { "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }
+                }
+            }
+        });
+
+        if (file is null)
+            return;
+
+        var path = file.Path.LocalPath;
+        if (string.IsNullOrWhiteSpace(path))
+            return;
+
+        try
+        {
+            _vm.ExportToExcel(path);
+
+            var dialog = new InfoDialog(
+                "\u042d\u043a\u0441\u043f\u043e\u0440\u0442 Excel",
+                $"\u0424\u0430\u0439\u043b Excel \u0443\u0441\u043f\u0435\u0448\u043d\u043e \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d.\n{path}",
+                "OK");
+            await dialog.ShowDialog(owner);
+        }
+        catch (Exception ex)
+        {
+            var dialog = new InfoDialog(
+                "\u041e\u0448\u0438\u0431\u043a\u0430 \u044d\u043a\u0441\u043f\u043e\u0440\u0442\u0430",
+                $"\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u044d\u043a\u0441\u043f\u043e\u0440\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0444\u0430\u0439\u043b Excel.\n{ex.Message}",
+                "OK");
+            await dialog.ShowDialog(owner);
+        }
     }
 
     private void InitializePanelsLayout()
