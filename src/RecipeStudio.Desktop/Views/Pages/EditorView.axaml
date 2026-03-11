@@ -77,7 +77,12 @@
 
               <DataGridTemplateColumn Width="25">
                 <DataGridTemplateColumn.Header>
+                  <Border Background="Transparent"
+                          Cursor="Hand"
+                          PointerPressed="BulkFlagHeader_PointerPressed"
+                          Tag="Act">
                   <TextBlock Text="A" Classes="grid-hdr" ToolTip.Tip="Активность точки: 1 — участвует, 0 — выключена" />
+                  </Border>
                 </DataGridTemplateColumn.Header>
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate>
@@ -161,15 +166,25 @@
                 </DataGridTextColumn.Header>
               </DataGridTextColumn>
 
-              <DataGridTextColumn Binding="{Binding Place}" Width="45">
-                <DataGridTextColumn.Header>
+              <DataGridCheckBoxColumn Binding="{Binding IsTop}" Width="45">
+                <DataGridCheckBoxColumn.Header>
+                  <Border Background="Transparent"
+                          Cursor="Hand"
+                          PointerPressed="BulkFlagHeader_PointerPressed"
+                          Tag="Top">
                   <TextBlock Text="Top" Classes="grid-hdr hdr-blue" ToolTip.Tip="Сторона/уровень обработки (Top)" />
-                </DataGridTextColumn.Header>
-              </DataGridTextColumn>
+                  </Border>
+                </DataGridCheckBoxColumn.Header>
+              </DataGridCheckBoxColumn>
 
               <DataGridCheckBoxColumn Binding="{Binding Hidden}" Width="45">
                 <DataGridCheckBoxColumn.Header>
+                  <Border Background="Transparent"
+                          Cursor="Hand"
+                          PointerPressed="BulkFlagHeader_PointerPressed"
+                          Tag="Hidden">
                   <TextBlock Text="Micro" Classes="grid-hdr" ToolTip.Tip="Микро-режим (скрытая/служебная точка)" />
+                  </Border>
                 </DataGridCheckBoxColumn.Header>
               </DataGridCheckBoxColumn>
 
@@ -510,12 +525,9 @@
                               <TextBlock Grid.Column="1" Text="{Binding NPoint}" Classes="point-detail-value" />
 
                               <TextBlock Grid.Row="1" Text="Top" Classes="point-detail-label" />
-                              <ComboBox Grid.Row="1" Grid.Column="1"
-                                        Classes="point-detail-input"
-                                        SelectedIndex="{Binding Place, Mode=TwoWay}">
-                                <ComboBoxItem Content="0" />
-                                <ComboBoxItem Content="1" />
-                              </ComboBox>
+                              <CheckBox Grid.Row="1" Grid.Column="1"
+                                        Classes="point-detail-flag"
+                                        IsChecked="{Binding IsTop, Mode=TwoWay}" />
 
                               <TextBlock Grid.Row="2" Text="A" Classes="point-detail-label" />
                               <CheckBox Grid.Row="2" Grid.Column="1"

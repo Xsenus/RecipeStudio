@@ -165,6 +165,39 @@ public sealed partial class EditorView : UserControl
         PersistGridColumnWidths(force: false);
     }
 
+    private async void BulkFlagHeader_PointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (_vm is null)
+            return;
+
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            return;
+
+        if (sender is not Control { Tag: string flagKey })
+            return;
+
+        e.Handled = true;
+
+        var owner = TopLevel.GetTopLevel(this) as Window;
+        if (owner is null)
+            return;
+
+        var dialog = new BulkFlagActionDialog(
+            "Массовое изменение",
+            $"Выставить для всех точек одинаковое значение?\nПоле: {GetBulkFlagColumnName(flagKey)}");
+
+        var action = await dialog.ShowDialog<BulkFlagAction>(owner);
+        switch (action)
+        {
+            case BulkFlagAction.SetAll:
+                ApplyBulkFlag(flagKey, value: true);
+                break;
+            case BulkFlagAction.ClearAll:
+                ApplyBulkFlag(flagKey, value: false);
+                break;
+        }
+    }
+
     private void ApplySavedGridColumnWidths()
     {
         if (_vm is null || PointsGrid.Columns.Count == 0 || _isApplyingSavedColumnWidths)
@@ -269,11 +302,42 @@ public sealed partial class EditorView : UserControl
         var headerText = column.Header switch
         {
             TextBlock textBlock => textBlock.Text,
+            Decorator { Child: TextBlock textBlock } => textBlock.Text,
             string text => text,
             _ => column.Header?.ToString()
         };
 
         return string.IsNullOrWhiteSpace(headerText) ? $"Column-{index + 1}" : headerText.Trim();
+    }
+
+    private static string GetBulkFlagColumnName(string flagKey)
+    {
+        return flagKey switch
+        {
+            "Act" => "A",
+            "Top" => "Top",
+            "Hidden" => "Micro",
+            _ => flagKey
+        };
+    }
+
+    private void ApplyBulkFlag(string flagKey, bool value)
+    {
+        if (_vm is null)
+            return;
+
+        switch (flagKey)
+        {
+            case "Act":
+                _vm.SetActForAll(value);
+                break;
+            case "Top":
+                _vm.SetTopForAll(value);
+                break;
+            case "Hidden":
+                _vm.SetHiddenForAll(value);
+                break;
+        }
     }
 
     private async void OnRequestShowCharts()

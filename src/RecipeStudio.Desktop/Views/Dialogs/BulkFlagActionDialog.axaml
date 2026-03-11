@@ -1,0 +1,56 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="RecipeStudio.Desktop.Views.Dialogs.BulkFlagActionDialog"
+        Width="560"
+        Height="220"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        SystemDecorations="None"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Title="Массовое изменение">
+
+  <Border BorderBrush="#2A3142" BorderThickness="1" Background="#0F1420">
+    <Grid RowDefinitions="Auto,*">
+      <Border Background="#111827" Padding="12,8" PointerPressed="Header_PointerPressed">
+        <TextBlock x:Name="TitleBlock" FontSize="18" FontWeight="Bold" />
+      </Border>
+
+      <Grid Grid.Row="1" Margin="16" RowDefinitions="*,Auto">
+        <TextBlock x:Name="MessageBlock"
+                   TextWrapping="Wrap"
+                   Foreground="#A8B3CF" />
+
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    Spacing="8"
+                    HorizontalAlignment="Right"
+                    Margin="0,16,0,0">
+          <Button x:Name="SetAllButton"
+                  Classes="accent"
+                  Width="180"
+                  Height="40"
+                  Padding="12,0"
+                  HorizontalContentAlignment="Center"
+                  VerticalContentAlignment="Center"
+                  Click="SetAll_Click">Проставить на всех (X)</Button>
+          <Button x:Name="ClearAllButton"
+                  Classes="ghost"
+                  Width="170"
+                  Height="40"
+                  Padding="12,0"
+                  HorizontalContentAlignment="Center"
+                  VerticalContentAlignment="Center"
+                  Click="ClearAll_Click">Снять со всех (O)</Button>
+          <Button x:Name="CancelButton"
+                  Width="120"
+                  Height="40"
+                  Padding="12,0"
+                  HorizontalContentAlignment="Center"
+                  VerticalContentAlignment="Center"
+                  Click="Cancel_Click">Отмена</Button>
+        </StackPanel>
+      </Grid>
+    </Grid>
+  </Border>
+</Window>

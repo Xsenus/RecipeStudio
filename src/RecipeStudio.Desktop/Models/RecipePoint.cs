@@ -68,7 +68,30 @@ public sealed class RecipePoint : ViewModelBase
     /// <summary>
     /// 0 - normal (bottom), 1 - mirrored (top). Kept int to match file format.
     /// </summary>
-    public int Place { get => _place; set => SetProperty(ref _place, value); }
+    public int Place
+    {
+        get => _place;
+        set
+        {
+            if (SetProperty(ref _place, value))
+                RaisePropertyChanged(nameof(IsTop));
+        }
+    }
+
+    public bool IsTop
+    {
+        get => _place != 0;
+        set
+        {
+            var nextPlace = value ? 1 : 0;
+            if (_place == nextPlace)
+                return;
+
+            _place = nextPlace;
+            RaisePropertyChanged(nameof(Place));
+            RaisePropertyChanged();
+        }
+    }
 
     public bool Hidden { get => _hidden; set => SetProperty(ref _hidden, value); }
 

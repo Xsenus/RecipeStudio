@@ -1,0 +1,125 @@
+using System;
+using System.IO;
+using RecipeStudio.Desktop.Models;
+using RecipeStudio.Desktop.Services;
+using RecipeStudio.Desktop.ViewModels;
+using Xunit;
+
+namespace RecipeStudio.Tests;
+
+public sealed class EditorViewModelBulkFlagsTests : IDisposable
+{
+    private readonly string _recipesFolder = Path.Combine(Path.GetTempPath(), "RecipeStudio.Tests", Guid.NewGuid().ToString("N"));
+
+    [Fact]
+    public void RecipePoint_IsTop_KeepsPlaceInSync()
+    {
+        var point = new RecipePoint();
+
+        point.IsTop = true;
+        Assert.True(point.IsTop);
+        Assert.Equal(1, point.Place);
+
+        point.Place = 0;
+        Assert.False(point.IsTop);
+    }
+
+    [Fact]
+    public void BulkFlagMethods_ApplyValuesToAllPoints()
+    {
+        var vm = CreateViewModel();
+        vm.LoadDocument(CreateDocument());
+
+        vm.SetActForAll(false);
+        vm.SetTopForAll(true);
+        vm.SetHiddenForAll(true);
+
+        Assert.All(vm.Points, point =>
+        {
+            Assert.False(point.Act);
+            Assert.True(point.IsTop);
+            Assert.Equal(1, point.Place);
+            Assert.True(point.Hidden);
+        });
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            if (Directory.Exists(_recipesFolder))
+                Directory.Delete(_recipesFolder, recursive: true);
+        }
+        catch
+        {
+            // ignore test cleanup errors
+        }
+    }
+
+    private EditorViewModel CreateViewModel()
+    {
+        var logger = new AppLogger();
+        var settings = new SettingsService(logger);
+        settings.Settings.AutoCreateSampleRecipeOnEmpty = false;
+        settings.Settings.RecipesFolder = _recipesFolder;
+        settings.Settings.LoggingEnabled = false;
+
+        var repo = new RecipeRepository(settings);
+        var excel = new RecipeExcelService();
+        var importService = new RecipeImportService(excel, new RecipeTsvSerializer());
+        return new EditorViewModel(settings, repo, excel, importService, () => { });
+    }
+
+    private static RecipeDocument CreateDocument()
+    {
+        var doc = new RecipeDocument
+        {
+            RecipeCode = "BULK",
+            ContainerPresent = true,
+            DClampForm = 800,
+            DClampCont = 1600
+        };
+
+        doc.Points.Add(new RecipePoint
+        {
+            RecipeCode = "BULK",
+            NPoint = 1,
+            Act = true,
+            Safe = false,
+            RCrd = 364,
+            ZCrd = 354,
+            Place = 0,
+            Hidden = false,
+            ANozzle = 20,
+            Alfa = -30,
+            Betta = 12,
+            SpeedTable = 3,
+            IceRate = 100,
+            Container = true,
+            DClampForm = 800,
+            DClampCont = 1600
+        });
+
+        doc.Points.Add(new RecipePoint
+        {
+            RecipeCode = "BULK",
+            NPoint = 2,
+            Act = true,
+            Safe = false,
+            RCrd = 377,
+            ZCrd = 337,
+            Place = 0,
+            Hidden = false,
+            ANozzle = 20,
+            Alfa = -15,
+            Betta = 13,
+            SpeedTable = 3,
+            IceRate = 103.6,
+            Container = true,
+            DClampForm = 800,
+            DClampCont = 1600
+        });
+
+        return doc;
+    }
+}

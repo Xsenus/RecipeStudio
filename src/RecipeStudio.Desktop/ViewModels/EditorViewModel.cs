@@ -401,6 +401,15 @@ public sealed class EditorViewModel : ViewModelBase
         return true;
     }
 
+    public void SetActForAll(bool value)
+        => ApplyFlagToAll(point => point.Act = value, recalculate: false);
+
+    public void SetTopForAll(bool value)
+        => ApplyFlagToAll(point => point.IsTop = value, recalculate: true);
+
+    public void SetHiddenForAll(bool value)
+        => ApplyFlagToAll(point => point.Hidden = value, recalculate: false);
+
     private void AddPoint()
     {
         if (Document is null) return;
@@ -417,6 +426,28 @@ public sealed class EditorViewModel : ViewModelBase
         SelectedPoint = p;
 
         Recalculate();
+    }
+
+    private void ApplyFlagToAll(Action<RecipePoint> apply, bool recalculate)
+    {
+        if (Document is null || Points.Count == 0)
+            return;
+
+        try
+        {
+            _suppressRecalc = true;
+            foreach (var point in Points)
+                apply(point);
+        }
+        finally
+        {
+            _suppressRecalc = false;
+        }
+
+        if (recalculate)
+            Recalculate();
+        else
+            RecalculateTimeline();
     }
 
     private void DuplicateSelectedPoint()

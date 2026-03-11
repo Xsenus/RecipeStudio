@@ -623,6 +623,9 @@
   <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(3)">
     <Setter Property="HorizontalContentAlignment" Value="Center" />
   </Style>
+  <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(9)">
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+  </Style>
   <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(10)">
     <Setter Property="HorizontalContentAlignment" Value="Center" />
   </Style>
@@ -746,8 +749,8 @@
   </Style>
   <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(9)">
     <Setter Property="Foreground" Value="#66A7FF" />
-    <Setter Property="HorizontalContentAlignment" Value="Right" />
-    <Setter Property="Padding" Value="0,0,8,0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="Padding" Value="0" />
   </Style>
   <Style Selector="DataGrid.editor-grid DataGridRow DataGridCell:nth-child(24)">
     <Setter Property="Foreground" Value="#FF4D5B" />
