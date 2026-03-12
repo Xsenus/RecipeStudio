@@ -1,3 +1,6 @@
+using System.IO;
+using System.Linq;
+using System;
 using Avalonia;
 using RecipeStudio.Desktop.Models;
 using RecipeStudio.Desktop.Services;
@@ -7,6 +10,20 @@ namespace RecipeStudio.Tests;
 
 public sealed class ProfileViewGeometryTests
 {
+    private static readonly string SamplePath = Path.GetFullPath(
+        Path.Combine(
+            AppContext.BaseDirectory,
+            "..",
+            "..",
+            "..",
+            "..",
+            "..",
+            "src",
+            "RecipeStudio.Desktop",
+            "Assets",
+            "Samples",
+            "H340_KAMA_1.csv"));
+
     [Fact]
     public void Build_CreatesPythonLikePathFromGroup1AndGroup4Only()
     {
@@ -176,6 +193,25 @@ public sealed class ProfileViewGeometryTests
         var value = ProfileViewGeometry.ResolveInterpolatedANozzle(source, settings, segmentIndex: 0, segmentT: 0.8);
 
         Assert.Equal(20, value, 6);
+    }
+
+    [Fact]
+    public void BundledSample_UsesPythonReferenceTopPoints()
+    {
+        var serializer = new RecipeTsvSerializer();
+        var doc = serializer.Load(SamplePath);
+        var path = new ProfileDisplayPathService().Build(doc.Points, new AppSettings { HFreeZ = 800, Lz = 250 });
+
+        var point23 = Assert.Single(path.PathNodes, node => node.NPoint == 23);
+        AssertPoint(new Point(334, 1165), point23.A0);
+
+        var expectedZ = new[] { 365d, 365d, 362d, 356d, 347d, 329d, 327d, 327d, 328d };
+        var actualZ = doc.Points
+            .Where(point => point.NPoint >= 23 && point.NPoint <= 31)
+            .Select(point => point.ZCrd)
+            .ToArray();
+
+        Assert.Equal(expectedZ, actualZ);
     }
 
     private static void AssertPoint(Point expected, Point actual)
