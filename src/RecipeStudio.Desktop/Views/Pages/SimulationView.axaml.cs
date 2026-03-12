@@ -90,6 +90,8 @@ public sealed partial class SimulationView : UserControl
 
         RecipePlot.ZoomChanged -= OnRecipePlotZoomChanged;
         RecipePlot.ZoomChanged += OnRecipePlotZoomChanged;
+        RecipePlot.InfoBoxPositionChanged -= OnRecipePlotInfoBoxPositionChanged;
+        RecipePlot.InfoBoxPositionChanged += OnRecipePlotInfoBoxPositionChanged;
         TopViewPlot.ZoomChanged -= OnTopViewZoomChanged;
         TopViewPlot.ZoomChanged += OnTopViewZoomChanged;
         View2DPlot.ZoomChanged -= OnView2DZoomChanged;
@@ -111,6 +113,7 @@ public sealed partial class SimulationView : UserControl
     {
         PanelsCanvas.SizeChanged -= OnPanelsCanvasSizeChanged;
         RecipePlot.ZoomChanged -= OnRecipePlotZoomChanged;
+        RecipePlot.InfoBoxPositionChanged -= OnRecipePlotInfoBoxPositionChanged;
         TopViewPlot.ZoomChanged -= OnTopViewZoomChanged;
         View2DPlot.ZoomChanged -= OnView2DZoomChanged;
         View2DFactPlot.ZoomChanged -= OnView2DFactZoomChanged;
@@ -129,6 +132,7 @@ public sealed partial class SimulationView : UserControl
     }
 
     private void OnRecipePlotZoomChanged(double _) => UpdateZoomText();
+    private void OnRecipePlotInfoBoxPositionChanged() => _vm?.SaveAppSettings();
     private void OnTopViewZoomChanged(double _) => UpdateTopViewZoomText();
     private void OnView2DZoomChanged(double _) => UpdateView2DZoomText();
     private void OnView2DFactZoomChanged(double _) => UpdateView2DFactZoomText();

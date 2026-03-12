@@ -20,9 +20,9 @@
         <ToggleButton Grid.Column="5" IsChecked="{Binding ShowPairLinks}" Classes="ghost" VerticalAlignment="Center">Сетка точек</ToggleButton>
         <ToggleButton Grid.Column="6" IsChecked="{Binding ShowGrid}" Classes="ghost" VerticalAlignment="Center">Фон. сетка</ToggleButton>
 
-        <ToggleButton Grid.Column="7" IsChecked="{Binding IncludeSafePoints}" Classes="ghost" VerticalAlignment="Center">Safe в анимации</ToggleButton>
-        <ToggleButton Grid.Column="8" IsChecked="{Binding SmoothMotion}" Classes="ghost" VerticalAlignment="Center">Плавная траектория</ToggleButton>
-        <ToggleButton Grid.Column="9" IsChecked="{Binding UsePhysicalNozzleOrientation}" Classes="ghost" VerticalAlignment="Center" ToolTip.Tip="Выкл: сопло наводится на текущую цель, вкл: ориентация только по A/B">A/B физика</ToggleButton>
+        <ToggleButton Grid.Column="7" IsChecked="{Binding IncludeSafePoints}" Classes="ghost" VerticalAlignment="Center" IsVisible="False">Safe в анимации</ToggleButton>
+        <ToggleButton Grid.Column="8" IsChecked="{Binding SmoothMotion}" Classes="ghost" VerticalAlignment="Center" IsVisible="False">Плавная траектория</ToggleButton>
+        <ToggleButton Grid.Column="9" IsChecked="{Binding UsePhysicalNozzleOrientation}" Classes="ghost" VerticalAlignment="Center" IsVisible="False" ToolTip.Tip="Выкл: сопло наводится на текущую цель, вкл: ориентация только по A/B">A/B физика</ToggleButton>
 
         <Button Grid.Column="10" Command="{Binding ResetRecommendedModesCommand}" Classes="ghost" VerticalAlignment="Center">Reset Modes</Button>
         <StackPanel Grid.Column="11" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">

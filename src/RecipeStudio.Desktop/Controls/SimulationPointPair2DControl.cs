@@ -15,6 +15,8 @@ namespace RecipeStudio.Desktop.Controls;
 
 public sealed class SimulationPointPair2DControl : Control
 {
+    private static readonly ProfileDisplayPathService DisplayPathService = new();
+
     public static readonly StyledProperty<IList<RecipePoint>?> PointsProperty =
         AvaloniaProperty.Register<SimulationPointPair2DControl, IList<RecipePoint>?>(nameof(Points));
 
@@ -389,13 +391,28 @@ public sealed class SimulationPointPair2DControl : Control
         var referenceHeightMm = Math.Max(100, ReferenceHeightMm);
         var mmPerPixel = ResolveMmPerPixel(referenceHeightMm);
         var partRectWorld = CreateWorldRectCenteredAtX(HorizontalOffsetMm, 0, _partImage, mmPerPixel, referenceHeightMm, ResolvePartWidthScaleFactor(PartWidthScalePercent));
-        var targetPoints = BuildVisibleTargetPoints(settings);
-        var allTargetPoints = targetPoints.Select(point => point.Position).ToList();
+        var displayPath = FilterDisplayPathBySettings(BuildVisibleDisplayPath(BuildDisplayPath(settings)), settings);
+        var sample = ResolveDisplaySample(displayPath);
+        var point1 = sample.A0;
+        var point2 = sample.B0;
+        var nozzleTip = sample.A1;
+        var allTargetPoints = displayPath.Polylines.SelectMany(polyline => polyline.ControlPoints.Concat(polyline.CurvePoints))
+            .Concat(displayPath.B0PolylinePoints)
+            .Concat(displayPath.PathNodes.Select(node => node.A1))
+            .Concat(displayPath.PathNodes.Select(node => node.B0))
+            .Concat(displayPath.FrameSamples.Select(frame => frame.A1))
+            .Concat(displayPath.FrameSamples.Select(frame => frame.B0))
+            .ToList();
 
-        var pairState = ResolvePairPoints();
-        var point1 = pairState.TargetPoint;
-        var point2 = pairState.ToolPoint;
-        var nozzleTip = pairState.NozzleTipPoint;
+        if (sample.IsValid)
+        {
+            allTargetPoints.Add(point1);
+            allTargetPoints.Add(nozzleTip);
+            allTargetPoints.Add(point2);
+        }
+
+        if (allTargetPoints.Count == 0)
+            allTargetPoints.Add(new Point(0, 0));
         var manipRectWorld = CreateManipulatorRectFromAnchor(point2, _manipulatorImage, mmPerPixel);
         var nozzleRectWorld = CreateNozzleEnvelopeRect(nozzleTip, point2, _nozzleImage, mmPerPixel);
         var worldBounds = ComputeWorldBounds(partRectWorld, manipRectWorld, point1, point2, nozzleRectWorld, allTargetPoints);
@@ -420,19 +437,344 @@ public sealed class SimulationPointPair2DControl : Control
         using (context.PushClip(plotClip))
         {
             if (ShowGrid)
-                DrawGrid(context, worldBounds, 100);
+                DrawGrid(context, worldBounds, 50);
 
             DrawImageWorld(context, _partImage, partRectWorld);
             DrawImageWorld(context, _manipulatorImage, manipRectWorld);
-            DrawTargetPoints(context, targetPoints, settings);
+            DrawProfilePolylines(context, displayPath, settings);
+            DrawDiscreteBSegmentFootprints(context, displayPath, settings);
+            DrawFrameOverlayCloud(context, displayPath, settings);
+            DrawProfilePoints(context, displayPath, settings);
+            DrawA1Overlay(context, displayPath, settings);
+            DrawB0Overlay(context, displayPath, settings);
+
+            if (sample.IsValid)
+                DrawGapLink(context, point1, nozzleTip, settings);
 
             // Red reference line should match the visible nozzle segment.
-            if (ShowPairLink)
-                DrawPairLink(context, nozzleTip, point2);
-            DrawNozzleBetweenPoints(context, nozzleTip, point2, mmPerPixel);
-            DrawPointMarker(context, point1, "1");
-            DrawPointMarker(context, point2, "2");
+            if (ShowPairLink && sample.IsValid)
+                DrawPairLink(context, nozzleTip, point2, settings);
+            if (sample.IsValid)
+            {
+                DrawNozzleBetweenPoints(context, nozzleTip, point2, mmPerPixel);
+                DrawSelectedPointMarker(context, sample.SelectedA0);
+                DrawPointMarker(context, point1, "A0", ParseColorOrDefault(settings.PlotColorProfileSegmentA, Color.FromRgb(46, 92, 147)));
+                DrawPointMarker(context, nozzleTip, "A1", Colors.Black);
+                DrawPointMarker(context, point2, "B0", ParseColorOrDefault(settings.PlotColorProfileSegmentB, Color.FromRgb(239, 68, 68)));
+            }
         }
+    }
+
+    private ProfileDisplayPath BuildDisplayPath(AppSettings settings)
+    {
+        var source = (PlotPoints ?? Points)?.ToList() ?? new List<RecipePoint>();
+        var basePath = DisplayPathService.Build(source, settings);
+        if (basePath.PathNodes.Count == 0 && basePath.Polylines.Count == 0)
+            return basePath;
+
+        static Point TransformPoint(Point point, double horizontalOffsetMm, double verticalOffsetMm, bool keepPythonOrientation)
+            => new((keepPythonOrientation ? point.X : -point.X) + horizontalOffsetMm, point.Y + verticalOffsetMm);
+
+        var polylines = basePath.Polylines
+            .Select(polyline => new ProfilePolylineData(
+                polyline.GroupName,
+                polyline.ControlPoints.Select(point => TransformPoint(point, HorizontalOffsetMm, VerticalOffsetMm, InvertHorizontal)).ToList(),
+                polyline.CurvePoints.Select(point => TransformPoint(point, HorizontalOffsetMm, VerticalOffsetMm, InvertHorizontal)).ToList(),
+                polyline.PointNumbers.ToList()))
+            .ToList();
+
+        var pathNodes = basePath.PathNodes
+            .Select(node => node with
+            {
+                A0 = TransformPoint(node.A0, HorizontalOffsetMm, VerticalOffsetMm, InvertHorizontal),
+                A1 = TransformPoint(node.A1, HorizontalOffsetMm, VerticalOffsetMm, InvertHorizontal),
+                B0 = TransformPoint(node.B0, HorizontalOffsetMm, VerticalOffsetMm, InvertHorizontal)
+            })
+            .ToList();
+
+        var b0Polyline = basePath.B0PolylinePoints
+            .Select(point => TransformPoint(point, HorizontalOffsetMm, VerticalOffsetMm, InvertHorizontal))
+            .ToList();
+
+        var frameSamples = basePath.FrameSamples
+            .Select(sample => sample with
+            {
+                A1 = TransformPoint(sample.A1, HorizontalOffsetMm, VerticalOffsetMm, InvertHorizontal),
+                B0 = TransformPoint(sample.B0, HorizontalOffsetMm, VerticalOffsetMm, InvertHorizontal)
+            })
+            .ToList();
+
+        return new ProfileDisplayPath(
+            polylines,
+            pathNodes,
+            b0Polyline,
+            basePath.B0PointNumbers.ToList(),
+            frameSamples,
+            basePath.TotalPathLength,
+            basePath.TotalDurationSec);
+    }
+
+    private static bool IsDisplayGroupVisible(AppSettings settings, string groupName)
+    {
+        return groupName switch
+        {
+            var g when g == ProfileDisplayPathService.Group1Name => settings.PlotProfileShowGroup1,
+            var g when g == ProfileDisplayPathService.Group2Name => settings.PlotProfileShowGroup2,
+            var g when g == ProfileDisplayPathService.Group3Name => settings.PlotProfileShowGroup3,
+            var g when g == ProfileDisplayPathService.Group4Name => settings.PlotProfileShowGroup4,
+            _ => true
+        };
+    }
+
+    private static ProfileDisplayPath FilterDisplayPathBySettings(ProfileDisplayPath displayPath, AppSettings settings)
+    {
+        var polylines = displayPath.Polylines
+            .Where(polyline => IsDisplayGroupVisible(settings, polyline.GroupName))
+            .ToList();
+
+        var nodeMask = displayPath.PathNodes
+            .Select(node => IsDisplayGroupVisible(settings, node.GroupName))
+            .ToList();
+
+        var pathNodes = displayPath.PathNodes
+            .Where((_, index) => index < nodeMask.Count && nodeMask[index])
+            .ToList();
+
+        var b0Polyline = displayPath.B0PolylinePoints
+            .Where((_, index) => index < nodeMask.Count && nodeMask[index])
+            .ToList();
+
+        var b0Numbers = displayPath.B0PointNumbers
+            .Where((_, index) => index < nodeMask.Count && nodeMask[index])
+            .ToList();
+
+        var frameSamples = displayPath.FrameSamples
+            .Where(frameSample => IsDisplayGroupVisible(settings, frameSample.GroupName))
+            .ToList();
+
+        return new ProfileDisplayPath(
+            polylines,
+            pathNodes,
+            b0Polyline,
+            b0Numbers,
+            frameSamples,
+            displayPath.TotalPathLength,
+            displayPath.TotalDurationSec);
+    }
+
+    private ProfileDisplayPath BuildVisibleDisplayPath(ProfileDisplayPath displayPath)
+    {
+        var mode = SimulationTargetDisplayModes.Normalize(TargetDisplayMode);
+        if (mode == SimulationTargetDisplayModes.Full)
+            return displayPath;
+
+        var showMirroredOnly = mode == SimulationTargetDisplayModes.Mirrored;
+        var polylines = displayPath.Polylines
+            .Where(polyline => showMirroredOnly
+                ? polyline.GroupName == ProfileDisplayPathService.Group4Name
+                : polyline.GroupName != ProfileDisplayPathService.Group4Name)
+            .ToList();
+
+        var nodeMask = displayPath.PathNodes
+            .Select(node => showMirroredOnly
+                ? node.GroupName == ProfileDisplayPathService.Group4Name
+                : node.GroupName != ProfileDisplayPathService.Group4Name)
+            .ToList();
+
+        var pathNodes = displayPath.PathNodes
+            .Where((_, index) => nodeMask[index])
+            .ToList();
+
+        var b0Polyline = displayPath.B0PolylinePoints
+            .Where((_, index) => index < nodeMask.Count && nodeMask[index])
+            .ToList();
+
+        var b0Numbers = displayPath.B0PointNumbers
+            .Where((_, index) => index < nodeMask.Count && nodeMask[index])
+            .ToList();
+
+        var frameSamples = displayPath.FrameSamples
+            .Where(frameSample => showMirroredOnly
+                ? frameSample.GroupName == ProfileDisplayPathService.Group4Name
+                : frameSample.GroupName != ProfileDisplayPathService.Group4Name)
+            .ToList();
+
+        return new ProfileDisplayPath(
+            polylines,
+            pathNodes,
+            b0Polyline,
+            b0Numbers,
+            frameSamples,
+            displayPath.TotalPathLength,
+            displayPath.TotalDurationSec);
+    }
+
+    private ProfileAnimationSample? TryResolveSelectedDisplaySample(ProfileDisplayPath displayPath)
+    {
+        if (SelectedPoint is null)
+            return null;
+
+        for (var i = 0; i < displayPath.PathNodes.Count; i++)
+        {
+            if (displayPath.PathNodes[i].NPoint != SelectedPoint.NPoint)
+                continue;
+
+            return DisplayPathService.EvaluateAtNode(displayPath, i);
+        }
+
+        return null;
+    }
+
+    private void DrawProfilePolylines(DrawingContext context, ProfileDisplayPath displayPath, AppSettings settings)
+    {
+        if (!settings.PlotProfileShowGroupCurves)
+            return;
+
+        var opacity = Math.Clamp(settings.PlotOpacity, 0.05, 0.90);
+        var thickness = Math.Max(1, settings.PlotStrokeThickness);
+
+        foreach (var polyline in displayPath.Polylines)
+        {
+            var color = ResolveProfileGroupColor(settings, polyline.GroupName);
+            var pen = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), color.R, color.G, color.B)), thickness);
+            DrawPolyline(context, polyline.CurvePoints, pen);
+        }
+    }
+
+    private void DrawProfilePoints(DrawingContext context, ProfileDisplayPath displayPath, AppSettings settings)
+    {
+        if (!settings.PlotProfileShowGroupPoints)
+            return;
+
+        var outline = new Pen(new SolidColorBrush(Color.FromRgb(226, 232, 240)), 1.1);
+        var showLabels = settings.PlotProfileShowGroupPointLabels;
+
+        foreach (var polyline in displayPath.Polylines)
+        {
+            var fill = new SolidColorBrush(ResolveProfileGroupColor(settings, polyline.GroupName));
+            for (var i = 0; i < polyline.ControlPoints.Count; i++)
+            {
+                var screenPoint = WorldToScreen(polyline.ControlPoints[i]);
+                context.DrawEllipse(fill, outline, screenPoint, 3.3, 3.3);
+
+                if (!showLabels)
+                    continue;
+
+                var text = new FormattedText(
+                    polyline.PointNumbers[i].ToString(CultureInfo.InvariantCulture),
+                    CultureInfo.InvariantCulture,
+                    FlowDirection.LeftToRight,
+                    new Typeface("Segoe UI"),
+                    10,
+                    fill);
+                context.DrawText(text, new Point(screenPoint.X + 4, screenPoint.Y - 4));
+            }
+        }
+    }
+
+    private void DrawDiscreteBSegmentFootprints(DrawingContext context, ProfileDisplayPath displayPath, AppSettings settings)
+    {
+        if (!settings.PlotProfileShowBSegmentFootprints)
+            return;
+
+        var pen = new Pen(new SolidColorBrush(Color.FromArgb(230, 154, 154, 154)), 1.0);
+        foreach (var node in displayPath.PathNodes)
+            context.DrawLine(pen, WorldToScreen(node.A1), WorldToScreen(node.B0));
+    }
+
+    private void DrawFrameOverlayCloud(DrawingContext context, ProfileDisplayPath displayPath, AppSettings settings)
+    {
+        if (!settings.PlotProfileShowA1FrameCloud && !settings.PlotProfileShowB0FrameCloud)
+            return;
+
+        var a1Brush = new SolidColorBrush(Color.FromArgb(115, 255, 0, 0));
+        var b0Brush = new SolidColorBrush(Color.FromArgb(140, 255, 140, 0));
+
+        foreach (var sample in displayPath.FrameSamples)
+        {
+            if (settings.PlotProfileShowA1FrameCloud)
+                context.DrawEllipse(a1Brush, null, WorldToScreen(sample.A1), 1.6, 1.6);
+
+            if (settings.PlotProfileShowB0FrameCloud)
+                context.DrawEllipse(b0Brush, null, WorldToScreen(sample.B0), 1.6, 1.6);
+        }
+    }
+
+    private void DrawA1Overlay(DrawingContext context, ProfileDisplayPath displayPath, AppSettings settings)
+    {
+        if (!settings.PlotProfileShowA1Points)
+            return;
+
+        var fill = new SolidColorBrush(Colors.Red);
+        var outline = new Pen(new SolidColorBrush(Color.FromRgb(139, 0, 0)), 1.4);
+        var textBrush = new SolidColorBrush(Color.FromRgb(179, 0, 0));
+        var showLabels = settings.PlotProfileShowA1Labels;
+
+        foreach (var node in displayPath.PathNodes)
+        {
+            var screenPoint = WorldToScreen(node.A1);
+            context.DrawEllipse(fill, outline, screenPoint, 5.0, 5.0);
+
+            if (!showLabels)
+                continue;
+
+            var text = new FormattedText(
+                node.NPoint.ToString(CultureInfo.InvariantCulture),
+                CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                new Typeface("Segoe UI", FontStyle.Normal, FontWeight.SemiBold),
+                10,
+                textBrush);
+            context.DrawText(text, new Point(screenPoint.X + 6, screenPoint.Y + 12));
+        }
+    }
+
+    private void DrawB0Overlay(DrawingContext context, ProfileDisplayPath displayPath, AppSettings settings)
+    {
+        if (displayPath.B0PolylinePoints.Count == 0 || (!settings.PlotProfileShowB0PathLine && !settings.PlotProfileShowB0Points))
+            return;
+
+        var orange = ParseColorOrDefault(settings.PlotColorProfileB0Path, Color.FromRgb(245, 158, 11));
+        if (settings.PlotProfileShowB0PathLine)
+        {
+            var pen = new Pen(new SolidColorBrush(Color.FromArgb(240, orange.R, orange.G, orange.B)), 2.8);
+            DrawPolyline(context, displayPath.B0PolylinePoints, pen);
+        }
+
+        for (var i = 0; i < displayPath.B0PolylinePoints.Count; i++)
+        {
+            var screenPoint = WorldToScreen(displayPath.B0PolylinePoints[i]);
+            if (settings.PlotProfileShowB0Points)
+            {
+                context.DrawEllipse(
+                    new SolidColorBrush(orange),
+                    new Pen(new SolidColorBrush(Color.FromRgb(179, 90, 0)), 1.4),
+                    screenPoint,
+                    5,
+                    5);
+            }
+
+            if (!settings.PlotProfileShowB0Labels)
+                continue;
+
+            var text = new FormattedText(
+                displayPath.B0PointNumbers[i].ToString(CultureInfo.InvariantCulture),
+                CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                new Typeface("Segoe UI", FontStyle.Normal, FontWeight.SemiBold),
+                10,
+                new SolidColorBrush(Color.FromRgb(196, 106, 0)));
+            context.DrawText(text, new Point(screenPoint.X + 6, screenPoint.Y - 6));
+        }
+    }
+
+    private void DrawPolyline(DrawingContext context, IReadOnlyList<Point> points, Pen pen)
+    {
+        if (points.Count < 2)
+            return;
+
+        for (var i = 0; i < points.Count - 1; i++)
+            context.DrawLine(pen, WorldToScreen(points[i]), WorldToScreen(points[i + 1]));
     }
 
     private static Bitmap? TryLoadBitmap(string uri)
@@ -518,56 +860,14 @@ public sealed class SimulationPointPair2DControl : Control
         return new Rect(left, bottom, w, h);
     }
 
-    private (Point TargetPoint, Point ToolPoint, Point NozzleTipPoint) ResolvePairPoints()
+    private ProfileAnimationSample ResolveDisplaySample(ProfileDisplayPath displayPath)
     {
-        var settings = Settings ?? new AppSettings();
-        var selectedPair = !IsPlaying ? TryResolveSelectedPairPoints(settings) : null;
-        if (selectedPair is { } selected)
-            return selected;
+        if (displayPath.PathNodes.Count == 0)
+            return default;
 
-        var source = Points?.ToList() ?? new List<RecipePoint>();
-        var hZone = settings.HZone;
-        var absoluteRobot = RobotCoordinateResolver.BuildAbsolutePositions(source);
-        var animTarget = new List<Point>();
-        var animTool = new List<Point>();
-
-        for (var idx = 0; idx < source.Count; idx++)
-        {
-            var p = source[idx];
-            var (xp, zp) = p.GetTargetPoint(hZone);
-            animTarget.Add(new Point(ToVisualX(xp), zp));
-
-            var toolX = p.Xr0 + p.DX;
-            var toolZ = p.Zr0 + p.DZ;
-            if (idx < absoluteRobot.Count)
-            {
-                var abs = absoluteRobot[idx];
-                toolX = abs.X;
-                toolZ = abs.Z;
-            }
-
-            animTool.Add(new Point(ToVisualX(toolX), toolZ));
-        }
-
-        var toolState = GetToolState(animTool, animTarget, Progress, CurrentSegmentIndex, CurrentSegmentT);
-        var usePhysicalOrientation = NozzleOrientationPolicy.UsePhysicalOrientation(settings.NozzleOrientationMode);
-        var physicalDirection = usePhysicalOrientation
-            ? ApplyTransitionLiftOrientation(source, animTool, toolState, settings)
-            : default;
-        var marker = SimulationOverlayGeometry.ResolvePlotMarkerGeometry(
-            toolState.ToolPosition,
-            toolState.TargetPosition,
-            double.IsFinite(ToolXRaw) && double.IsFinite(ToolZRaw) ? new Point(ToolXRaw, ToolZRaw) : null,
-            double.IsFinite(TargetXRaw) && double.IsFinite(TargetZRaw) ? new Point(TargetXRaw, TargetZRaw) : null,
-            InvertHorizontal,
-            usePhysicalOrientation,
-            physicalDirection);
-        var pair = SimulationOverlayGeometry.ResolvePairOverlayGeometry(
-            marker,
-            VerticalOffsetMm,
-            usePhysicalOrientation,
-            ResolveDisplayedNozzleLengthMm(settings));
-        return (pair.TargetPoint, pair.ToolPoint, pair.NozzleTipPoint);
+        return !IsPlaying
+            ? TryResolveSelectedDisplaySample(displayPath) ?? DisplayPathService.EvaluateByProgress(displayPath, Progress)
+            : DisplayPathService.EvaluateByProgress(displayPath, Progress);
     }
 
     private (Point TargetPoint, Point ToolPoint, Point NozzleTipPoint)? TryResolveSelectedPairPoints(AppSettings settings)
@@ -586,29 +886,15 @@ public sealed class SimulationPointPair2DControl : Control
         if (source.Count == 0)
             return null;
 
-        var absoluteRobot = RobotCoordinateResolver.BuildAbsolutePositions(source);
-        if (absoluteRobot.Count == 0)
-            return null;
-
         var selected = source[index];
-        var rawTool = absoluteRobot[Math.Min(index, absoluteRobot.Count - 1)];
-        var (targetX, targetZ) = selected.GetTargetPoint(settings.HZone);
-        var usePhysicalOrientation = NozzleOrientationPolicy.UsePhysicalOrientation(settings.NozzleOrientationMode);
-        var physicalDirection = usePhysicalOrientation
-            ? GetPhysicalProjectedVector(settings, selected.Alfa, selected.Betta, selected.Place)
-            : default;
-        var marker = SimulationOverlayGeometry.ResolvePlotMarkerGeometry(
-            default,
-            default,
-            new Point(rawTool.X, rawTool.Z),
-            new Point(targetX, targetZ),
+        var targetPoint = ProfileViewGeometry.ResolveDisplayedTargetPoint(selected, settings, InvertHorizontal, VerticalOffsetMm);
+        var aNozzle = ProfileViewGeometry.ResolvePointANozzle(selected, source, settings);
+        var pair = ProfileViewGeometry.ResolvePairGeometry(
+            targetPoint,
+            selected.Alfa,
+            selected.Place,
             InvertHorizontal,
-            usePhysicalOrientation,
-            physicalDirection);
-        var pair = SimulationOverlayGeometry.ResolvePairOverlayGeometry(
-            marker,
-            VerticalOffsetMm,
-            usePhysicalOrientation,
+            aNozzle,
             ResolveDisplayedNozzleLengthMm(settings));
         return (pair.TargetPoint, pair.ToolPoint, pair.NozzleTipPoint);
     }
@@ -939,11 +1225,18 @@ public sealed class SimulationPointPair2DControl : Control
         }
     }
 
-    private void DrawPairLink(DrawingContext context, Point point1, Point point2)
+    private void DrawPairLink(DrawingContext context, Point point1, Point point2, AppSettings settings)
     {
-        var red = Color.FromRgb(239, 68, 68);
+        var red = ParseColorOrDefault(settings.PlotColorProfileSegmentB, Color.FromRgb(239, 68, 68));
         var pen = new Pen(new SolidColorBrush(Color.FromArgb(230, red.R, red.G, red.B)), 7);
         context.DrawLine(pen, WorldToScreen(point1), WorldToScreen(point2));
+    }
+
+    private void DrawGapLink(DrawingContext context, Point targetPoint, Point nozzleTipPoint, AppSettings settings)
+    {
+        var blue = ParseColorOrDefault(settings.PlotColorProfileSegmentA, Color.FromRgb(46, 92, 147));
+        var pen = new Pen(new SolidColorBrush(Color.FromArgb(220, blue.R, blue.G, blue.B)), 5);
+        context.DrawLine(pen, WorldToScreen(targetPoint), WorldToScreen(nozzleTipPoint));
     }
 
     private void DrawTargetPoints(DrawingContext context, IList<StyledTargetPoint> worldPoints, AppSettings settings)
@@ -965,10 +1258,10 @@ public sealed class SimulationPointPair2DControl : Control
         }
     }
 
-    private void DrawPointMarker(DrawingContext context, Point worldPoint, string label)
+    private void DrawPointMarker(DrawingContext context, Point worldPoint, string label, Color color)
     {
         var screenPoint = WorldToScreen(worldPoint);
-        context.DrawEllipse(new SolidColorBrush(Color.FromRgb(56, 189, 248)), new Pen(Brushes.White, 1.2), screenPoint, 5.2, 5.2);
+        context.DrawEllipse(new SolidColorBrush(color), new Pen(Brushes.White, 1.2), screenPoint, 5.2, 5.2);
 
         var text = new FormattedText(
             label,
@@ -978,6 +1271,12 @@ public sealed class SimulationPointPair2DControl : Control
             14,
             Brushes.White);
         context.DrawText(text, new Point(screenPoint.X + 8, screenPoint.Y - 9));
+    }
+
+    private void DrawSelectedPointMarker(DrawingContext context, Point worldPoint)
+    {
+        var screenPoint = WorldToScreen(worldPoint);
+        context.DrawEllipse(null, new Pen(new SolidColorBrush(Color.FromRgb(245, 158, 11)), 2.5), screenPoint, 7, 7);
     }
 
     private void Fit(Rect fitBounds)
@@ -1082,6 +1381,18 @@ public sealed class SimulationPointPair2DControl : Control
             return parsed;
 
         return fallback;
+    }
+
+    private static Color ResolveProfileGroupColor(AppSettings settings, string groupName)
+    {
+        return groupName switch
+        {
+            ProfileDisplayPathService.Group1Name => ParseColorOrDefault(settings.PlotColorProfileGroup1, Color.FromRgb(46, 92, 147)),
+            ProfileDisplayPathService.Group2Name => ParseColorOrDefault(settings.PlotColorProfileGroup2, Color.FromRgb(126, 135, 156)),
+            ProfileDisplayPathService.Group3Name => ParseColorOrDefault(settings.PlotColorProfileGroup3, Color.FromRgb(126, 135, 156)),
+            ProfileDisplayPathService.Group4Name => ParseColorOrDefault(settings.PlotColorProfileGroup4, Color.FromRgb(46, 92, 147)),
+            _ => ParseColorOrDefault(settings.PlotColorProfileGroup1, Color.FromRgb(46, 92, 147))
+        };
     }
 
     private void MarkRefit()

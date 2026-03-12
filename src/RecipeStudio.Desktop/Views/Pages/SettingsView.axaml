@@ -537,6 +537,139 @@
                   </Grid>
                 </StackPanel>
               </Border>
+
+              <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+                <Border Classes="card" Padding="12">
+                  <StackPanel Spacing="10">
+                    <TextBlock Text="Палитра Profile / 2D Pair" FontSize="15" FontWeight="SemiBold" />
+                    <TextBlock Text="Отдельные цвета для новой логики profile и 2D pair. Значения по умолчанию сделаны ближе к старой палитре приложения." Classes="muted tiny" TextWrapping="Wrap" />
+
+                    <Grid ColumnDefinitions="180,*,34,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="0,4,0,0">
+                      <TextBlock Text="Группа 1" VerticalAlignment="Center" Margin="0,0,0,10" />
+                      <TextBox Grid.Column="1" Classes="value-box" Text="{Binding PlotColorProfileGroup1}" Margin="10,0,0,10" />
+                      <Border Grid.Column="2" Margin="8,2,0,12" CornerRadius="4" BorderBrush="#4B5563" BorderThickness="1" Background="{Binding PlotColorProfileGroup1}" />
+                      <Button Grid.Column="3" Width="30" Height="24" Margin="8,0,0,10" Classes="ghost" Content="🎨" Tag="PlotColorProfileGroup1" Click="ColorPicker_Click" ToolTip.Tip="Выбрать любой цвет" />
+
+                      <TextBlock Grid.Row="1" Text="Группа 2" VerticalAlignment="Center" Margin="0,0,0,10" />
+                      <TextBox Grid.Row="1" Grid.Column="1" Classes="value-box" Text="{Binding PlotColorProfileGroup2}" Margin="10,0,0,10" />
+                      <Border Grid.Row="1" Grid.Column="2" Margin="8,2,0,12" CornerRadius="4" BorderBrush="#4B5563" BorderThickness="1" Background="{Binding PlotColorProfileGroup2}" />
+                      <Button Grid.Row="1" Grid.Column="3" Width="30" Height="24" Margin="8,0,0,10" Classes="ghost" Content="🎨" Tag="PlotColorProfileGroup2" Click="ColorPicker_Click" ToolTip.Tip="Выбрать любой цвет" />
+
+                      <TextBlock Grid.Row="2" Text="Группа 3" VerticalAlignment="Center" Margin="0,0,0,10" />
+                      <TextBox Grid.Row="2" Grid.Column="1" Classes="value-box" Text="{Binding PlotColorProfileGroup3}" Margin="10,0,0,10" />
+                      <Border Grid.Row="2" Grid.Column="2" Margin="8,2,0,12" CornerRadius="4" BorderBrush="#4B5563" BorderThickness="1" Background="{Binding PlotColorProfileGroup3}" />
+                      <Button Grid.Row="2" Grid.Column="3" Width="30" Height="24" Margin="8,0,0,10" Classes="ghost" Content="🎨" Tag="PlotColorProfileGroup3" Click="ColorPicker_Click" ToolTip.Tip="Выбрать любой цвет" />
+
+                      <TextBlock Grid.Row="3" Text="Группа 4" VerticalAlignment="Center" Margin="0,0,0,10" />
+                      <TextBox Grid.Row="3" Grid.Column="1" Classes="value-box" Text="{Binding PlotColorProfileGroup4}" Margin="10,0,0,10" />
+                      <Border Grid.Row="3" Grid.Column="2" Margin="8,2,0,12" CornerRadius="4" BorderBrush="#4B5563" BorderThickness="1" Background="{Binding PlotColorProfileGroup4}" />
+                      <Button Grid.Row="3" Grid.Column="3" Width="30" Height="24" Margin="8,0,0,10" Classes="ghost" Content="🎨" Tag="PlotColorProfileGroup4" Click="ColorPicker_Click" ToolTip.Tip="Выбрать любой цвет" />
+
+                      <TextBlock Grid.Row="4" Text="Траектория B0" VerticalAlignment="Center" Margin="0,0,0,10" />
+                      <TextBox Grid.Row="4" Grid.Column="1" Classes="value-box" Text="{Binding PlotColorProfileB0Path}" Margin="10,0,0,10" />
+                      <Border Grid.Row="4" Grid.Column="2" Margin="8,2,0,12" CornerRadius="4" BorderBrush="#4B5563" BorderThickness="1" Background="{Binding PlotColorProfileB0Path}" />
+                      <Button Grid.Row="4" Grid.Column="3" Width="30" Height="24" Margin="8,0,0,10" Classes="ghost" Content="🎨" Tag="PlotColorProfileB0Path" Click="ColorPicker_Click" ToolTip.Tip="Выбрать любой цвет" />
+
+                      <TextBlock Grid.Row="5" Text="Сегмент A" VerticalAlignment="Center" Margin="0,0,0,10" />
+                      <TextBox Grid.Row="5" Grid.Column="1" Classes="value-box" Text="{Binding PlotColorProfileSegmentA}" Margin="10,0,0,10" />
+                      <Border Grid.Row="5" Grid.Column="2" Margin="8,2,0,12" CornerRadius="4" BorderBrush="#4B5563" BorderThickness="1" Background="{Binding PlotColorProfileSegmentA}" />
+                      <Button Grid.Row="5" Grid.Column="3" Width="30" Height="24" Margin="8,0,0,10" Classes="ghost" Content="🎨" Tag="PlotColorProfileSegmentA" Click="ColorPicker_Click" ToolTip.Tip="Выбрать любой цвет" />
+
+                      <TextBlock Grid.Row="6" Text="Сегмент B" VerticalAlignment="Center" />
+                      <TextBox Grid.Row="6" Grid.Column="1" Classes="value-box" Text="{Binding PlotColorProfileSegmentB}" Margin="10,0,0,0" />
+                      <Border Grid.Row="6" Grid.Column="2" Margin="8,2,0,2" CornerRadius="4" BorderBrush="#4B5563" BorderThickness="1" Background="{Binding PlotColorProfileSegmentB}" />
+                      <Button Grid.Row="6" Grid.Column="3" Width="30" Height="24" Margin="8,0,0,0" Classes="ghost" Content="🎨" Tag="PlotColorProfileSegmentB" Click="ColorPicker_Click" ToolTip.Tip="Выбрать любой цвет" />
+                    </Grid>
+                  </StackPanel>
+                </Border>
+
+                <Border Grid.Column="1" Classes="card" Padding="12">
+                  <StackPanel Spacing="10">
+                    <TextBlock Text="Инфобокс профиля" FontSize="15" FontWeight="SemiBold" />
+                    <TextBlock Text="Настройки карточки с параметрами текущей точки в окне PROFILE VIEWER. Если отключить следование за A0, карточку можно перетащить мышью и позиция будет сохранена." Classes="muted tiny" TextWrapping="Wrap" />
+
+                    <Grid ColumnDefinitions="180,*,34" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="0,4,0,0">
+                      <TextBlock Text="Показывать инфобокс" VerticalAlignment="Center" Margin="0,0,0,10" />
+                      <CheckBox Grid.Column="1" IsChecked="{Binding PlotProfileInfoBoxVisible}" VerticalAlignment="Center" Margin="10,0,0,10" />
+
+                      <TextBlock Grid.Row="1" Text="Следовать за A0" VerticalAlignment="Center" Margin="0,0,0,10" />
+                      <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding PlotProfileInfoBoxFollowA0}" VerticalAlignment="Center" Margin="10,0,0,10" />
+
+                      <TextBlock Grid.Row="3" Text="Шрифт" VerticalAlignment="Center" Margin="0,0,0,10" />
+                      <TextBox Grid.Row="3" Grid.Column="1" Classes="value-box" Text="{Binding PlotProfileInfoBoxFontFamily}" Margin="10,0,0,10" />
+
+                      <TextBlock Grid.Row="4" Text="Размер шрифта" VerticalAlignment="Center" Margin="0,0,0,10" />
+                      <TextBox Grid.Row="4" Grid.Column="1" Classes="value-box" Text="{Binding PlotProfileInfoBoxFontSize}" Margin="10,0,0,10" />
+
+                      <TextBlock Grid.Row="5" Text="Прозрачность" VerticalAlignment="Center" Margin="0,0,0,10" />
+                      <TextBox Grid.Row="5" Grid.Column="1" Classes="value-box" Text="{Binding PlotProfileInfoBoxOpacity}" Margin="10,0,0,10" />
+
+                      <TextBlock Grid.Row="6" Text="Фон" VerticalAlignment="Center" Margin="0,0,0,10" />
+                      <TextBox Grid.Row="6" Grid.Column="1" Classes="value-box" Text="{Binding PlotProfileInfoBoxBackground}" Margin="10,0,0,10" />
+                      <Button Grid.Row="6" Grid.Column="2" Width="30" Height="24" Margin="8,0,0,10" Classes="ghost" Content="🎨" Tag="PlotProfileInfoBoxBackground" Click="ColorPicker_Click" ToolTip.Tip="Выбрать цвет фона" />
+
+                      <TextBlock Grid.Row="7" Text="Рамка" VerticalAlignment="Center" Margin="0,0,0,10" />
+                      <TextBox Grid.Row="7" Grid.Column="1" Classes="value-box" Text="{Binding PlotProfileInfoBoxBorder}" Margin="10,0,0,10" />
+                      <Button Grid.Row="7" Grid.Column="2" Width="30" Height="24" Margin="8,0,0,10" Classes="ghost" Content="🎨" Tag="PlotProfileInfoBoxBorder" Click="ColorPicker_Click" ToolTip.Tip="Выбрать цвет рамки" />
+
+                      <TextBlock Grid.Row="8" Text="Цвет текста" VerticalAlignment="Center" />
+                      <TextBox Grid.Row="8" Grid.Column="1" Classes="value-box" Text="{Binding PlotProfileInfoBoxTextColor}" Margin="10,0,0,0" />
+                      <Button Grid.Row="8" Grid.Column="2" Width="30" Height="24" Margin="8,0,0,0" Classes="ghost" Content="🎨" Tag="PlotProfileInfoBoxTextColor" Click="ColorPicker_Click" ToolTip.Tip="Выбрать цвет текста" />
+                    </Grid>
+                  </StackPanel>
+                </Border>
+              </Grid>
+
+              <Border Classes="card" Padding="12">
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+                  <StackPanel Spacing="10">
+                    <TextBlock Text="Слои отображения" FontSize="15" FontWeight="SemiBold" />
+                    <TextBlock Text="Общие настройки слоёв для PROFILE VIEWER и 2D Pair. Они помогают приблизить вид к эталону из Python или упростить отображение." Classes="muted tiny" TextWrapping="Wrap" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,4,0,0">
+                      <StackPanel Spacing="6">
+                        <CheckBox IsChecked="{Binding PlotProfileShowGroup1}">Группа 1</CheckBox>
+                        <CheckBox IsChecked="{Binding PlotProfileShowGroup2}">Группа 2</CheckBox>
+                        <CheckBox IsChecked="{Binding PlotProfileShowGroup3}">Группа 3</CheckBox>
+                        <CheckBox IsChecked="{Binding PlotProfileShowGroup4}">Группа 4</CheckBox>
+                        <CheckBox IsChecked="{Binding PlotProfileShowGroupCurves}">Линии групп</CheckBox>
+                        <CheckBox IsChecked="{Binding PlotProfileShowGroupPoints}">Точки групп</CheckBox>
+                        <CheckBox IsChecked="{Binding PlotProfileShowGroupPointLabels}">Номера точек групп</CheckBox>
+                      </StackPanel>
+                      <StackPanel Grid.Column="1" Spacing="6">
+                        <CheckBox IsChecked="{Binding PlotProfileShowBSegmentFootprints}">Отпечатки сегмента B</CheckBox>
+                        <CheckBox IsChecked="{Binding PlotProfileShowA1FrameCloud}">Облако A1 по кадрам</CheckBox>
+                        <CheckBox IsChecked="{Binding PlotProfileShowB0FrameCloud}">Облако B0 по кадрам</CheckBox>
+                        <CheckBox IsChecked="{Binding PlotProfileShowA1Points}">Дискретные точки A1</CheckBox>
+                        <CheckBox IsChecked="{Binding PlotProfileShowA1Labels}">Номера A1</CheckBox>
+                        <CheckBox IsChecked="{Binding PlotProfileShowB0PathLine}">Ломаная B0</CheckBox>
+                        <CheckBox IsChecked="{Binding PlotProfileShowB0Points}">Дискретные точки B0</CheckBox>
+                        <CheckBox IsChecked="{Binding PlotProfileShowB0Labels}">Номера B0</CheckBox>
+                      </StackPanel>
+                    </Grid>
+                  </StackPanel>
+
+                  <StackPanel Grid.Column="1" Spacing="10">
+                    <TextBlock Text="Окно профиля" FontSize="15" FontWeight="SemiBold" />
+                    <TextBlock Text="Фиксированные мировые границы для PROFILE VIEWER. Подъём верхней части по-прежнему берётся из HFreeZ в настройках машины." Classes="muted tiny" TextWrapping="Wrap" />
+                    <Grid ColumnDefinitions="190,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" Margin="0,4,0,0">
+                      <TextBlock Text="Фиксированный viewport" VerticalAlignment="Center" Margin="0,0,0,10" />
+                      <CheckBox Grid.Column="1" IsChecked="{Binding PlotProfileUsePythonViewport}" VerticalAlignment="Center" Margin="10,0,0,10" />
+
+                      <TextBlock Grid.Row="1" Text="Min X" VerticalAlignment="Center" Margin="0,0,0,10" />
+                      <TextBox Grid.Row="1" Grid.Column="1" Classes="value-box" Text="{Binding PlotProfileViewportMinX}" Margin="10,0,0,10" />
+
+                      <TextBlock Grid.Row="2" Text="Min Y" VerticalAlignment="Center" Margin="0,0,0,10" />
+                      <TextBox Grid.Row="2" Grid.Column="1" Classes="value-box" Text="{Binding PlotProfileViewportMinY}" Margin="10,0,0,10" />
+
+                      <TextBlock Grid.Row="3" Text="Ширина" VerticalAlignment="Center" Margin="0,0,0,10" />
+                      <TextBox Grid.Row="3" Grid.Column="1" Classes="value-box" Text="{Binding PlotProfileViewportWidth}" Margin="10,0,0,10" />
+
+                      <TextBlock Grid.Row="4" Text="Высота" VerticalAlignment="Center" />
+                      <TextBox Grid.Row="4" Grid.Column="1" Classes="value-box" Text="{Binding PlotProfileViewportHeight}" Margin="10,0,0,0" />
+                    </Grid>
+                  </StackPanel>
+                </Grid>
+              </Border>
             </StackPanel>
           </Border>
 

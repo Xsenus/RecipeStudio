@@ -245,6 +245,16 @@ public sealed partial class SettingsView : UserControl
             nameof(SettingsViewModel.PlotColorRobotPath) => _vm.PlotColorRobotPath,
             nameof(SettingsViewModel.PlotColorPairLinks) => _vm.PlotColorPairLinks,
             nameof(SettingsViewModel.PlotColorTool) => _vm.PlotColorTool,
+            nameof(SettingsViewModel.PlotColorProfileGroup1) => _vm.PlotColorProfileGroup1,
+            nameof(SettingsViewModel.PlotColorProfileGroup2) => _vm.PlotColorProfileGroup2,
+            nameof(SettingsViewModel.PlotColorProfileGroup3) => _vm.PlotColorProfileGroup3,
+            nameof(SettingsViewModel.PlotColorProfileGroup4) => _vm.PlotColorProfileGroup4,
+            nameof(SettingsViewModel.PlotColorProfileB0Path) => _vm.PlotColorProfileB0Path,
+            nameof(SettingsViewModel.PlotColorProfileSegmentA) => _vm.PlotColorProfileSegmentA,
+            nameof(SettingsViewModel.PlotColorProfileSegmentB) => _vm.PlotColorProfileSegmentB,
+            nameof(SettingsViewModel.PlotProfileInfoBoxBackground) => _vm.PlotProfileInfoBoxBackground,
+            nameof(SettingsViewModel.PlotProfileInfoBoxBorder) => _vm.PlotProfileInfoBoxBorder,
+            nameof(SettingsViewModel.PlotProfileInfoBoxTextColor) => _vm.PlotProfileInfoBoxTextColor,
             _ => "#22C55E"
         };
 
@@ -273,6 +283,36 @@ public sealed partial class SettingsView : UserControl
                 break;
             case nameof(SettingsViewModel.PlotColorTool):
                 _vm.PlotColorTool = dlg.SelectedHex;
+                break;
+            case nameof(SettingsViewModel.PlotColorProfileGroup1):
+                _vm.PlotColorProfileGroup1 = dlg.SelectedHex;
+                break;
+            case nameof(SettingsViewModel.PlotColorProfileGroup2):
+                _vm.PlotColorProfileGroup2 = dlg.SelectedHex;
+                break;
+            case nameof(SettingsViewModel.PlotColorProfileGroup3):
+                _vm.PlotColorProfileGroup3 = dlg.SelectedHex;
+                break;
+            case nameof(SettingsViewModel.PlotColorProfileGroup4):
+                _vm.PlotColorProfileGroup4 = dlg.SelectedHex;
+                break;
+            case nameof(SettingsViewModel.PlotColorProfileB0Path):
+                _vm.PlotColorProfileB0Path = dlg.SelectedHex;
+                break;
+            case nameof(SettingsViewModel.PlotColorProfileSegmentA):
+                _vm.PlotColorProfileSegmentA = dlg.SelectedHex;
+                break;
+            case nameof(SettingsViewModel.PlotColorProfileSegmentB):
+                _vm.PlotColorProfileSegmentB = dlg.SelectedHex;
+                break;
+            case nameof(SettingsViewModel.PlotProfileInfoBoxBackground):
+                _vm.PlotProfileInfoBoxBackground = dlg.SelectedHex;
+                break;
+            case nameof(SettingsViewModel.PlotProfileInfoBoxBorder):
+                _vm.PlotProfileInfoBoxBorder = dlg.SelectedHex;
+                break;
+            case nameof(SettingsViewModel.PlotProfileInfoBoxTextColor):
+                _vm.PlotProfileInfoBoxTextColor = dlg.SelectedHex;
                 break;
         }
     }
@@ -305,6 +345,36 @@ public sealed partial class SettingsView : UserControl
                 break;
             case nameof(SettingsViewModel.PlotColorTool):
                 _vm.PlotColorTool = value;
+                break;
+            case nameof(SettingsViewModel.PlotColorProfileGroup1):
+                _vm.PlotColorProfileGroup1 = value;
+                break;
+            case nameof(SettingsViewModel.PlotColorProfileGroup2):
+                _vm.PlotColorProfileGroup2 = value;
+                break;
+            case nameof(SettingsViewModel.PlotColorProfileGroup3):
+                _vm.PlotColorProfileGroup3 = value;
+                break;
+            case nameof(SettingsViewModel.PlotColorProfileGroup4):
+                _vm.PlotColorProfileGroup4 = value;
+                break;
+            case nameof(SettingsViewModel.PlotColorProfileB0Path):
+                _vm.PlotColorProfileB0Path = value;
+                break;
+            case nameof(SettingsViewModel.PlotColorProfileSegmentA):
+                _vm.PlotColorProfileSegmentA = value;
+                break;
+            case nameof(SettingsViewModel.PlotColorProfileSegmentB):
+                _vm.PlotColorProfileSegmentB = value;
+                break;
+            case nameof(SettingsViewModel.PlotProfileInfoBoxBackground):
+                _vm.PlotProfileInfoBoxBackground = value;
+                break;
+            case nameof(SettingsViewModel.PlotProfileInfoBoxBorder):
+                _vm.PlotProfileInfoBoxBorder = value;
+                break;
+            case nameof(SettingsViewModel.PlotProfileInfoBoxTextColor):
+                _vm.PlotProfileInfoBoxTextColor = value;
                 break;
         }
     }

@@ -392,6 +392,96 @@ public sealed class SettingsViewModel : ViewModelBase
     public string PlotColorRobotPath { get => _settings.Settings.PlotColorRobotPath; set { _settings.Settings.PlotColorRobotPath = value; RaisePropertyChanged(); } }
     public string PlotColorPairLinks { get => _settings.Settings.PlotColorPairLinks; set { _settings.Settings.PlotColorPairLinks = value; RaisePropertyChanged(); } }
     public string PlotColorTool { get => _settings.Settings.PlotColorTool; set { _settings.Settings.PlotColorTool = value; RaisePropertyChanged(); } }
+    public string PlotColorProfileGroup1 { get => _settings.Settings.PlotColorProfileGroup1; set { _settings.Settings.PlotColorProfileGroup1 = value; RaisePropertyChanged(); } }
+    public string PlotColorProfileGroup2 { get => _settings.Settings.PlotColorProfileGroup2; set { _settings.Settings.PlotColorProfileGroup2 = value; RaisePropertyChanged(); } }
+    public string PlotColorProfileGroup3 { get => _settings.Settings.PlotColorProfileGroup3; set { _settings.Settings.PlotColorProfileGroup3 = value; RaisePropertyChanged(); } }
+    public string PlotColorProfileGroup4 { get => _settings.Settings.PlotColorProfileGroup4; set { _settings.Settings.PlotColorProfileGroup4 = value; RaisePropertyChanged(); } }
+    public string PlotColorProfileB0Path { get => _settings.Settings.PlotColorProfileB0Path; set { _settings.Settings.PlotColorProfileB0Path = value; RaisePropertyChanged(); } }
+    public string PlotColorProfileSegmentA { get => _settings.Settings.PlotColorProfileSegmentA; set { _settings.Settings.PlotColorProfileSegmentA = value; RaisePropertyChanged(); } }
+    public string PlotColorProfileSegmentB { get => _settings.Settings.PlotColorProfileSegmentB; set { _settings.Settings.PlotColorProfileSegmentB = value; RaisePropertyChanged(); } }
+    public bool PlotProfileUsePythonViewport { get => _settings.Settings.PlotProfileUsePythonViewport; set { _settings.Settings.PlotProfileUsePythonViewport = value; RaisePropertyChanged(); } }
+    public double PlotProfileViewportMinX { get => _settings.Settings.PlotProfileViewportMinX; set { _settings.Settings.PlotProfileViewportMinX = value; RaisePropertyChanged(); } }
+    public double PlotProfileViewportMinY { get => _settings.Settings.PlotProfileViewportMinY; set { _settings.Settings.PlotProfileViewportMinY = value; RaisePropertyChanged(); } }
+    public double PlotProfileViewportWidth
+    {
+        get => _settings.Settings.PlotProfileViewportWidth;
+        set
+        {
+            _settings.Settings.PlotProfileViewportWidth = Math.Max(1, value);
+            RaisePropertyChanged();
+        }
+    }
+
+    public double PlotProfileViewportHeight
+    {
+        get => _settings.Settings.PlotProfileViewportHeight;
+        set
+        {
+            _settings.Settings.PlotProfileViewportHeight = Math.Max(1, value);
+            RaisePropertyChanged();
+        }
+    }
+
+    public bool PlotProfileShowGroup1 { get => _settings.Settings.PlotProfileShowGroup1; set { _settings.Settings.PlotProfileShowGroup1 = value; RaisePropertyChanged(); } }
+    public bool PlotProfileShowGroup2 { get => _settings.Settings.PlotProfileShowGroup2; set { _settings.Settings.PlotProfileShowGroup2 = value; RaisePropertyChanged(); } }
+    public bool PlotProfileShowGroup3 { get => _settings.Settings.PlotProfileShowGroup3; set { _settings.Settings.PlotProfileShowGroup3 = value; RaisePropertyChanged(); } }
+    public bool PlotProfileShowGroup4 { get => _settings.Settings.PlotProfileShowGroup4; set { _settings.Settings.PlotProfileShowGroup4 = value; RaisePropertyChanged(); } }
+    public bool PlotProfileShowGroupCurves { get => _settings.Settings.PlotProfileShowGroupCurves; set { _settings.Settings.PlotProfileShowGroupCurves = value; RaisePropertyChanged(); } }
+    public bool PlotProfileShowGroupPoints { get => _settings.Settings.PlotProfileShowGroupPoints; set { _settings.Settings.PlotProfileShowGroupPoints = value; RaisePropertyChanged(); } }
+    public bool PlotProfileShowGroupPointLabels { get => _settings.Settings.PlotProfileShowGroupPointLabels; set { _settings.Settings.PlotProfileShowGroupPointLabels = value; RaisePropertyChanged(); } }
+    public bool PlotProfileShowBSegmentFootprints { get => _settings.Settings.PlotProfileShowBSegmentFootprints; set { _settings.Settings.PlotProfileShowBSegmentFootprints = value; RaisePropertyChanged(); } }
+    public bool PlotProfileShowA1FrameCloud { get => _settings.Settings.PlotProfileShowA1FrameCloud; set { _settings.Settings.PlotProfileShowA1FrameCloud = value; RaisePropertyChanged(); } }
+    public bool PlotProfileShowB0FrameCloud { get => _settings.Settings.PlotProfileShowB0FrameCloud; set { _settings.Settings.PlotProfileShowB0FrameCloud = value; RaisePropertyChanged(); } }
+    public bool PlotProfileShowA1Points { get => _settings.Settings.PlotProfileShowA1Points; set { _settings.Settings.PlotProfileShowA1Points = value; RaisePropertyChanged(); } }
+    public bool PlotProfileShowA1Labels { get => _settings.Settings.PlotProfileShowA1Labels; set { _settings.Settings.PlotProfileShowA1Labels = value; RaisePropertyChanged(); } }
+    public bool PlotProfileShowB0PathLine { get => _settings.Settings.PlotProfileShowB0PathLine; set { _settings.Settings.PlotProfileShowB0PathLine = value; RaisePropertyChanged(); } }
+    public bool PlotProfileShowB0Points { get => _settings.Settings.PlotProfileShowB0Points; set { _settings.Settings.PlotProfileShowB0Points = value; RaisePropertyChanged(); } }
+    public bool PlotProfileShowB0Labels { get => _settings.Settings.PlotProfileShowB0Labels; set { _settings.Settings.PlotProfileShowB0Labels = value; RaisePropertyChanged(); } }
+    public bool PlotProfileInfoBoxVisible { get => _settings.Settings.PlotProfileInfoBoxVisible; set { _settings.Settings.PlotProfileInfoBoxVisible = value; RaisePropertyChanged(); } }
+    public string PlotProfileInfoBoxBackground { get => _settings.Settings.PlotProfileInfoBoxBackground; set { _settings.Settings.PlotProfileInfoBoxBackground = value; RaisePropertyChanged(); } }
+    public string PlotProfileInfoBoxBorder { get => _settings.Settings.PlotProfileInfoBoxBorder; set { _settings.Settings.PlotProfileInfoBoxBorder = value; RaisePropertyChanged(); } }
+    public string PlotProfileInfoBoxTextColor { get => _settings.Settings.PlotProfileInfoBoxTextColor; set { _settings.Settings.PlotProfileInfoBoxTextColor = value; RaisePropertyChanged(); } }
+    public bool PlotProfileInfoBoxFollowA0 { get => _settings.Settings.PlotProfileInfoBoxFollowA0; set { _settings.Settings.PlotProfileInfoBoxFollowA0 = value; RaisePropertyChanged(); } }
+    public double PlotProfileInfoBoxOpacity
+    {
+        get => _settings.Settings.PlotProfileInfoBoxOpacity;
+        set
+        {
+            _settings.Settings.PlotProfileInfoBoxOpacity = Math.Clamp(value, 0.10, 1.0);
+            RaisePropertyChanged();
+        }
+    }
+
+    public double PlotProfileInfoBoxFontSize
+    {
+        get => _settings.Settings.PlotProfileInfoBoxFontSize;
+        set
+        {
+            _settings.Settings.PlotProfileInfoBoxFontSize = Math.Clamp(value, 9, 28);
+            RaisePropertyChanged();
+        }
+    }
+
+    public string PlotProfileInfoBoxFontFamily { get => _settings.Settings.PlotProfileInfoBoxFontFamily; set { _settings.Settings.PlotProfileInfoBoxFontFamily = value; RaisePropertyChanged(); } }
+    public double PlotProfileInfoBoxManualX
+    {
+        get => _settings.Settings.PlotProfileInfoBoxManualX;
+        set
+        {
+            _settings.Settings.PlotProfileInfoBoxManualX = Math.Clamp(value, 0.0, 1.0);
+            RaisePropertyChanged();
+        }
+    }
+
+    public double PlotProfileInfoBoxManualY
+    {
+        get => _settings.Settings.PlotProfileInfoBoxManualY;
+        set
+        {
+            _settings.Settings.PlotProfileInfoBoxManualY = Math.Clamp(value, 0.0, 1.0);
+            RaisePropertyChanged();
+        }
+    }
 
     public int SmoothSegmentsPerSpan
     {
@@ -676,6 +766,43 @@ public sealed class SettingsViewModel : ViewModelBase
                 _settings.Settings.PlotColorRobotPath = defaults.PlotColorRobotPath;
                 _settings.Settings.PlotColorPairLinks = defaults.PlotColorPairLinks;
                 _settings.Settings.PlotColorTool = defaults.PlotColorTool;
+                _settings.Settings.PlotColorProfileGroup1 = defaults.PlotColorProfileGroup1;
+                _settings.Settings.PlotColorProfileGroup2 = defaults.PlotColorProfileGroup2;
+                _settings.Settings.PlotColorProfileGroup3 = defaults.PlotColorProfileGroup3;
+                _settings.Settings.PlotColorProfileGroup4 = defaults.PlotColorProfileGroup4;
+                _settings.Settings.PlotColorProfileB0Path = defaults.PlotColorProfileB0Path;
+                _settings.Settings.PlotColorProfileSegmentA = defaults.PlotColorProfileSegmentA;
+                _settings.Settings.PlotColorProfileSegmentB = defaults.PlotColorProfileSegmentB;
+                _settings.Settings.PlotProfileUsePythonViewport = defaults.PlotProfileUsePythonViewport;
+                _settings.Settings.PlotProfileViewportMinX = defaults.PlotProfileViewportMinX;
+                _settings.Settings.PlotProfileViewportMinY = defaults.PlotProfileViewportMinY;
+                _settings.Settings.PlotProfileViewportWidth = defaults.PlotProfileViewportWidth;
+                _settings.Settings.PlotProfileViewportHeight = defaults.PlotProfileViewportHeight;
+                _settings.Settings.PlotProfileShowGroup1 = defaults.PlotProfileShowGroup1;
+                _settings.Settings.PlotProfileShowGroup2 = defaults.PlotProfileShowGroup2;
+                _settings.Settings.PlotProfileShowGroup3 = defaults.PlotProfileShowGroup3;
+                _settings.Settings.PlotProfileShowGroup4 = defaults.PlotProfileShowGroup4;
+                _settings.Settings.PlotProfileShowGroupCurves = defaults.PlotProfileShowGroupCurves;
+                _settings.Settings.PlotProfileShowGroupPoints = defaults.PlotProfileShowGroupPoints;
+                _settings.Settings.PlotProfileShowGroupPointLabels = defaults.PlotProfileShowGroupPointLabels;
+                _settings.Settings.PlotProfileShowBSegmentFootprints = defaults.PlotProfileShowBSegmentFootprints;
+                _settings.Settings.PlotProfileShowA1FrameCloud = defaults.PlotProfileShowA1FrameCloud;
+                _settings.Settings.PlotProfileShowB0FrameCloud = defaults.PlotProfileShowB0FrameCloud;
+                _settings.Settings.PlotProfileShowA1Points = defaults.PlotProfileShowA1Points;
+                _settings.Settings.PlotProfileShowA1Labels = defaults.PlotProfileShowA1Labels;
+                _settings.Settings.PlotProfileShowB0PathLine = defaults.PlotProfileShowB0PathLine;
+                _settings.Settings.PlotProfileShowB0Points = defaults.PlotProfileShowB0Points;
+                _settings.Settings.PlotProfileShowB0Labels = defaults.PlotProfileShowB0Labels;
+                _settings.Settings.PlotProfileInfoBoxVisible = defaults.PlotProfileInfoBoxVisible;
+                _settings.Settings.PlotProfileInfoBoxBackground = defaults.PlotProfileInfoBoxBackground;
+                _settings.Settings.PlotProfileInfoBoxBorder = defaults.PlotProfileInfoBoxBorder;
+                _settings.Settings.PlotProfileInfoBoxTextColor = defaults.PlotProfileInfoBoxTextColor;
+                _settings.Settings.PlotProfileInfoBoxFollowA0 = defaults.PlotProfileInfoBoxFollowA0;
+                _settings.Settings.PlotProfileInfoBoxOpacity = defaults.PlotProfileInfoBoxOpacity;
+                _settings.Settings.PlotProfileInfoBoxFontSize = defaults.PlotProfileInfoBoxFontSize;
+                _settings.Settings.PlotProfileInfoBoxFontFamily = defaults.PlotProfileInfoBoxFontFamily;
+                _settings.Settings.PlotProfileInfoBoxManualX = defaults.PlotProfileInfoBoxManualX;
+                _settings.Settings.PlotProfileInfoBoxManualY = defaults.PlotProfileInfoBoxManualY;
                 _settings.Settings.SmoothSegmentsPerSpan = defaults.SmoothSegmentsPerSpan;
                 RaisePropertyChanged(nameof(PlotOpacity));
                 RaisePropertyChanged(nameof(PlotOpacityDisplay));
@@ -690,6 +817,43 @@ public sealed class SettingsViewModel : ViewModelBase
                 RaisePropertyChanged(nameof(PlotColorRobotPath));
                 RaisePropertyChanged(nameof(PlotColorPairLinks));
                 RaisePropertyChanged(nameof(PlotColorTool));
+                RaisePropertyChanged(nameof(PlotColorProfileGroup1));
+                RaisePropertyChanged(nameof(PlotColorProfileGroup2));
+                RaisePropertyChanged(nameof(PlotColorProfileGroup3));
+                RaisePropertyChanged(nameof(PlotColorProfileGroup4));
+                RaisePropertyChanged(nameof(PlotColorProfileB0Path));
+                RaisePropertyChanged(nameof(PlotColorProfileSegmentA));
+                RaisePropertyChanged(nameof(PlotColorProfileSegmentB));
+                RaisePropertyChanged(nameof(PlotProfileUsePythonViewport));
+                RaisePropertyChanged(nameof(PlotProfileViewportMinX));
+                RaisePropertyChanged(nameof(PlotProfileViewportMinY));
+                RaisePropertyChanged(nameof(PlotProfileViewportWidth));
+                RaisePropertyChanged(nameof(PlotProfileViewportHeight));
+                RaisePropertyChanged(nameof(PlotProfileShowGroup1));
+                RaisePropertyChanged(nameof(PlotProfileShowGroup2));
+                RaisePropertyChanged(nameof(PlotProfileShowGroup3));
+                RaisePropertyChanged(nameof(PlotProfileShowGroup4));
+                RaisePropertyChanged(nameof(PlotProfileShowGroupCurves));
+                RaisePropertyChanged(nameof(PlotProfileShowGroupPoints));
+                RaisePropertyChanged(nameof(PlotProfileShowGroupPointLabels));
+                RaisePropertyChanged(nameof(PlotProfileShowBSegmentFootprints));
+                RaisePropertyChanged(nameof(PlotProfileShowA1FrameCloud));
+                RaisePropertyChanged(nameof(PlotProfileShowB0FrameCloud));
+                RaisePropertyChanged(nameof(PlotProfileShowA1Points));
+                RaisePropertyChanged(nameof(PlotProfileShowA1Labels));
+                RaisePropertyChanged(nameof(PlotProfileShowB0PathLine));
+                RaisePropertyChanged(nameof(PlotProfileShowB0Points));
+                RaisePropertyChanged(nameof(PlotProfileShowB0Labels));
+                RaisePropertyChanged(nameof(PlotProfileInfoBoxVisible));
+                RaisePropertyChanged(nameof(PlotProfileInfoBoxBackground));
+                RaisePropertyChanged(nameof(PlotProfileInfoBoxBorder));
+                RaisePropertyChanged(nameof(PlotProfileInfoBoxTextColor));
+                RaisePropertyChanged(nameof(PlotProfileInfoBoxFollowA0));
+                RaisePropertyChanged(nameof(PlotProfileInfoBoxOpacity));
+                RaisePropertyChanged(nameof(PlotProfileInfoBoxFontSize));
+                RaisePropertyChanged(nameof(PlotProfileInfoBoxFontFamily));
+                RaisePropertyChanged(nameof(PlotProfileInfoBoxManualX));
+                RaisePropertyChanged(nameof(PlotProfileInfoBoxManualY));
                 RaisePropertyChanged(nameof(SmoothSegmentsPerSpan));
                 break;
 
@@ -835,6 +999,43 @@ public sealed class SettingsViewModel : ViewModelBase
                 target.PlotColorRobotPath = source.PlotColorRobotPath;
                 target.PlotColorPairLinks = source.PlotColorPairLinks;
                 target.PlotColorTool = source.PlotColorTool;
+                target.PlotColorProfileGroup1 = source.PlotColorProfileGroup1;
+                target.PlotColorProfileGroup2 = source.PlotColorProfileGroup2;
+                target.PlotColorProfileGroup3 = source.PlotColorProfileGroup3;
+                target.PlotColorProfileGroup4 = source.PlotColorProfileGroup4;
+                target.PlotColorProfileB0Path = source.PlotColorProfileB0Path;
+                target.PlotColorProfileSegmentA = source.PlotColorProfileSegmentA;
+                target.PlotColorProfileSegmentB = source.PlotColorProfileSegmentB;
+                target.PlotProfileUsePythonViewport = source.PlotProfileUsePythonViewport;
+                target.PlotProfileViewportMinX = source.PlotProfileViewportMinX;
+                target.PlotProfileViewportMinY = source.PlotProfileViewportMinY;
+                target.PlotProfileViewportWidth = source.PlotProfileViewportWidth;
+                target.PlotProfileViewportHeight = source.PlotProfileViewportHeight;
+                target.PlotProfileShowGroup1 = source.PlotProfileShowGroup1;
+                target.PlotProfileShowGroup2 = source.PlotProfileShowGroup2;
+                target.PlotProfileShowGroup3 = source.PlotProfileShowGroup3;
+                target.PlotProfileShowGroup4 = source.PlotProfileShowGroup4;
+                target.PlotProfileShowGroupCurves = source.PlotProfileShowGroupCurves;
+                target.PlotProfileShowGroupPoints = source.PlotProfileShowGroupPoints;
+                target.PlotProfileShowGroupPointLabels = source.PlotProfileShowGroupPointLabels;
+                target.PlotProfileShowBSegmentFootprints = source.PlotProfileShowBSegmentFootprints;
+                target.PlotProfileShowA1FrameCloud = source.PlotProfileShowA1FrameCloud;
+                target.PlotProfileShowB0FrameCloud = source.PlotProfileShowB0FrameCloud;
+                target.PlotProfileShowA1Points = source.PlotProfileShowA1Points;
+                target.PlotProfileShowA1Labels = source.PlotProfileShowA1Labels;
+                target.PlotProfileShowB0PathLine = source.PlotProfileShowB0PathLine;
+                target.PlotProfileShowB0Points = source.PlotProfileShowB0Points;
+                target.PlotProfileShowB0Labels = source.PlotProfileShowB0Labels;
+                target.PlotProfileInfoBoxVisible = source.PlotProfileInfoBoxVisible;
+                target.PlotProfileInfoBoxBackground = source.PlotProfileInfoBoxBackground;
+                target.PlotProfileInfoBoxBorder = source.PlotProfileInfoBoxBorder;
+                target.PlotProfileInfoBoxTextColor = source.PlotProfileInfoBoxTextColor;
+                target.PlotProfileInfoBoxFollowA0 = source.PlotProfileInfoBoxFollowA0;
+                target.PlotProfileInfoBoxOpacity = source.PlotProfileInfoBoxOpacity;
+                target.PlotProfileInfoBoxFontSize = source.PlotProfileInfoBoxFontSize;
+                target.PlotProfileInfoBoxFontFamily = source.PlotProfileInfoBoxFontFamily;
+                target.PlotProfileInfoBoxManualX = source.PlotProfileInfoBoxManualX;
+                target.PlotProfileInfoBoxManualY = source.PlotProfileInfoBoxManualY;
                 target.SmoothSegmentsPerSpan = source.SmoothSegmentsPerSpan;
                 break;
 
@@ -936,6 +1137,43 @@ public sealed class SettingsViewModel : ViewModelBase
         RaisePropertyChanged(nameof(PlotColorRobotPath));
         RaisePropertyChanged(nameof(PlotColorPairLinks));
         RaisePropertyChanged(nameof(PlotColorTool));
+        RaisePropertyChanged(nameof(PlotColorProfileGroup1));
+        RaisePropertyChanged(nameof(PlotColorProfileGroup2));
+        RaisePropertyChanged(nameof(PlotColorProfileGroup3));
+        RaisePropertyChanged(nameof(PlotColorProfileGroup4));
+        RaisePropertyChanged(nameof(PlotColorProfileB0Path));
+        RaisePropertyChanged(nameof(PlotColorProfileSegmentA));
+        RaisePropertyChanged(nameof(PlotColorProfileSegmentB));
+        RaisePropertyChanged(nameof(PlotProfileUsePythonViewport));
+        RaisePropertyChanged(nameof(PlotProfileViewportMinX));
+        RaisePropertyChanged(nameof(PlotProfileViewportMinY));
+        RaisePropertyChanged(nameof(PlotProfileViewportWidth));
+        RaisePropertyChanged(nameof(PlotProfileViewportHeight));
+        RaisePropertyChanged(nameof(PlotProfileShowGroup1));
+        RaisePropertyChanged(nameof(PlotProfileShowGroup2));
+        RaisePropertyChanged(nameof(PlotProfileShowGroup3));
+        RaisePropertyChanged(nameof(PlotProfileShowGroup4));
+        RaisePropertyChanged(nameof(PlotProfileShowGroupCurves));
+        RaisePropertyChanged(nameof(PlotProfileShowGroupPoints));
+        RaisePropertyChanged(nameof(PlotProfileShowGroupPointLabels));
+        RaisePropertyChanged(nameof(PlotProfileShowBSegmentFootprints));
+        RaisePropertyChanged(nameof(PlotProfileShowA1FrameCloud));
+        RaisePropertyChanged(nameof(PlotProfileShowB0FrameCloud));
+        RaisePropertyChanged(nameof(PlotProfileShowA1Points));
+        RaisePropertyChanged(nameof(PlotProfileShowA1Labels));
+        RaisePropertyChanged(nameof(PlotProfileShowB0PathLine));
+        RaisePropertyChanged(nameof(PlotProfileShowB0Points));
+        RaisePropertyChanged(nameof(PlotProfileShowB0Labels));
+        RaisePropertyChanged(nameof(PlotProfileInfoBoxVisible));
+        RaisePropertyChanged(nameof(PlotProfileInfoBoxBackground));
+        RaisePropertyChanged(nameof(PlotProfileInfoBoxBorder));
+        RaisePropertyChanged(nameof(PlotProfileInfoBoxTextColor));
+        RaisePropertyChanged(nameof(PlotProfileInfoBoxFollowA0));
+        RaisePropertyChanged(nameof(PlotProfileInfoBoxOpacity));
+        RaisePropertyChanged(nameof(PlotProfileInfoBoxFontSize));
+        RaisePropertyChanged(nameof(PlotProfileInfoBoxFontFamily));
+        RaisePropertyChanged(nameof(PlotProfileInfoBoxManualX));
+        RaisePropertyChanged(nameof(PlotProfileInfoBoxManualY));
         RaisePropertyChanged(nameof(SmoothSegmentsPerSpan));
 
         RaisePropertyChanged(nameof(SimAllowPlot));

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using Avalonia.Threading;
 using RecipeStudio.Desktop.Models;
@@ -15,9 +16,10 @@ public sealed class SimulationViewModel : ViewModelBase
     private readonly EditorViewModel _editor;
     private readonly DispatcherTimer _timer;
     private readonly SimulationPathService _pathService = new();
+    private readonly ProfileDisplayPathService _profilePathService = new();
     private readonly List<double> _stepTimes = new();
 
-    private double _speedMultiplier = 2.0;
+    private double _speedMultiplier = 1.0;
     private bool _isPlaying;
     private double _elapsedSec;
     private double _totalDurationSec;
@@ -37,7 +39,9 @@ public sealed class SimulationViewModel : ViewModelBase
     private bool _includeSafePoints = true;
     private bool _smoothMotion = true;
     private string _nozzleAngleWarning = string.Empty;
+    private long _lastTickTimestamp;
     private SimulationPath _timeline = new(new List<PathWaypoint>(), new List<PathSegment>(), 0);
+    private ProfileDisplayPath _profileTimeline = ProfileDisplayPath.Empty;
 
     public SimulationViewModel(EditorViewModel editor)
     {
@@ -46,10 +50,10 @@ public sealed class SimulationViewModel : ViewModelBase
         HookPointHandlers(_editor.Points);
         _editor.AppSettings.NozzleOrientationMode = NozzleOrientationModes.Normalize(_editor.AppSettings.NozzleOrientationMode);
 
-        PlayPauseCommand = new RelayCommand(TogglePlay, () => _editor.HasDocument && GetAnimationPoints().Count > 1);
+        PlayPauseCommand = new RelayCommand(TogglePlay, () => _editor.HasDocument && CanAnimate());
         StopCommand = new RelayCommand(Stop, () => _editor.HasDocument);
-        StepPreviousCommand = new RelayCommand(StepPrevious, () => _editor.HasDocument && GetAnimationPoints().Count > 1);
-        StepNextCommand = new RelayCommand(StepNext, () => _editor.HasDocument && GetAnimationPoints().Count > 1);
+        StepPreviousCommand = new RelayCommand(StepPrevious, () => _editor.HasDocument && CanAnimate());
+        StepNextCommand = new RelayCommand(StepNext, () => _editor.HasDocument && CanAnimate());
         ResetRecommendedModesCommand = new RelayCommand(ApplyRecommendedModes);
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
@@ -115,7 +119,7 @@ public sealed class SimulationViewModel : ViewModelBase
 
     public double Progress { get => _progress; private set => SetProperty(ref _progress, value); }
     public int CurrentStepIndex => FindCurrentStep();
-    public int TotalSteps => Math.Max(0, GetAnimationPoints().Count - 1);
+    public int TotalSteps => Math.Max(0, _profileTimeline.PathNodes.Count);
     public double ToolR => Math.Round(Math.Sqrt(_toolPosition.X * _toolPosition.X + _toolPosition.Y * _toolPosition.Y), 1);
     public double ToolZ => Math.Round(_toolPosition.Z, 1);
     public double ToolX => Math.Round(_toolPosition.X, 1);
@@ -143,15 +147,16 @@ public sealed class SimulationViewModel : ViewModelBase
         ShowLegend = true;
         ShowGrid = true;
         ShowPairLinks = false;
-        SpeedMultiplier = 2.0;
+        SpeedMultiplier = 1.0;
         UsePhysicalNozzleOrientation = true;
     }
 
     private void TogglePlay()
     {
-        if (GetAnimationPoints().Count < 2) return;
-        if (IsPlaying) { IsPlaying = false; _timer.Stop(); return; }
+        if (!CanAnimate()) return;
+        if (IsPlaying) { IsPlaying = false; _timer.Stop(); _lastTickTimestamp = 0; return; }
         if (Progress >= 1) { _elapsedSec = 0; UpdateFromElapsed(); }
+        _lastTickTimestamp = Stopwatch.GetTimestamp();
         IsPlaying = true;
         _timer.Start();
     }
@@ -160,6 +165,7 @@ public sealed class SimulationViewModel : ViewModelBase
     {
         IsPlaying = false;
         _timer.Stop();
+        _lastTickTimestamp = 0;
         _elapsedSec = 0;
         UpdateFromElapsed();
     }
@@ -187,8 +193,14 @@ public sealed class SimulationViewModel : ViewModelBase
     private void Tick()
     {
         if (!IsPlaying || _totalDurationSec <= 0) return;
-        _elapsedSec += 0.016 * SpeedMultiplier;
-        if (_elapsedSec >= _totalDurationSec) { _elapsedSec = _totalDurationSec; IsPlaying = false; _timer.Stop(); }
+        var now = Stopwatch.GetTimestamp();
+        if (_lastTickTimestamp == 0)
+            _lastTickTimestamp = now;
+
+        var deltaSec = (now - _lastTickTimestamp) / (double)Stopwatch.Frequency;
+        _lastTickTimestamp = now;
+        _elapsedSec += Math.Max(0, deltaSec) * SpeedMultiplier;
+        if (_elapsedSec >= _totalDurationSec) { _elapsedSec = _totalDurationSec; IsPlaying = false; _timer.Stop(); _lastTickTimestamp = 0; }
         UpdateFromElapsed();
     }
 
@@ -196,11 +208,11 @@ public sealed class SimulationViewModel : ViewModelBase
     {
         var points = GetAnimationPoints();
         _timeline = _pathService.Build(points.ToList(), SmoothMotion);
-        _totalDurationSec = _timeline.TotalDurationSec;
+        _profileTimeline = _profilePathService.Build(_editor.Points.ToList(), AppSettings);
+        _totalDurationSec = _profileTimeline.TotalDurationSec;
         _stepTimes.Clear();
-        _stepTimes.Add(0);
-        foreach (var seg in _timeline.Segments)
-            _stepTimes.Add(seg.EndSec);
+        for (var i = 0; i < _profileTimeline.PathNodes.Count; i++)
+            _stepTimes.Add(_profilePathService.GetNodeProgress(_profileTimeline, i) * _totalDurationSec);
 
         _elapsedSec = Math.Min(_elapsedSec, _totalDurationSec);
         UpdateNozzleAngleWarning(points);
@@ -218,10 +230,13 @@ public sealed class SimulationViewModel : ViewModelBase
         StepNextCommand.RaiseCanExecuteChanged();
     }
 
+    private bool CanAnimate()
+        => _profileTimeline.PathNodes.Count > 1 || GetAnimationPoints().Count > 1;
+
     private void UpdateFromElapsed()
     {
         var points = GetAnimationPoints();
-        if (points.Count == 0)
+        if (_profileTimeline.PathNodes.Count == 0)
         {
             _toolPosition = default;
             _currentTargetX = 0;
@@ -233,25 +248,40 @@ public sealed class SimulationViewModel : ViewModelBase
             return;
         }
 
-        var sample = _pathService.Evaluate(_timeline, _elapsedSec, SmoothMotion);
+        var displaySample = _profilePathService.Evaluate(_profileTimeline, _elapsedSec);
+        Progress = displaySample.Progress;
+        CurrentAlfa = displaySample.AlfaDisplay;
+        CurrentBetta = displaySample.Beta;
+        _currentSegmentIndex = displaySample.SegmentIndex;
+        _currentSegmentT = displaySample.SegmentT;
+
+        if (points.Count == 0 || _timeline.TotalDurationSec <= 1e-9 || _timeline.Waypoints.Count == 0)
+        {
+            _toolPosition = default;
+            _currentTargetX = 0;
+            _currentTargetZ = 0;
+            RaiseTelemetry();
+            return;
+        }
+
+        var physicalElapsed = _timeline.TotalDurationSec * displaySample.Progress;
+        var sample = _pathService.Evaluate(_timeline, physicalElapsed, SmoothMotion);
         _toolPosition = new Point3D(sample.Position.X, sample.Position.Y, sample.Position.Z);
-        Progress = sample.Progress;
-        CurrentAlfa = sample.Alfa;
-        CurrentBetta = sample.Betta;
         var (targetX, targetZ) = EvaluateTargetPosition(points, sample);
         _currentTargetX = targetX;
         _currentTargetZ = targetZ;
-        _currentSegmentIndex = sample.SegmentIndex;
-        _currentSegmentT = sample.SegmentT;
         RaiseTelemetry();
     }
 
     private int FindCurrentStep()
     {
-        if (_stepTimes.Count <= 1) return 0;
+        if (_stepTimes.Count == 0)
+            return 0;
+
         for (var i = 0; i < _stepTimes.Count - 1; i++)
             if (_elapsedSec < _stepTimes[i + 1] - 1e-6)
                 return i;
+
         return _stepTimes.Count - 1;
     }
 

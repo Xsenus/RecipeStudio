@@ -111,8 +111,8 @@ public sealed class SimulationOverlayGeometryTests
     {
         var source = new List<StyledTargetPoint>
         {
-            new(new Point(30, 40), safe: false),
-            new(new Point(30, 40), safe: true)
+            new(new Point(30, 40), Safe: false),
+            new(new Point(30, 40), Safe: true)
         };
 
         var displayed = SimulationOverlayGeometry.BuildDisplayedTargetPoints(

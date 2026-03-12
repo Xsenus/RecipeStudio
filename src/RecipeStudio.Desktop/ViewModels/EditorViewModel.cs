@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using Avalonia.Threading;
@@ -24,6 +25,7 @@ public sealed class EditorViewModel : ViewModelBase
     // Simulation
     private readonly DispatcherTimer _timer;
     private readonly SimulationPathService _pathService = new();
+    private readonly ProfileDisplayPathService _profilePathService = new();
     private bool _isPlaying;
     private double _speedMultiplier = 1.0;
     private double _progress;
@@ -36,7 +38,9 @@ public sealed class EditorViewModel : ViewModelBase
     private double _currentTargetZ;
     private int _currentSegmentIndex = -1;
     private double _currentSegmentT;
+    private long _lastTickTimestamp;
     private SimulationPath _timeline = new(new List<PathWaypoint>(), new List<PathSegment>(), 0);
+    private ProfileDisplayPath _profileTimeline = ProfileDisplayPath.Empty;
 
     private bool _suppressRecalc;
     private string _importDiagnosticsSummary = "";
@@ -211,7 +215,7 @@ public sealed class EditorViewModel : ViewModelBase
     public double SpeedMultiplier
     {
         get => _speedMultiplier;
-        set => SetProperty(ref _speedMultiplier, value);
+        set => SetProperty(ref _speedMultiplier, Math.Clamp(value, 0.2, 12.0));
     }
 
     /// <summary>
@@ -625,13 +629,14 @@ public sealed class EditorViewModel : ViewModelBase
 
     private void TogglePlay()
     {
-        if (GetAnimationPoints().Count < 2)
+        if (_profileTimeline.PathNodes.Count < 2 && GetAnimationPoints().Count < 2)
             return;
 
         if (IsPlaying)
         {
             IsPlaying = false;
             _timer.Stop();
+            _lastTickTimestamp = 0;
         }
         else
         {
@@ -641,6 +646,7 @@ public sealed class EditorViewModel : ViewModelBase
                 UpdateFromElapsed();
             }
 
+            _lastTickTimestamp = Stopwatch.GetTimestamp();
             IsPlaying = true;
             _timer.Start();
         }
@@ -650,6 +656,7 @@ public sealed class EditorViewModel : ViewModelBase
     {
         IsPlaying = false;
         _timer.Stop();
+        _lastTickTimestamp = 0;
         _elapsedSec = 0;
         UpdateFromElapsed();
     }
@@ -659,12 +666,19 @@ public sealed class EditorViewModel : ViewModelBase
         if (!IsPlaying || _totalDurationSec <= 0)
             return;
 
-        _elapsedSec += 0.016 * SpeedMultiplier;
+        var now = Stopwatch.GetTimestamp();
+        if (_lastTickTimestamp == 0)
+            _lastTickTimestamp = now;
+
+        var deltaSec = (now - _lastTickTimestamp) / (double)Stopwatch.Frequency;
+        _lastTickTimestamp = now;
+        _elapsedSec += Math.Max(0, deltaSec) * SpeedMultiplier;
         if (_elapsedSec >= _totalDurationSec)
         {
             _elapsedSec = _totalDurationSec;
             IsPlaying = false;
             _timer.Stop();
+            _lastTickTimestamp = 0;
         }
 
         UpdateFromElapsed();
@@ -672,9 +686,10 @@ public sealed class EditorViewModel : ViewModelBase
 
     private void RecalculateTimeline()
     {
-        var points = GetAnimationPoints();
-        _timeline = _pathService.Build(points.ToList(), smoothMotion: true);
-        _totalDurationSec = _timeline.TotalDurationSec;
+        var physicalPoints = GetAnimationPoints();
+        _timeline = _pathService.Build(physicalPoints.ToList(), smoothMotion: true);
+        _profileTimeline = _profilePathService.Build(Points.ToList(), AppSettings);
+        _totalDurationSec = _profileTimeline.TotalDurationSec;
         _elapsedSec = Math.Min(_elapsedSec, _totalDurationSec);
         UpdateFromElapsed();
         RaisePropertyChanged(nameof(PointsForAnimation));
@@ -682,8 +697,8 @@ public sealed class EditorViewModel : ViewModelBase
 
     private void UpdateFromElapsed()
     {
-        var points = GetAnimationPoints();
-        if (points.Count == 0)
+        var physicalPoints = GetAnimationPoints();
+        if (_profileTimeline.PathNodes.Count == 0)
         {
             _toolPosition = default;
             _currentTargetX = 0;
@@ -697,16 +712,28 @@ public sealed class EditorViewModel : ViewModelBase
             return;
         }
 
-        var sample = _pathService.Evaluate(_timeline, _elapsedSec, smoothMotion: true);
-        _toolPosition = sample.Position;
-        Progress = sample.Progress;
-        CurrentAlfa = sample.Alfa;
-        CurrentBetta = sample.Betta;
-        var (targetX, targetZ) = EvaluateTargetPosition(points, sample);
+        var displaySample = _profilePathService.Evaluate(_profileTimeline, _elapsedSec);
+        Progress = displaySample.Progress;
+        CurrentAlfa = displaySample.AlfaDisplay;
+        CurrentBetta = displaySample.Beta;
+        _currentSegmentIndex = displaySample.SegmentIndex;
+        _currentSegmentT = displaySample.SegmentT;
+
+        if (physicalPoints.Count == 0 || _timeline.TotalDurationSec <= 1e-9 || _timeline.Waypoints.Count == 0)
+        {
+            _toolPosition = default;
+            _currentTargetX = 0;
+            _currentTargetZ = 0;
+            RaiseTelemetry();
+            return;
+        }
+
+        var physicalElapsed = _timeline.TotalDurationSec * displaySample.Progress;
+        var physicalSample = _pathService.Evaluate(_timeline, physicalElapsed, smoothMotion: true);
+        _toolPosition = physicalSample.Position;
+        var (targetX, targetZ) = EvaluateTargetPosition(physicalPoints, physicalSample);
         _currentTargetX = targetX;
         _currentTargetZ = targetZ;
-        _currentSegmentIndex = sample.SegmentIndex;
-        _currentSegmentT = sample.SegmentT;
         RaiseTelemetry();
     }
 

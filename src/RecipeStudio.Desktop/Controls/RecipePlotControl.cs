@@ -16,6 +16,8 @@ namespace RecipeStudio.Desktop.Controls;
 
 public sealed class RecipePlotControl : Control
 {
+    private static readonly ProfileDisplayPathService DisplayPathService = new();
+
     public static readonly StyledProperty<IList<RecipePoint>?> PointsProperty =
         AvaloniaProperty.Register<RecipePlotControl, IList<RecipePoint>?>(nameof(Points));
 
@@ -79,6 +81,13 @@ public sealed class RecipePlotControl : Control
     private bool _isPanning;
     private Point _panStartScreen;
     private Point _panStartOffset;
+    private bool _isDraggingInfoBox;
+    private Point _infoBoxDragStartScreen;
+    private Rect _infoBoxDragStartRect;
+    private Rect _lastInfoBoxRect;
+    private Rect _lastPlotBoundsRect;
+    private Size _lastInfoBoxSize;
+    private bool _hasInfoBoxRect;
 
     // Cached transform
     private Rect _worldBounds;
@@ -87,6 +96,7 @@ public sealed class RecipePlotControl : Control
     private double _pad;
     private double _zoomFactor = 1.0;
     private Point _panOffset;
+    private Rect _plotViewportRect;
 
     public IList<RecipePoint>? Points
     {
@@ -266,6 +276,7 @@ public sealed class RecipePlotControl : Control
     public double ZoomFactor => _zoomFactor;
 
     public event Action<double>? ZoomChanged;
+    public event Action? InfoBoxPositionChanged;
 
     private void NotifyZoomChanged()
     {
@@ -347,12 +358,111 @@ public sealed class RecipePlotControl : Control
         base.Render(context);
 
         var settings = Settings ?? new AppSettings();
-        var points = FilterRenderablePoints(Points);
-        var showOriginalTarget = ShouldDrawOriginalTarget();
-        var showMirroredTarget = ShouldDrawMirroredTarget();
+        _hasInfoBoxRect = false;
+        _lastInfoBoxRect = default;
+        _lastInfoBoxSize = default;
+        _lastPlotBoundsRect = default;
+        _plotViewportRect = default;
 
         // background
         context.FillRectangle(new SolidColorBrush(Color.FromRgb(11, 18, 32)), new Rect(Bounds.Size));
+
+        var displayPath = FilterDisplayPathBySettings(
+            BuildVisibleDisplayPath(ApplyDisplayMirror(DisplayPathService.Build(Points ?? AnimationPoints, settings))),
+            settings);
+        if (displayPath.PathNodes.Count > 0 || displayPath.Polylines.Count > 0)
+        {
+            var selectedSample = !IsPlaying ? TryResolveSelectedDisplaySample(displayPath) : null;
+            var sample = selectedSample ?? DisplayPathService.EvaluateByProgress(displayPath, Progress);
+            _pad = Math.Clamp(Math.Min(Bounds.Width, Bounds.Height) * 0.06, 16, 36);
+            var outerPlotRect = new Rect(_pad, _pad, Math.Max(1, Bounds.Width - 2 * _pad), Math.Max(1, Bounds.Height - 2 * _pad));
+
+            if (settings.PlotProfileUsePythonViewport)
+            {
+                var viewportBounds = ResolveConfiguredProfileViewport(settings);
+                _plotViewportRect = FitAspectRect(outerPlotRect, viewportBounds.Width / viewportBounds.Height);
+                _fitWorldBounds = viewportBounds;
+                _worldBounds = _fitWorldBounds;
+            }
+            else
+            {
+                var allPoints = displayPath.Polylines.SelectMany(x => x.ControlPoints.Concat(x.CurvePoints))
+                    .Concat(displayPath.B0PolylinePoints)
+                    .Concat(displayPath.PathNodes.Select(node => node.A1))
+                    .Concat(displayPath.PathNodes.Select(node => node.B0))
+                    .Concat(displayPath.FrameSamples.Select(frame => frame.A1))
+                    .Concat(displayPath.FrameSamples.Select(frame => frame.B0))
+                    .Append(new Point(0, 0))
+                    .Append(new Point(0, settings.HFreeZ))
+                    .ToList();
+
+                if (sample.IsValid)
+                {
+                    allPoints.Add(sample.A0);
+                    allPoints.Add(sample.A1);
+                    allPoints.Add(sample.B0);
+                }
+
+                if (allPoints.Count == 0)
+                    allPoints.Add(new Point(0, 0));
+
+                _worldBounds = new Rect(
+                    new Point(allPoints.Min(point => point.X), allPoints.Min(point => point.Y)),
+                    new Point(allPoints.Max(point => point.X), allPoints.Max(point => point.Y))).Normalize();
+
+                var displayWidth = Math.Max(1, outerPlotRect.Width);
+                var displayHeight = Math.Max(1, outerPlotRect.Height);
+                var displayWorldWidth = Math.Max(1e-6, _worldBounds.Width);
+                var displayWorldHeight = Math.Max(1e-6, _worldBounds.Height);
+                var fitScale = Math.Min(displayWidth / displayWorldWidth, displayHeight / displayWorldHeight);
+
+                var displayScaledWorldWidth = displayWidth / fitScale;
+                var displayScaledWorldHeight = displayHeight / fitScale;
+                var displayExtraWidth = displayScaledWorldWidth - displayWorldWidth;
+                var displayExtraHeight = displayScaledWorldHeight - displayWorldHeight;
+                _fitWorldBounds = new Rect(
+                    _worldBounds.X - displayExtraWidth / 2.0,
+                    _worldBounds.Y - displayExtraHeight / 2.0,
+                    _worldBounds.Width + displayExtraWidth,
+                    _worldBounds.Height + displayExtraHeight);
+                _worldBounds = _fitWorldBounds;
+                _plotViewportRect = outerPlotRect;
+            }
+
+            _lastPlotBoundsRect = _plotViewportRect;
+            ClampPanOffset();
+            var displayCenterX = _fitWorldBounds.Center.X + _panOffset.X;
+            var displayCenterY = _fitWorldBounds.Center.Y + _panOffset.Y;
+            var displayZoomedWidth = _fitWorldBounds.Width / _zoomFactor;
+            var displayZoomedHeight = _fitWorldBounds.Height / _zoomFactor;
+            _worldBounds = new Rect(displayCenterX - displayZoomedWidth / 2.0, displayCenterY - displayZoomedHeight / 2.0, displayZoomedWidth, displayZoomedHeight);
+            _scale = Math.Min(
+                Math.Max(1, _plotViewportRect.Width) / Math.Max(1e-6, _worldBounds.Width),
+                Math.Max(1, _plotViewportRect.Height) / Math.Max(1e-6, _worldBounds.Height));
+
+            using (context.PushClip(_plotViewportRect))
+            {
+                if (ShowGrid)
+                    DrawGrid(context, forcedStep: 50);
+
+                DrawDisplayPolylines(context, displayPath, settings);
+                DrawDiscreteBSegmentFootprints(context, displayPath, settings);
+                DrawFrameOverlayCloud(context, displayPath, settings);
+                DrawDisplayPoints(context, displayPath, settings);
+                DrawA1Overlay(context, displayPath, settings);
+                DrawB0Polyline(context, displayPath, settings);
+                DrawAnimatedSegments(context, sample, settings);
+            }
+
+            if (ShowLegend)
+                DrawDisplayLegend(context, settings);
+
+            return;
+        }
+
+        var points = FilterRenderablePoints(Points);
+        var showOriginalTarget = ShouldDrawOriginalTarget();
+        var showMirroredTarget = ShouldDrawMirroredTarget();
 
         if (points.Count == 0)
         {
@@ -369,53 +479,54 @@ public sealed class RecipePlotControl : Control
         }
         var mirroredTarget = showMirroredTarget ? target.Select(MirrorWorldX).ToList() : new List<Point>();
 
+        var aNozzleSource = (Points?.ToList() ?? points).ToList();
         var robotPoints = points.Where(p => !p.Safe).ToList();
         if (robotPoints.Count == 0)
             robotPoints = points;
-        var absoluteRobot = RobotCoordinateResolver.BuildAbsolutePositions(robotPoints);
-        var tool = absoluteRobot.Select(v => new Point(ToVisualX(v.X), v.Z)).ToList();
-        var robotToolMap = robotPoints.Select((p, i) => new { p, pt = tool[i] }).ToDictionary(x => x.p, x => x.pt);
+
+        var robotToolMap = robotPoints.ToDictionary(
+            p => p,
+            p =>
+            {
+                var targetPoint = ProfileViewGeometry.ResolveDisplayedTargetPoint(p, settings, InvertHorizontal);
+                var aNozzle = ProfileViewGeometry.ResolvePointANozzle(p, aNozzleSource, settings);
+                return ProfileViewGeometry.ResolvePairGeometry(
+                    targetPoint,
+                    p.Alfa,
+                    p.Place,
+                    InvertHorizontal,
+                    aNozzle,
+                    ResolveDisplayedNozzleLengthMm(settings)).ToolPoint;
+            });
+        var tool = robotPoints.Select(p => robotToolMap[p]).ToList();
 
         // Separate set for animation: must match the timeline source (including Safe points when enabled).
         var animSrc = FilterRenderablePoints(AnimationPoints, fallback: points);
-        var animAbsolute = RobotCoordinateResolver.BuildAbsolutePositions(animSrc);
         var animTarget = new List<Point>();
         var animTool = new List<Point>();
         for (var idx = 0; idx < animSrc.Count; idx++)
         {
             var p = animSrc[idx];
-            var (xp, zp) = p.GetTargetPoint(settings.HZone);
-            animTarget.Add(new Point(ToVisualX(xp), zp));
-
-            if (idx < animAbsolute.Count)
-            {
-                var abs = animAbsolute[idx];
-                animTool.Add(new Point(ToVisualX(abs.X), abs.Z));
-            }
-            else
-            {
-                var abs = RobotCoordinateResolver.BuildAbsolutePositions(new List<RecipePoint> { p })[0];
-                animTool.Add(new Point(ToVisualX(abs.X), abs.Z));
-            }
+            var targetPoint = ProfileViewGeometry.ResolveDisplayedTargetPoint(p, settings, InvertHorizontal);
+            var aNozzle = ProfileViewGeometry.ResolvePointANozzle(p, animSrc, settings);
+            animTarget.Add(targetPoint);
+            animTool.Add(ProfileViewGeometry.ResolvePairGeometry(
+                targetPoint,
+                p.Alfa,
+                p.Place,
+                InvertHorizontal,
+                aNozzle,
+                ResolveDisplayedNozzleLengthMm(settings)).ToolPoint);
         }
 
         var usePhysicalOrientation = NozzleOrientationPolicy.UsePhysicalOrientation(settings.NozzleOrientationMode);
-        var selectedMarker = !IsPlaying
-            ? TryResolveSelectedMarker(settings, usePhysicalOrientation)
+        var selectedPair = !IsPlaying && usePhysicalOrientation
+            ? TryResolveSelectedPairGeometry(settings)
             : null;
-        PairOverlayGeometry? selectedVisibleNozzle = null;
-        if (selectedMarker is { } marker)
-        {
-            selectedVisibleNozzle = SimulationOverlayGeometry.ResolvePairOverlayGeometry(
-                marker,
-                verticalOffsetMm: 0,
-                usePhysicalOrientation,
-                ResolveDisplayedNozzleLengthMm(settings));
-        }
-        var selectedOverlayXs = selectedVisibleNozzle is { } selectedOverlay
+        var selectedOverlayXs = selectedPair is { } selectedOverlay
             ? new[] { selectedOverlay.TargetPoint.X, selectedOverlay.ToolPoint.X, selectedOverlay.NozzleTipPoint.X }
             : Array.Empty<double>();
-        var selectedOverlayYs = selectedVisibleNozzle is { } selectedOverlayY
+        var selectedOverlayYs = selectedPair is { } selectedOverlayY
             ? new[] { selectedOverlayY.TargetPoint.Y, selectedOverlayY.ToolPoint.Y, selectedOverlayY.NozzleTipPoint.Y }
             : Array.Empty<double>();
 
@@ -480,6 +591,8 @@ public sealed class RecipePlotControl : Control
         _scale *= _zoomFactor;
 
         var plotClip = new Rect(_pad, _pad, Math.Max(1, Bounds.Width - 2 * _pad), Math.Max(1, Bounds.Height - 2 * _pad));
+        _plotViewportRect = plotClip;
+        _lastPlotBoundsRect = plotClip;
         using (context.PushClip(plotClip))
         {
             // Grid
@@ -543,41 +656,520 @@ public sealed class RecipePlotControl : Control
             DrawPoints(context, points, settings, settings.HZone, showOriginalTarget, showMirroredTarget);
             DrawRobotPoints(context, robotPoints, robotToolMap, settings);
 
-            // In the editor, the red overlay follows the selected row when it exists.
-            PairOverlayGeometry visibleNozzle;
+            // In the editor, the overlay follows the selected row when it exists.
+            Point visibleTarget;
+            Point visibleTool;
+            Point visibleNozzleTip;
             Point markerDirection;
-            if (selectedMarker is { } selectedGeometry && selectedVisibleNozzle is { } selectedPair)
+            if (selectedPair is { } selectedGeometry)
             {
-                visibleNozzle = selectedPair;
-                markerDirection = selectedGeometry.Direction;
+                visibleTarget = selectedGeometry.TargetPoint;
+                visibleTool = selectedGeometry.ToolPoint;
+                visibleNozzleTip = selectedGeometry.NozzleTipPoint;
+                markerDirection = selectedGeometry.TargetToToolDirection;
             }
             else
             {
                 var toolState = GetToolState(animTool, animTarget, Progress, CurrentSegmentIndex, CurrentSegmentT);
-                var physicalDirection = usePhysicalOrientation
-                    ? ApplyTransitionLiftOrientation(animSrc, animTool, toolState, settings)
-                    : default;
-                var animatedMarker = SimulationOverlayGeometry.ResolvePlotMarkerGeometry(
-                    toolState.ToolPosition,
-                    toolState.TargetPosition,
-                    double.IsFinite(ToolXRaw) && double.IsFinite(ToolZRaw) ? new Point(ToolXRaw, ToolZRaw) : null,
-                    double.IsFinite(TargetXRaw) && double.IsFinite(TargetZRaw) ? new Point(TargetXRaw, TargetZRaw) : null,
-                    InvertHorizontal,
-                    usePhysicalOrientation,
-                    physicalDirection);
-                visibleNozzle = SimulationOverlayGeometry.ResolvePairOverlayGeometry(
-                    animatedMarker,
-                    verticalOffsetMm: 0,
-                    usePhysicalOrientation,
-                    ResolveDisplayedNozzleLengthMm(settings));
-                markerDirection = animatedMarker.Direction;
+                if (usePhysicalOrientation)
+                {
+                    var animatedPair = ResolveAnimatedPairGeometry(animSrc, toolState, settings);
+                    visibleTarget = animatedPair.TargetPoint;
+                    visibleTool = animatedPair.ToolPoint;
+                    visibleNozzleTip = animatedPair.NozzleTipPoint;
+                    markerDirection = animatedPair.TargetToToolDirection;
+                }
+                else
+                {
+                    var animatedMarker = SimulationOverlayGeometry.ResolvePlotMarkerGeometry(
+                        toolState.ToolPosition,
+                        toolState.TargetPosition,
+                        double.IsFinite(ToolXRaw) && double.IsFinite(ToolZRaw) ? new Point(ToolXRaw, ToolZRaw) : null,
+                        double.IsFinite(TargetXRaw) && double.IsFinite(TargetZRaw) ? new Point(TargetXRaw, TargetZRaw) : null,
+                        InvertHorizontal,
+                        usePhysicalOrientation,
+                        default);
+                    var visibleNozzle = SimulationOverlayGeometry.ResolvePairOverlayGeometry(
+                        animatedMarker,
+                        verticalOffsetMm: 0,
+                        usePhysicalOrientation,
+                        ResolveDisplayedNozzleLengthMm(settings));
+                    visibleTarget = visibleNozzle.TargetPoint;
+                    visibleTool = visibleNozzle.ToolPoint;
+                    visibleNozzleTip = visibleNozzle.NozzleTipPoint;
+                    markerDirection = animatedMarker.Direction;
+                }
             }
-            DrawToolMarker(context, visibleNozzle.ToolPoint, visibleNozzle.TargetPoint, visibleNozzle.NozzleTipPoint, markerDirection);
+            DrawToolMarker(context, visibleTool, visibleTarget, visibleNozzleTip, markerDirection);
         }
 
         // Legend
         if (ShowLegend)
             DrawLegend(context);
+    }
+
+
+    private ProfileAnimationSample? TryResolveSelectedDisplaySample(ProfileDisplayPath displayPath)
+    {
+        if (SelectedPoint is null)
+            return null;
+
+        for (var i = 0; i < displayPath.PathNodes.Count; i++)
+        {
+            if (displayPath.PathNodes[i].NPoint != SelectedPoint.NPoint)
+                continue;
+
+            return DisplayPathService.EvaluateAtNode(displayPath, i);
+        }
+
+        return null;
+    }
+
+    private ProfileDisplayPath ApplyDisplayMirror(ProfileDisplayPath displayPath)
+    {
+        if (InvertHorizontal || (displayPath.PathNodes.Count == 0 && displayPath.Polylines.Count == 0))
+            return displayPath;
+
+        static Point Mirror(Point point) => new(-point.X, point.Y);
+
+        return new ProfileDisplayPath(
+            displayPath.Polylines
+                .Select(polyline => new ProfilePolylineData(
+                    polyline.GroupName,
+                    polyline.ControlPoints.Select(Mirror).ToList(),
+                    polyline.CurvePoints.Select(Mirror).ToList(),
+                    polyline.PointNumbers.ToList()))
+                .ToList(),
+            displayPath.PathNodes
+                .Select(node => node with
+                {
+                    A0 = Mirror(node.A0),
+                    A1 = Mirror(node.A1),
+                    B0 = Mirror(node.B0)
+                })
+                .ToList(),
+            displayPath.B0PolylinePoints.Select(Mirror).ToList(),
+            displayPath.B0PointNumbers.ToList(),
+            displayPath.FrameSamples
+                .Select(sample => sample with
+                {
+                    A1 = Mirror(sample.A1),
+                    B0 = Mirror(sample.B0)
+                })
+                .ToList(),
+            displayPath.TotalPathLength,
+            displayPath.TotalDurationSec);
+    }
+
+    private static Rect ResolveConfiguredProfileViewport(AppSettings settings)
+    {
+        var width = Math.Max(1, settings.PlotProfileViewportWidth);
+        var height = Math.Max(1, settings.PlotProfileViewportHeight);
+        return new Rect(settings.PlotProfileViewportMinX, settings.PlotProfileViewportMinY, width, height);
+    }
+
+    private static bool IsDisplayGroupVisible(AppSettings settings, string groupName)
+    {
+        return groupName switch
+        {
+            var g when g == ProfileDisplayPathService.Group1Name => settings.PlotProfileShowGroup1,
+            var g when g == ProfileDisplayPathService.Group2Name => settings.PlotProfileShowGroup2,
+            var g when g == ProfileDisplayPathService.Group3Name => settings.PlotProfileShowGroup3,
+            var g when g == ProfileDisplayPathService.Group4Name => settings.PlotProfileShowGroup4,
+            _ => true
+        };
+    }
+
+    private static ProfileDisplayPath FilterDisplayPathBySettings(ProfileDisplayPath displayPath, AppSettings settings)
+    {
+        var polylines = displayPath.Polylines
+            .Where(polyline => IsDisplayGroupVisible(settings, polyline.GroupName))
+            .ToList();
+
+        var nodeMask = displayPath.PathNodes
+            .Select(node => IsDisplayGroupVisible(settings, node.GroupName))
+            .ToList();
+
+        var pathNodes = displayPath.PathNodes
+            .Where((_, index) => index < nodeMask.Count && nodeMask[index])
+            .ToList();
+
+        var b0Polyline = displayPath.B0PolylinePoints
+            .Where((_, index) => index < nodeMask.Count && nodeMask[index])
+            .ToList();
+
+        var b0Numbers = displayPath.B0PointNumbers
+            .Where((_, index) => index < nodeMask.Count && nodeMask[index])
+            .ToList();
+
+        var frameSamples = displayPath.FrameSamples
+            .Where(frameSample => IsDisplayGroupVisible(settings, frameSample.GroupName))
+            .ToList();
+
+        return new ProfileDisplayPath(
+            polylines,
+            pathNodes,
+            b0Polyline,
+            b0Numbers,
+            frameSamples,
+            displayPath.TotalPathLength,
+            displayPath.TotalDurationSec);
+    }
+
+    private ProfileDisplayPath BuildVisibleDisplayPath(ProfileDisplayPath displayPath)
+    {
+        var mode = SimulationTargetDisplayModes.Normalize(TargetDisplayMode);
+        if (mode == SimulationTargetDisplayModes.Full)
+            return displayPath;
+
+        var showMirroredOnly = mode == SimulationTargetDisplayModes.Mirrored;
+        var polylines = displayPath.Polylines
+            .Where(polyline => showMirroredOnly
+                ? polyline.GroupName == ProfileDisplayPathService.Group4Name
+                : polyline.GroupName != ProfileDisplayPathService.Group4Name)
+            .ToList();
+
+        var nodeMask = displayPath.PathNodes
+            .Select(node => showMirroredOnly
+                ? node.GroupName == ProfileDisplayPathService.Group4Name
+                : node.GroupName != ProfileDisplayPathService.Group4Name)
+            .ToList();
+
+        var pathNodes = displayPath.PathNodes
+            .Where((_, index) => nodeMask[index])
+            .ToList();
+
+        var b0Polyline = displayPath.B0PolylinePoints
+            .Where((_, index) => index < nodeMask.Count && nodeMask[index])
+            .ToList();
+
+        var b0Numbers = displayPath.B0PointNumbers
+            .Where((_, index) => index < nodeMask.Count && nodeMask[index])
+            .ToList();
+
+        var frameSamples = displayPath.FrameSamples
+            .Where(frameSample => showMirroredOnly
+                ? frameSample.GroupName == ProfileDisplayPathService.Group4Name
+                : frameSample.GroupName != ProfileDisplayPathService.Group4Name)
+            .ToList();
+
+        return new ProfileDisplayPath(
+            polylines,
+            pathNodes,
+            b0Polyline,
+            b0Numbers,
+            frameSamples,
+            displayPath.TotalPathLength,
+            displayPath.TotalDurationSec);
+    }
+
+    private void DrawDisplayPolylines(DrawingContext ctx, ProfileDisplayPath displayPath, AppSettings settings)
+    {
+        if (!settings.PlotProfileShowGroupCurves)
+            return;
+
+        var opacity = Math.Clamp(settings.PlotOpacity, 0.05, 0.90);
+        var thickness = Math.Max(1, settings.PlotStrokeThickness);
+
+        foreach (var polyline in displayPath.Polylines)
+        {
+            var color = ResolveProfileGroupColor(settings, polyline.GroupName);
+            var pen = new Pen(new SolidColorBrush(Color.FromArgb((byte)(opacity * 255), color.R, color.G, color.B)), thickness);
+            DrawPolyline(ctx, polyline.CurvePoints.ToList(), pen);
+        }
+    }
+
+    private void DrawDisplayPoints(DrawingContext ctx, ProfileDisplayPath displayPath, AppSettings settings)
+    {
+        if (!settings.PlotProfileShowGroupPoints)
+            return;
+
+        var outline = new Pen(new SolidColorBrush(Color.FromRgb(226, 232, 240)), 1.1);
+        var showLabels = settings.PlotProfileShowGroupPointLabels;
+
+        foreach (var polyline in displayPath.Polylines)
+        {
+            var fill = new SolidColorBrush(ResolveProfileGroupColor(settings, polyline.GroupName));
+            for (var i = 0; i < polyline.ControlPoints.Count; i++)
+            {
+                var screenPoint = WorldToScreen(polyline.ControlPoints[i]);
+                ctx.DrawEllipse(fill, outline, screenPoint, 3.3, 3.3);
+
+                if (!showLabels)
+                    continue;
+
+                var text = new FormattedText(
+                    polyline.PointNumbers[i].ToString(CultureInfo.InvariantCulture),
+                    CultureInfo.InvariantCulture,
+                    FlowDirection.LeftToRight,
+                    new Typeface("Segoe UI"),
+                    10,
+                    fill);
+                ctx.DrawText(text, new Point(screenPoint.X + 4, screenPoint.Y - 4));
+            }
+        }
+    }
+
+    private void DrawDiscreteBSegmentFootprints(DrawingContext ctx, ProfileDisplayPath displayPath, AppSettings settings)
+    {
+        if (!settings.PlotProfileShowBSegmentFootprints)
+            return;
+
+        var pen = new Pen(new SolidColorBrush(Color.FromArgb(230, 154, 154, 154)), 1.0);
+        foreach (var node in displayPath.PathNodes)
+            ctx.DrawLine(pen, WorldToScreen(node.A1), WorldToScreen(node.B0));
+    }
+
+    private void DrawFrameOverlayCloud(DrawingContext ctx, ProfileDisplayPath displayPath, AppSettings settings)
+    {
+        if (!settings.PlotProfileShowA1FrameCloud && !settings.PlotProfileShowB0FrameCloud)
+            return;
+
+        var a1Brush = new SolidColorBrush(Color.FromArgb(115, 255, 0, 0));
+        var b0Brush = new SolidColorBrush(Color.FromArgb(140, 255, 140, 0));
+
+        foreach (var sample in displayPath.FrameSamples)
+        {
+            if (settings.PlotProfileShowA1FrameCloud)
+                ctx.DrawEllipse(a1Brush, null, WorldToScreen(sample.A1), 1.6, 1.6);
+
+            if (settings.PlotProfileShowB0FrameCloud)
+                ctx.DrawEllipse(b0Brush, null, WorldToScreen(sample.B0), 1.6, 1.6);
+        }
+    }
+
+    private void DrawA1Overlay(DrawingContext ctx, ProfileDisplayPath displayPath, AppSettings settings)
+    {
+        if (!settings.PlotProfileShowA1Points)
+            return;
+
+        var fill = new SolidColorBrush(Colors.Red);
+        var outline = new Pen(new SolidColorBrush(Color.FromRgb(139, 0, 0)), 1.4);
+        var textBrush = new SolidColorBrush(Color.FromRgb(179, 0, 0));
+        var showLabels = settings.PlotProfileShowA1Labels;
+
+        foreach (var node in displayPath.PathNodes)
+        {
+            var screenPoint = WorldToScreen(node.A1);
+            ctx.DrawEllipse(fill, outline, screenPoint, 5.0, 5.0);
+
+            if (!showLabels)
+                continue;
+
+            var text = new FormattedText(
+                node.NPoint.ToString(CultureInfo.InvariantCulture),
+                CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                new Typeface("Segoe UI", FontStyle.Normal, FontWeight.SemiBold),
+                10,
+                textBrush);
+            ctx.DrawText(text, new Point(screenPoint.X + 6, screenPoint.Y + 12));
+        }
+    }
+
+    private void DrawB0Polyline(DrawingContext ctx, ProfileDisplayPath displayPath, AppSettings settings)
+    {
+        if (displayPath.B0PolylinePoints.Count == 0 || (!settings.PlotProfileShowB0PathLine && !settings.PlotProfileShowB0Points))
+            return;
+
+        var orange = ParseColorOrDefault(settings.PlotColorProfileB0Path, Color.FromRgb(245, 158, 11));
+        if (settings.PlotProfileShowB0PathLine)
+        {
+            var pen = new Pen(new SolidColorBrush(Color.FromArgb(240, orange.R, orange.G, orange.B)), 2.8);
+            DrawPolyline(ctx, displayPath.B0PolylinePoints.ToList(), pen);
+        }
+
+        for (var i = 0; i < displayPath.B0PolylinePoints.Count; i++)
+        {
+            var screenPoint = WorldToScreen(displayPath.B0PolylinePoints[i]);
+            if (settings.PlotProfileShowB0Points)
+            {
+                ctx.DrawEllipse(
+                    new SolidColorBrush(orange),
+                    new Pen(new SolidColorBrush(Color.FromRgb(179, 90, 0)), 1.4),
+                    screenPoint,
+                    5,
+                    5);
+            }
+
+            if (!settings.PlotProfileShowB0Labels)
+                continue;
+
+            var text = new FormattedText(
+                displayPath.B0PointNumbers[i].ToString(CultureInfo.InvariantCulture),
+                CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                new Typeface("Segoe UI", FontStyle.Normal, FontWeight.SemiBold),
+                10,
+                new SolidColorBrush(Color.FromRgb(196, 106, 0)));
+            ctx.DrawText(text, new Point(screenPoint.X + 6, screenPoint.Y - 6));
+        }
+    }
+
+    private void DrawAnimatedSegments(DrawingContext ctx, ProfileAnimationSample sample, AppSettings settings)
+    {
+        if (!sample.IsValid)
+            return;
+
+        var colorA = ParseColorOrDefault(settings.PlotColorProfileSegmentA, Color.FromRgb(46, 92, 147));
+        var colorB = ParseColorOrDefault(settings.PlotColorProfileSegmentB, Color.FromRgb(239, 68, 68));
+        var penA = new Pen(new SolidColorBrush(colorA), 4.5, lineCap: PenLineCap.Round);
+        var penB = new Pen(new SolidColorBrush(colorB), 4.5, lineCap: PenLineCap.Round);
+        var selectedPoint = new Pen(new SolidColorBrush(Color.FromRgb(245, 158, 11)), 2.5);
+
+        var a0 = WorldToScreen(sample.A0);
+        var a1 = WorldToScreen(sample.A1);
+        var b0 = WorldToScreen(sample.B0);
+        var selA0 = WorldToScreen(sample.SelectedA0);
+
+        ctx.DrawLine(penA, a0, a1);
+        ctx.DrawLine(penB, a1, b0);
+
+        ctx.DrawEllipse(null, selectedPoint, selA0, 7, 7);
+
+        ctx.DrawEllipse(new SolidColorBrush(colorA), null, a0, 5.5, 5.5);
+        ctx.DrawEllipse(Brushes.Black, null, a1, 4.0, 4.0);
+        ctx.DrawEllipse(new SolidColorBrush(colorB), null, b0, 5.5, 5.5);
+
+        DrawLabel(ctx, "A0", a0, 18);
+        DrawLabel(ctx, "A1", a1, 18);
+        DrawLabel(ctx, "B0", b0, 18);
+
+        if (settings.PlotProfileInfoBoxVisible)
+            DrawInfoBox(ctx, sample, settings);
+    }
+
+    private void DrawInfoBox(DrawingContext ctx, ProfileAnimationSample sample, AppSettings settings)
+    {
+        var fontFamily = string.IsNullOrWhiteSpace(settings.PlotProfileInfoBoxFontFamily)
+            ? "Segoe UI"
+            : settings.PlotProfileInfoBoxFontFamily;
+        var fontSize = Math.Clamp(settings.PlotProfileInfoBoxFontSize, 9, 28);
+        var opacity = Math.Clamp(settings.PlotProfileInfoBoxOpacity, 0.10, 1.0);
+        var backgroundColor = ParseColorOrDefault(settings.PlotProfileInfoBoxBackground, Color.FromRgb(243, 244, 246));
+        var borderColor = ParseColorOrDefault(settings.PlotProfileInfoBoxBorder, Color.FromRgb(75, 85, 99));
+        var textColor = ParseColorOrDefault(settings.PlotProfileInfoBoxTextColor, Color.FromRgb(17, 24, 39));
+        var typeface = new Typeface(fontFamily);
+        var lines = new[]
+        {
+            $"A0=({sample.A0.X:0.0}; {sample.A0.Y:0.0}) mm",
+            $"i={sample.NPoint}",
+            $"\u0438-\u0442\u043e\u0447\u043a\u0430=({sample.SelectedA0.X:0.0}; {sample.SelectedA0.Y:0.0}) mm",
+            $"\u03B1={sample.AlfaDisplay:0.0}\u00B0, \u03B2={sample.Beta:0.0}\u00B0"
+        };
+
+        var formattedLines = lines
+            .Select(line => new FormattedText(
+                line,
+                CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                typeface,
+                fontSize,
+                new SolidColorBrush(textColor)))
+            .ToList();
+
+        var lineHeight = Math.Max(15.0, fontSize + 3);
+        var boxW = Math.Max(190.0, formattedLines.Max(text => text.Width) + 20);
+        var boxH = formattedLines.Count * lineHeight + 18;
+        var plotBounds = GetPlotBoundsRect();
+        var a0Screen = WorldToScreen(sample.A0);
+        double tx;
+        double ty;
+
+        if (settings.PlotProfileInfoBoxFollowA0)
+        {
+            tx = a0Screen.X + 12;
+            ty = a0Screen.Y - 12;
+
+            if (tx + boxW > plotBounds.Right - 6)
+                tx = a0Screen.X - boxW - 12;
+            if (ty - 14 < plotBounds.Top + 6)
+                ty = a0Screen.Y + 18;
+            if (ty + boxH > plotBounds.Bottom - 6)
+                ty = plotBounds.Bottom - boxH - 6;
+        }
+        else
+        {
+            tx = plotBounds.Left + 12 + Math.Clamp(settings.PlotProfileInfoBoxManualX, 0.0, 1.0) * Math.Max(0, plotBounds.Width - boxW - 18);
+            ty = plotBounds.Top + 14 + Math.Clamp(settings.PlotProfileInfoBoxManualY, 0.0, 1.0) * Math.Max(0, plotBounds.Height - boxH - 20);
+        }
+
+        var rectX = Math.Clamp(tx - 6, plotBounds.Left + 6, Math.Max(plotBounds.Left + 6, plotBounds.Right - boxW - 6));
+        var rectY = Math.Clamp(ty - 14, plotBounds.Top + 6, Math.Max(plotBounds.Top + 6, plotBounds.Bottom - boxH - 6));
+
+        var boxRect = new Rect(rectX, rectY, boxW, boxH);
+        _lastInfoBoxRect = boxRect;
+        _lastInfoBoxSize = boxRect.Size;
+        _hasInfoBoxRect = true;
+
+        ctx.FillRectangle(
+            new SolidColorBrush(Color.FromArgb((byte)Math.Round(opacity * 255), backgroundColor.R, backgroundColor.G, backgroundColor.B)),
+            boxRect,
+            6);
+        ctx.DrawRectangle(
+            new Pen(new SolidColorBrush(Color.FromArgb((byte)Math.Round(Math.Min(1.0, opacity + 0.05) * 255), borderColor.R, borderColor.G, borderColor.B)), 1),
+            boxRect,
+            6);
+
+        for (var i = 0; i < formattedLines.Count; i++)
+            ctx.DrawText(formattedLines[i], new Point(boxRect.X + 10, boxRect.Y + 8 + i * lineHeight));
+    }
+
+    private static void DrawLabel(DrawingContext ctx, string label, Point point, double dy)
+    {
+        var text = new FormattedText(
+            label,
+            CultureInfo.InvariantCulture,
+            FlowDirection.LeftToRight,
+            new Typeface("Segoe UI"),
+            11,
+            Brushes.White);
+        ctx.DrawText(text, new Point(point.X - text.Width / 2.0, point.Y + dy - text.Height / 2.0));
+    }
+
+    private Rect GetPlotBoundsRect()
+    {
+        if (_lastPlotBoundsRect.Width > 0 && _lastPlotBoundsRect.Height > 0)
+            return _lastPlotBoundsRect;
+
+        return new Rect(_pad, _pad, Math.Max(1, Bounds.Width - 2 * _pad), Math.Max(1, Bounds.Height - 2 * _pad));
+    }
+
+    private void DrawDisplayLegend(DrawingContext ctx, AppSettings settings)
+    {
+        var x = _pad + 4;
+        var y = _pad - 6;
+        var lineH = 16;
+        var legendWidth = 220;
+        var entries = 4;
+        var legendHeight = entries * lineH + 8;
+        ctx.FillRectangle(new SolidColorBrush(Color.FromArgb(110, 2, 6, 23)), new Rect(x - 8, y - 6, legendWidth, legendHeight));
+
+        void Entry(Color c, string text)
+        {
+            ctx.FillRectangle(new SolidColorBrush(c), new Rect(x, y + 4, 10, 10));
+            var ft = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                new Typeface("Segoe UI"), 11, Brushes.White);
+            ctx.DrawText(ft, new Point(x + 16, y));
+            y += lineH;
+        }
+
+        Entry(ResolveProfileGroupColor(settings, ProfileDisplayPathService.Group1Name), "Группы 1 и 4 / A");
+        Entry(ResolveProfileGroupColor(settings, ProfileDisplayPathService.Group2Name), "Группы 2 и 3");
+        Entry(ParseColorOrDefault(settings.PlotColorProfileB0Path, Color.FromRgb(245, 158, 11)), "Траектория B0");
+        Entry(ParseColorOrDefault(settings.PlotColorProfileSegmentB, Color.FromRgb(239, 68, 68)), "Сегмент B");
+    }
+
+    private static Color ResolveProfileGroupColor(AppSettings settings, string groupName)
+    {
+        return groupName switch
+        {
+            ProfileDisplayPathService.Group1Name => ParseColorOrDefault(settings.PlotColorProfileGroup1, Color.FromRgb(46, 92, 147)),
+            ProfileDisplayPathService.Group2Name => ParseColorOrDefault(settings.PlotColorProfileGroup2, Color.FromRgb(126, 135, 156)),
+            ProfileDisplayPathService.Group3Name => ParseColorOrDefault(settings.PlotColorProfileGroup3, Color.FromRgb(126, 135, 156)),
+            ProfileDisplayPathService.Group4Name => ParseColorOrDefault(settings.PlotColorProfileGroup4, Color.FromRgb(46, 92, 147)),
+            _ => ParseColorOrDefault(settings.PlotColorProfileGroup1, Color.FromRgb(46, 92, 147))
+        };
     }
 
 
@@ -618,14 +1210,14 @@ public sealed class RecipePlotControl : Control
             || Math.Abs(p.Zr0 + p.DZ) > eps;
     }
 
-    private void DrawGrid(DrawingContext ctx)
+    private void DrawGrid(DrawingContext ctx, double? forcedStep = null)
     {
         var gridPen = new Pen(new SolidColorBrush(Color.FromArgb(40, 148, 163, 184)), 1);
         var axisPen = new Pen(new SolidColorBrush(Color.FromArgb(120, 148, 163, 184)), 1);
 
         // choose a step (world units) based on visible range
         var range = Math.Max(_worldBounds.Width, _worldBounds.Height);
-        var step = range switch
+        var step = forcedStep ?? range switch
         {
             > 2000 => 200,
             > 1000 => 100,
@@ -866,7 +1458,7 @@ public sealed class RecipePlotControl : Control
     private static Point MirrorWorldX(Point point)
         => new(-point.X, point.Y);
 
-    private PlotMarkerGeometry? TryResolveSelectedMarker(AppSettings settings, bool usePhysicalOrientation)
+    private ProfilePairGeometry? TryResolveSelectedPairGeometry(AppSettings settings)
     {
         if (SelectedPoint is null)
             return null;
@@ -882,27 +1474,50 @@ public sealed class RecipePlotControl : Control
         if (source.Count == 0)
             return null;
 
-        var absoluteRobot = RobotCoordinateResolver.BuildAbsolutePositions(source);
-        if (absoluteRobot.Count == 0)
-            return null;
-
         var selected = source[index];
-        var rawTool = absoluteRobot[Math.Min(index, absoluteRobot.Count - 1)];
-        var (targetX, targetZ) = selected.GetTargetPoint(settings.HZone);
-        var rawToolPoint = new Point(rawTool.X, rawTool.Z);
-        var rawTargetPoint = new Point(targetX, targetZ);
-        var physicalDirection = usePhysicalOrientation
-            ? GetPhysicalProjectedVector(settings, selected.Alfa, selected.Betta, selected.Place)
-            : default;
-
-        return SimulationOverlayGeometry.ResolvePlotMarkerGeometry(
-            default,
-            default,
-            rawToolPoint,
-            rawTargetPoint,
+        var targetPoint = ProfileViewGeometry.ResolveDisplayedTargetPoint(selected, settings, InvertHorizontal);
+        var aNozzle = ProfileViewGeometry.ResolvePointANozzle(selected, source, settings);
+        return ProfileViewGeometry.ResolvePairGeometry(
+            targetPoint,
+            selected.Alfa,
+            selected.Place,
             InvertHorizontal,
-            usePhysicalOrientation,
-            physicalDirection);
+            aNozzle,
+            ResolveDisplayedNozzleLengthMm(settings));
+    }
+
+    private ProfilePairGeometry ResolveAnimatedPairGeometry(
+        IList<RecipePoint> source,
+        (Point ToolPosition, Point TargetPosition, Point Direction, Point ToolSegmentDirection, int SegmentIndex, double SegmentT) toolState,
+        AppSettings settings)
+    {
+        if (source.Count == 0)
+        {
+            var target = toolState.TargetPosition;
+            return ProfileViewGeometry.ResolvePairGeometry(
+                target,
+                CurrentAlfa,
+                place: 0,
+                InvertHorizontal,
+                aNozzleMm: 0,
+                ResolveDisplayedNozzleLengthMm(settings));
+        }
+
+        var segmentIndex = Math.Clamp(toolState.SegmentIndex, 0, Math.Max(0, source.Count - 2));
+        var segmentT = Math.Clamp(toolState.SegmentT, 0.0, 1.0);
+        var alfa = source.Count == 1
+            ? source[0].Alfa
+            : source[segmentIndex].Alfa + (source[Math.Min(source.Count - 1, segmentIndex + 1)].Alfa - source[segmentIndex].Alfa) * segmentT;
+        var place = ResolveCurrentPlace(source, segmentIndex, segmentT);
+        var aNozzle = ProfileViewGeometry.ResolveInterpolatedANozzle(source, settings, segmentIndex, segmentT);
+
+        return ProfileViewGeometry.ResolvePairGeometry(
+            toolState.TargetPosition,
+            alfa,
+            place,
+            InvertHorizontal,
+            aNozzle,
+            ResolveDisplayedNozzleLengthMm(settings));
     }
 
     private static int FindPointIndex(IList<RecipePoint> source, RecipePoint selectedPoint)
@@ -938,7 +1553,10 @@ public sealed class RecipePlotControl : Control
         var nozzleTipSp = WorldToScreen(nozzleTipWorld);
 
         var toolColor = ParseColorOrDefault((Settings ?? new AppSettings()).PlotColorTool, Color.FromRgb(239, 68, 68));
+        var gapColor = Color.FromRgb(65, 105, 225);
+        var gapPen = new Pen(new SolidColorBrush(Color.FromArgb(220, gapColor.R, gapColor.G, gapColor.B)), 5);
         var linkPen = new Pen(new SolidColorBrush(Color.FromArgb(230, toolColor.R, toolColor.G, toolColor.B)), 7);
+        ctx.DrawLine(gapPen, targetSp, nozzleTipSp);
         ctx.DrawLine(linkPen, nozzleTipSp, toolSp);
 
         // Base joint on robot side
@@ -1008,18 +1626,44 @@ public sealed class RecipePlotControl : Control
         return fallback;
     }
 
+    private static Rect FitAspectRect(Rect outerRect, double aspectRatio)
+    {
+        var outerWidth = Math.Max(1.0, outerRect.Width);
+        var outerHeight = Math.Max(1.0, outerRect.Height);
+        var fittedWidth = outerHeight * aspectRatio;
+        var fittedHeight = outerHeight;
+
+        if (fittedWidth > outerWidth)
+        {
+            fittedWidth = outerWidth;
+            fittedHeight = outerWidth / aspectRatio;
+        }
+
+        return new Rect(
+            outerRect.X + (outerWidth - fittedWidth) / 2.0,
+            outerRect.Y + (outerHeight - fittedHeight) / 2.0,
+            fittedWidth,
+            fittedHeight);
+    }
+
     private Point WorldToScreen(Point w)
     {
         // X: left->right, Z(Y): bottom->top
-        var x = _pad + (w.X - _worldBounds.Left) * _scale;
-        var y = _pad + (_worldBounds.Bottom - w.Y) * _scale;
+        var viewport = _plotViewportRect.Width > 0 && _plotViewportRect.Height > 0
+            ? _plotViewportRect
+            : new Rect(_pad, _pad, Math.Max(1, Bounds.Width - 2 * _pad), Math.Max(1, Bounds.Height - 2 * _pad));
+        var x = viewport.Left + (w.X - _worldBounds.Left) * _scale;
+        var y = viewport.Top + (_worldBounds.Bottom - w.Y) * _scale;
         return new Point(x, y);
     }
 
     private Point ScreenToWorld(Point s)
     {
-        var x = (s.X - _pad) / _scale + _worldBounds.Left;
-        var y = _worldBounds.Bottom - (s.Y - _pad) / _scale;
+        var viewport = _plotViewportRect.Width > 0 && _plotViewportRect.Height > 0
+            ? _plotViewportRect
+            : new Rect(_pad, _pad, Math.Max(1, Bounds.Width - 2 * _pad), Math.Max(1, Bounds.Height - 2 * _pad));
+        var x = (s.X - viewport.Left) / _scale + _worldBounds.Left;
+        var y = _worldBounds.Bottom - (s.Y - viewport.Top) / _scale;
         return new Point(InvertHorizontal ? -x : x, y);
     }
 
@@ -1229,13 +1873,26 @@ public sealed class RecipePlotControl : Control
         if (Points is null || Points.Count == 0) return;
 
         var pos = e.GetPosition(this);
+        var isLeftButtonPressed = e.GetCurrentPoint(this).Properties.IsLeftButtonPressed;
+
+        if (isLeftButtonPressed && settings.PlotProfileInfoBoxVisible && _hasInfoBoxRect && _lastInfoBoxRect.Contains(pos))
+        {
+            _isDraggingInfoBox = true;
+            _infoBoxDragStartScreen = pos;
+            _infoBoxDragStartRect = _lastInfoBoxRect;
+            settings.PlotProfileInfoBoxFollowA0 = false;
+            e.Pointer.Capture(this);
+            e.Handled = true;
+            InvalidateVisual();
+            return;
+        }
 
         // select nearest target point
         var hit = HitTestTargetPoint(pos, settings);
         if (hit is not null)
             SelectedPoint = hit;
 
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        if (isLeftButtonPressed)
         {
             _isPanning = true;
             _panStartScreen = pos;
@@ -1250,6 +1907,34 @@ public sealed class RecipePlotControl : Control
 
         var pos = e.GetPosition(this);
         var isLeftButtonPressed = e.GetCurrentPoint(this).Properties.IsLeftButtonPressed;
+        var settings = Settings ?? new AppSettings();
+
+        if (_isDraggingInfoBox && !isLeftButtonPressed)
+        {
+            StopPointerInteraction(e.Pointer);
+            return;
+        }
+
+        if (_isDraggingInfoBox)
+        {
+            var plotBounds = GetPlotBoundsRect();
+            var dragDelta = pos - _infoBoxDragStartScreen;
+            var rectX = Math.Clamp(
+                _infoBoxDragStartRect.X + dragDelta.X,
+                plotBounds.Left + 6,
+                Math.Max(plotBounds.Left + 6, plotBounds.Right - _infoBoxDragStartRect.Width - 6));
+            var rectY = Math.Clamp(
+                _infoBoxDragStartRect.Y + dragDelta.Y,
+                plotBounds.Top + 6,
+                Math.Max(plotBounds.Top + 6, plotBounds.Bottom - _infoBoxDragStartRect.Height - 6));
+            var availableWidth = Math.Max(1.0, plotBounds.Width - _infoBoxDragStartRect.Width - 12);
+            var availableHeight = Math.Max(1.0, plotBounds.Height - _infoBoxDragStartRect.Height - 12);
+
+            settings.PlotProfileInfoBoxManualX = Math.Clamp((rectX - plotBounds.Left - 6) / availableWidth, 0.0, 1.0);
+            settings.PlotProfileInfoBoxManualY = Math.Clamp((rectY - plotBounds.Top - 6) / availableHeight, 0.0, 1.0);
+            InvalidateVisual();
+            return;
+        }
 
         if (_isPanning && !isLeftButtonPressed)
         {
@@ -1284,8 +1969,13 @@ public sealed class RecipePlotControl : Control
 
     private void StopPointerInteraction(IPointer pointer)
     {
+        var wasDraggingInfoBox = _isDraggingInfoBox;
+        _isDraggingInfoBox = false;
         _isPanning = false;
         pointer.Capture(null);
+
+        if (wasDraggingInfoBox)
+            InfoBoxPositionChanged?.Invoke();
     }
 
     private void ClampPanOffset()

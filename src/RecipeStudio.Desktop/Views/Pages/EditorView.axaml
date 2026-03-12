@@ -440,7 +440,7 @@
                 <TextBlock Grid.Column="6" x:Name="ZoomText" Text="x1.00" VerticalAlignment="Center" Classes="muted" Margin="8,0,12,0"/>
 
                 <TextBlock Grid.Column="7" Text="Скорость" VerticalAlignment="Center" Classes="muted" HorizontalAlignment="Right" Margin="0,0,8,0" />
-                <Slider Grid.Column="8" Minimum="0.2" Maximum="3" Value="{Binding SpeedMultiplier}" Width="120" />
+                <Slider Grid.Column="8" Minimum="0.2" Maximum="12" Value="{Binding SpeedMultiplier}" Width="120" />
               </Grid>
             </Grid>
           </Grid>

@@ -102,6 +102,8 @@ public sealed partial class EditorView : UserControl
 
         RecipePlot.ZoomChanged -= OnRecipePlotZoomChanged;
         RecipePlot.ZoomChanged += OnRecipePlotZoomChanged;
+        RecipePlot.InfoBoxPositionChanged -= OnRecipePlotInfoBoxPositionChanged;
+        RecipePlot.InfoBoxPositionChanged += OnRecipePlotInfoBoxPositionChanged;
         Pair2DPlot.ZoomChanged -= OnPair2DPlotZoomChanged;
         Pair2DPlot.ZoomChanged += OnPair2DPlotZoomChanged;
         PointsGrid.PointerReleased -= OnPointsGridPointerReleased;
@@ -120,6 +122,7 @@ public sealed partial class EditorView : UserControl
     {
         PanelsCanvas.SizeChanged -= OnPanelsCanvasSizeChanged;
         RecipePlot.ZoomChanged -= OnRecipePlotZoomChanged;
+        RecipePlot.InfoBoxPositionChanged -= OnRecipePlotInfoBoxPositionChanged;
         Pair2DPlot.ZoomChanged -= OnPair2DPlotZoomChanged;
         PointsGrid.PointerReleased -= OnPointsGridPointerReleased;
         PointsGrid.RemoveHandler(InputElement.PointerPressedEvent, OnPointsGridHeaderPointerPressed);
@@ -133,6 +136,11 @@ public sealed partial class EditorView : UserControl
     {
         UpdateZoomText();
         UpdatePlotOverlayButtons();
+    }
+
+    private void OnRecipePlotInfoBoxPositionChanged()
+    {
+        _vm?.SaveAppSettings();
     }
 
     private void OnPair2DPlotZoomChanged(double _) => UpdatePair2DZoomText();
