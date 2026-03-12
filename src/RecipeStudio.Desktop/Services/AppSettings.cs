@@ -212,10 +212,10 @@ public sealed class SimulationPanelsAccessSettings
 
 public sealed class Simulation2DCalibrationSettings
 {
-    public double ReferenceHeightMm { get; set; } = 1361.8696;
-    public double VerticalOffsetMm { get; set; } = 195.0;
-    public double HorizontalOffsetMm { get; set; } = -55.0;
-    public double PartWidthScalePercent { get; set; } = 98.0;
+    public double ReferenceHeightMm { get; set; } = 1309.49 * 1.12;
+    public double VerticalOffsetMm { get; set; } = -207.0;
+    public double HorizontalOffsetMm { get; set; } = -17.0;
+    public double PartWidthScalePercent { get; set; } = 100.0;
     public double ManipulatorAnchorX { get; set; } = SimulationSpriteAnchors.ManipulatorPivotAnchorX;
     public double ManipulatorAnchorY { get; set; } = SimulationSpriteAnchors.ManipulatorPivotAnchorY;
     public bool ReversePath { get; set; }

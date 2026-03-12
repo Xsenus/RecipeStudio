@@ -169,6 +169,7 @@ public sealed class SettingsService
         settings.SimulationPanels.Access ??= new SimulationPanelsAccessSettings();
         settings.SimulationPanels.Calibration2D ??= new Simulation2DCalibrationSettings();
         NormalizeManipulatorCalibration(settings.SimulationPanels.Calibration2D, settings.SimulationPanels.SpriteVersion);
+        UpgradeLegacy2DCalibrationDefaults(settings.SimulationPanels.Calibration2D);
         settings.SimulationPanels.Calibration2D.ReferenceHeightMm = Math.Clamp(settings.SimulationPanels.Calibration2D.ReferenceHeightMm, 100, 5000);
         settings.SimulationPanels.Calibration2D.VerticalOffsetMm = Math.Clamp(settings.SimulationPanels.Calibration2D.VerticalOffsetMm, -10000, 10000);
         settings.SimulationPanels.Calibration2D.HorizontalOffsetMm = Math.Clamp(settings.SimulationPanels.Calibration2D.HorizontalOffsetMm, -10000, 10000);
@@ -200,6 +201,34 @@ public sealed class SettingsService
         calibration.ManipulatorAnchorX = SimulationSpriteAnchors.GetManipulatorPivotAnchorX(spriteVersion);
         calibration.ManipulatorAnchorY = SimulationSpriteAnchors.GetManipulatorPivotAnchorY(spriteVersion);
     }
+
+    private static void UpgradeLegacy2DCalibrationDefaults(Simulation2DCalibrationSettings calibration)
+    {
+        var matchesLegacyFactoryDefaults =
+            NearlyEqual(calibration.ReferenceHeightMm, 1361.8696) &&
+            NearlyEqual(calibration.VerticalOffsetMm, 195.0) &&
+            NearlyEqual(calibration.HorizontalOffsetMm, -55.0) &&
+            NearlyEqual(calibration.PartWidthScalePercent, 98.0);
+
+        var matchesPreviousFactoryDefaults =
+            NearlyEqual(calibration.ReferenceHeightMm, 1309.49) &&
+            NearlyEqual(calibration.VerticalOffsetMm, 0.0) &&
+            NearlyEqual(calibration.HorizontalOffsetMm, 0.0) &&
+            NearlyEqual(calibration.PartWidthScalePercent, 100.0);
+
+        if (!matchesLegacyFactoryDefaults && !matchesPreviousFactoryDefaults)
+        {
+            return;
+        }
+
+        calibration.ReferenceHeightMm = 1309.49 * 1.12;
+        calibration.VerticalOffsetMm = -207.0;
+        calibration.HorizontalOffsetMm = -17.0;
+        calibration.PartWidthScalePercent = 100.0;
+    }
+
+    private static bool NearlyEqual(double left, double right)
+        => Math.Abs(left - right) <= 1e-3;
 
     private static string ResolveSettingsRoot()
     {

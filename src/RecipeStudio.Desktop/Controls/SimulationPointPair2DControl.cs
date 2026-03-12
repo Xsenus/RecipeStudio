@@ -271,14 +271,14 @@ public sealed class SimulationPointPair2DControl : Control
         CurrentAlfaProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
         CurrentBettaProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
         IsPlayingProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
-        ReferenceHeightMmProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
+        ReferenceHeightMmProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
         InvertHorizontalProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
         ShowGridProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
-        VerticalOffsetMmProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
-        HorizontalOffsetMmProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
-        PartWidthScalePercentProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
-        ManipulatorAnchorXProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
-        ManipulatorAnchorYProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
+        VerticalOffsetMmProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
+        HorizontalOffsetMmProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
+        PartWidthScalePercentProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
+        ManipulatorAnchorXProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
+        ManipulatorAnchorYProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
         TargetDisplayModeProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.MarkRefit());
         ShowPairLinkProperty.Changed.AddClassHandler<SimulationPointPair2DControl>((c, _) => c.InvalidateVisual());
     }
@@ -390,7 +390,7 @@ public sealed class SimulationPointPair2DControl : Control
         var settings = Settings ?? new AppSettings();
         var referenceHeightMm = Math.Max(100, ReferenceHeightMm);
         var mmPerPixel = ResolveMmPerPixel(referenceHeightMm);
-        var partRectWorld = CreateWorldRectCenteredAtX(HorizontalOffsetMm, 0, _partImage, mmPerPixel, referenceHeightMm, ResolvePartWidthScaleFactor(PartWidthScalePercent));
+        var partRectWorld = CreateWorldRectCenteredAtX(HorizontalOffsetMm, VerticalOffsetMm, _partImage, mmPerPixel, referenceHeightMm, ResolvePartWidthScaleFactor(PartWidthScalePercent));
         var currentDisplayPath = FilterDisplayPathBySettings(BuildDisplayPath(settings), settings);
         var drawOriginalDisplayPath = SimulationOverlayGeometry.ShouldDrawOriginalTarget(TargetDisplayMode);
         var drawMirroredDisplayPath = SimulationOverlayGeometry.ShouldDrawMirroredTarget(TargetDisplayMode);
@@ -501,35 +501,35 @@ public sealed class SimulationPointPair2DControl : Control
         if (basePath.PathNodes.Count == 0 && basePath.Polylines.Count == 0)
             return basePath;
 
-        static Point TransformPoint(Point point, double horizontalOffsetMm, double verticalOffsetMm, bool keepPythonOrientation)
-            => new((keepPythonOrientation ? point.X : -point.X) + horizontalOffsetMm, point.Y + verticalOffsetMm);
+        static Point TransformPoint(Point point, bool keepPythonOrientation)
+            => new(keepPythonOrientation ? point.X : -point.X, point.Y);
 
         var polylines = basePath.Polylines
             .Select(polyline => new ProfilePolylineData(
                 polyline.GroupName,
-                polyline.ControlPoints.Select(point => TransformPoint(point, HorizontalOffsetMm, VerticalOffsetMm, InvertHorizontal)).ToList(),
-                polyline.CurvePoints.Select(point => TransformPoint(point, HorizontalOffsetMm, VerticalOffsetMm, InvertHorizontal)).ToList(),
+                polyline.ControlPoints.Select(point => TransformPoint(point, InvertHorizontal)).ToList(),
+                polyline.CurvePoints.Select(point => TransformPoint(point, InvertHorizontal)).ToList(),
                 polyline.PointNumbers.ToList()))
             .ToList();
 
         var pathNodes = basePath.PathNodes
             .Select(node => node with
             {
-                A0 = TransformPoint(node.A0, HorizontalOffsetMm, VerticalOffsetMm, InvertHorizontal),
-                A1 = TransformPoint(node.A1, HorizontalOffsetMm, VerticalOffsetMm, InvertHorizontal),
-                B0 = TransformPoint(node.B0, HorizontalOffsetMm, VerticalOffsetMm, InvertHorizontal)
+                A0 = TransformPoint(node.A0, InvertHorizontal),
+                A1 = TransformPoint(node.A1, InvertHorizontal),
+                B0 = TransformPoint(node.B0, InvertHorizontal)
             })
             .ToList();
 
         var b0Polyline = basePath.B0PolylinePoints
-            .Select(point => TransformPoint(point, HorizontalOffsetMm, VerticalOffsetMm, InvertHorizontal))
+            .Select(point => TransformPoint(point, InvertHorizontal))
             .ToList();
 
         var frameSamples = basePath.FrameSamples
             .Select(sample => sample with
             {
-                A1 = TransformPoint(sample.A1, HorizontalOffsetMm, VerticalOffsetMm, InvertHorizontal),
-                B0 = TransformPoint(sample.B0, HorizontalOffsetMm, VerticalOffsetMm, InvertHorizontal)
+                A1 = TransformPoint(sample.A1, InvertHorizontal),
+                B0 = TransformPoint(sample.B0, InvertHorizontal)
             })
             .ToList();
 
@@ -872,7 +872,7 @@ public sealed class SimulationPointPair2DControl : Control
             return null;
 
         var selected = source[index];
-        var targetPoint = ProfileViewGeometry.ResolveDisplayedTargetPoint(selected, settings, InvertHorizontal, VerticalOffsetMm);
+        var targetPoint = ProfileViewGeometry.ResolveDisplayedTargetPoint(selected, settings, InvertHorizontal);
         var aNozzle = ProfileViewGeometry.ResolvePointANozzle(selected, source, settings);
         var pair = ProfileViewGeometry.ResolvePairGeometry(
             targetPoint,
@@ -1325,12 +1325,12 @@ public sealed class SimulationPointPair2DControl : Control
             {
                 var (xp, zp) = p.GetTargetPoint(settings.HZone);
                 return new StyledTargetPoint(
-                    SimulationOverlayGeometry.ProjectWorldPoint(xp, zp, InvertHorizontal, VerticalOffsetMm),
+                    SimulationOverlayGeometry.ProjectWorldPoint(xp, zp, InvertHorizontal),
                     p.Safe);
             })
             .ToList();
 
-        return SimulationOverlayGeometry.BuildDisplayedTargetPoints(points, HorizontalOffsetMm, TargetDisplayMode);
+        return SimulationOverlayGeometry.BuildDisplayedTargetPoints(points, mirrorAxisX: 0, TargetDisplayMode);
     }
 
     private static List<RecipePoint> FilterRenderablePoints(IList<RecipePoint>? source)

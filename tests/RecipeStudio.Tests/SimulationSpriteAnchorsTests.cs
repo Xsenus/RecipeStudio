@@ -20,6 +20,22 @@ public sealed class SimulationSpriteAnchorsTests
     }
 
     [Fact]
+    public void Default2DCalibration_UsesRecipeAlignedFactoryView()
+    {
+        Assert.Equal(1309.49 * 1.12, SimulationBlueprint2DControl.DefaultReferenceHeightMm, 2);
+        Assert.Equal(112.0, SimulationBlueprint2DControl.DefaultPartHeightScalePercent, 6);
+        Assert.Equal(100.0, SimulationBlueprint2DControl.DefaultPartWidthScalePercent, 6);
+        Assert.Equal(-17.0, SimulationBlueprint2DControl.DefaultHorizontalOffsetMm, 6);
+        Assert.Equal(-207.0, SimulationBlueprint2DControl.DefaultVerticalOffsetMm, 6);
+
+        var calibration = new Simulation2DCalibrationSettings();
+        Assert.Equal(SimulationBlueprint2DControl.DefaultReferenceHeightMm, calibration.ReferenceHeightMm, 6);
+        Assert.Equal(SimulationBlueprint2DControl.DefaultPartWidthScalePercent, calibration.PartWidthScalePercent, 6);
+        Assert.Equal(SimulationBlueprint2DControl.DefaultHorizontalOffsetMm, calibration.HorizontalOffsetMm, 6);
+        Assert.Equal(SimulationBlueprint2DControl.DefaultVerticalOffsetMm, calibration.VerticalOffsetMm, 6);
+    }
+
+    [Fact]
     public void UsesLegacyManipulatorPivot_DetectsOldSavedCalibration()
     {
         Assert.True(SimulationSpriteAnchors.UsesLegacyManipulatorPivot(0.04, 0.90));

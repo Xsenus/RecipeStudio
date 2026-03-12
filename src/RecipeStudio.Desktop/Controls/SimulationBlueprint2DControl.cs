@@ -17,15 +17,15 @@ namespace RecipeStudio.Desktop.Controls;
 public sealed class SimulationBlueprint2DControl : Control
 {
     public const double BaseReferenceHeightMm = 1309.49;
-    public const double DefaultReferenceHeightMm = 1361.8696;
+    public const double DefaultPartHeightScalePercent = 112.0;
+    public const double DefaultReferenceHeightMm = BaseReferenceHeightMm * DefaultPartHeightScalePercent / 100.0;
     public const double DefaultNozzleAnchorX = SimulationSpriteAnchors.NozzleTipAnchorX;
     public const double DefaultNozzleAnchorY = SimulationSpriteAnchors.NozzlePivotAnchorY;
     public const double DefaultManipulatorAnchorX = SimulationSpriteAnchors.ManipulatorPivotAnchorX;
     public const double DefaultManipulatorAnchorY = SimulationSpriteAnchors.ManipulatorPivotAnchorY;
-    public const double DefaultVerticalOffsetMm = 195.0;
-    public const double DefaultHorizontalOffsetMm = -55.0;
-    public const double DefaultPartHeightScalePercent = 104.0;
-    public const double DefaultPartWidthScalePercent = 98.0;
+    public const double DefaultVerticalOffsetMm = -207.0;
+    public const double DefaultHorizontalOffsetMm = -17.0;
+    public const double DefaultPartWidthScalePercent = 100.0;
     private const double MinPartScalePercent = 50.0;
     private const double MaxPartScalePercent = 150.0;
     private const double ApproachPhase = 0.15;
@@ -41,12 +41,6 @@ public sealed class SimulationBlueprint2DControl : Control
     private const double BasePivotDropMm = 35.0;
     private const double PivotFollowSmoothing = 0.55;
     private const double AutoAlignPathSubsampleMm = 24.0;
-    private const double AutoAlignReferenceHeightMinMm = 900.0;
-    private const double AutoAlignReferenceHeightMaxMm = 1800.0;
-    private const double AutoAlignReferenceHeightSearchWindowMm = 160.0;
-    private const double AutoAlignReferenceHeightCoarseStepMm = 20.0;
-    private const double AutoAlignReferenceHeightFineWindowMm = 24.0;
-    private const double AutoAlignReferenceHeightFineStepMm = 4.0;
     private const double AutoAlignHorizontalSearchWindowMm = 180.0;
     private const double AutoAlignVerticalSearchWindowMm = 180.0;
     private const double AutoAlignOffsetCoarseStepMm = 12.0;
@@ -423,7 +417,7 @@ public sealed class SimulationBlueprint2DControl : Control
         return new AutoAlignRequest(
             path,
             _partEdgeMap,
-            Math.Clamp(Math.Max(100, ReferenceHeightMm), AutoAlignReferenceHeightMinMm, AutoAlignReferenceHeightMaxMm),
+            Math.Max(100, ReferenceHeightMm),
             HorizontalOffsetMm,
             VerticalOffsetMm,
             ResolvePartWidthScaleFactor(PartWidthScalePercent));
@@ -431,7 +425,7 @@ public sealed class SimulationBlueprint2DControl : Control
 
     private void ApplyAutoAlignSolution(AutoAlignSolution solution)
     {
-        ReferenceHeightMm = solution.ReferenceHeightMm;
+        ReferenceHeightMm = Math.Max(100, solution.ReferenceHeightMm);
         HorizontalOffsetMm = solution.Horizontal + AutoAlignHorizontalBiasMm;
         VerticalOffsetMm = solution.Vertical + AutoAlignVerticalBiasMm;
     }
@@ -493,10 +487,10 @@ public sealed class SimulationBlueprint2DControl : Control
             pathSource.Reverse();
 
         var rawPath = BuildDisplayPath(pathSource, hZone);
-        var path = BuildRenderPath(ApplyTrajectoryOffsets(rawPath), RenderSubsampleThresholdMm);
+        var path = BuildRenderPath(rawPath, RenderSubsampleThresholdMm);
         var referenceHeightMm = Math.Max(100, ReferenceHeightMm);
         var mmPerPixel = ResolveMmPerPixel(referenceHeightMm);
-        var partRectWorld = CreateWorldRectCenteredAtX(HorizontalOffsetMm, 0, _partImage, mmPerPixel, referenceHeightMm, ResolvePartWidthScaleFactor(PartWidthScalePercent));
+        var partRectWorld = CreateWorldRectCenteredAtX(HorizontalOffsetMm, VerticalOffsetMm, _partImage, mmPerPixel, referenceHeightMm, ResolvePartWidthScaleFactor(PartWidthScalePercent));
 
         var pathBounds = ComputePathBounds(path.Count > 0
             ? path
@@ -821,8 +815,9 @@ public sealed class SimulationBlueprint2DControl : Control
                 var ay = alpha[idx + width] - alpha[idx - width];
                 var colorMagnitude = Math.Sqrt(gx * gx + gy * gy);
                 var alphaMagnitude = Math.Sqrt(ax * ax + ay * ay);
-                var boundaryBoost = Math.Clamp(alphaMagnitude / 48.0, 0.0, 1.0);
-                magnitude[idx] = colorMagnitude * (0.30 + 0.70 * boundaryBoost) + alphaMagnitude * 0.90;
+                var boundaryBoost = Math.Clamp(alphaMagnitude / 24.0, 0.0, 1.0);
+                // Transparent PNG sprites align best by the outer alpha silhouette.
+                magnitude[idx] = colorMagnitude * (0.06 + 0.18 * boundaryBoost) + alphaMagnitude * 1.8;
             }
         }
 
@@ -842,64 +837,27 @@ public sealed class SimulationBlueprint2DControl : Control
         double currentVerticalMm,
         double partWidthScaleFactor)
     {
-        var currentReferenceHeight = Math.Clamp(currentReferenceHeightMm, AutoAlignReferenceHeightMinMm, AutoAlignReferenceHeightMaxMm);
-        var best = OptimizeAutoAlignmentForReferenceHeight(
+        var referenceHeight = Math.Max(100, currentReferenceHeightMm);
+        return OptimizeAutoAlignmentForReferenceHeight(
             path,
             edgeMap,
-            currentReferenceHeight,
-            currentReferenceHeight,
+            referenceHeight,
             currentHorizontalMm,
             currentVerticalMm,
             partWidthScaleFactor);
-
-        var coarseStart = Math.Max(AutoAlignReferenceHeightMinMm, currentReferenceHeight - AutoAlignReferenceHeightSearchWindowMm);
-        var coarseEnd = Math.Min(AutoAlignReferenceHeightMaxMm, currentReferenceHeight + AutoAlignReferenceHeightSearchWindowMm);
-        for (var referenceHeight = coarseStart; referenceHeight <= coarseEnd; referenceHeight += AutoAlignReferenceHeightCoarseStepMm)
-        {
-            var candidate = OptimizeAutoAlignmentForReferenceHeight(
-                path,
-                edgeMap,
-                referenceHeight,
-                currentReferenceHeight,
-                currentHorizontalMm,
-                currentVerticalMm,
-                partWidthScaleFactor);
-            if (candidate.Score > best.Score)
-                best = candidate;
-        }
-
-        var fineStart = Math.Max(AutoAlignReferenceHeightMinMm, best.ReferenceHeightMm - AutoAlignReferenceHeightFineWindowMm);
-        var fineEnd = Math.Min(AutoAlignReferenceHeightMaxMm, best.ReferenceHeightMm + AutoAlignReferenceHeightFineWindowMm);
-        for (var referenceHeight = fineStart; referenceHeight <= fineEnd; referenceHeight += AutoAlignReferenceHeightFineStepMm)
-        {
-            var candidate = OptimizeAutoAlignmentForReferenceHeight(
-                path,
-                edgeMap,
-                referenceHeight,
-                currentReferenceHeight,
-                currentHorizontalMm,
-                currentVerticalMm,
-                partWidthScaleFactor);
-            if (candidate.Score > best.Score)
-                best = candidate;
-        }
-
-        return best;
     }
 
     private static AutoAlignSolution OptimizeAutoAlignmentForReferenceHeight(
         IReadOnlyList<Point> path,
         EdgeMap edgeMap,
         double referenceHeightMm,
-        double baseReferenceHeightMm,
         double baseHorizontal,
         double baseVertical,
         double partWidthScaleFactor)
     {
         var mmPerPixel = ResolveMmPerPixel(referenceHeightMm, edgeMap.Height);
         var offsets = OptimizeAutoAlignmentOffsets(path, edgeMap, mmPerPixel, partWidthScaleFactor, baseHorizontal, baseVertical);
-        var score = offsets.Score - 0.02 * Math.Abs(referenceHeightMm - baseReferenceHeightMm);
-        return new AutoAlignSolution(referenceHeightMm, offsets.Horizontal, offsets.Vertical, score);
+        return new AutoAlignSolution(referenceHeightMm, offsets.Horizontal, offsets.Vertical, offsets.Score);
     }
 
     private static OffsetAlignSolution OptimizeAutoAlignmentOffsets(
@@ -1027,6 +985,7 @@ public sealed class SimulationBlueprint2DControl : Control
         var mmPerPixelX = mmPerPixel * Math.Max(1e-6, partWidthScaleFactor);
         var imageWidthMm = edgeMap.Width * mmPerPixelX;
         var leftWorld = horizontal - imageWidthMm * 0.5;
+        var bottomWorld = vertical;
         var step = Math.Max(1, (int)Math.Ceiling(path.Count / (double)AutoAlignMaxScoreSamples));
         var sum = 0.0;
         var hits = 0;
@@ -1034,9 +993,9 @@ public sealed class SimulationBlueprint2DControl : Control
         for (var i = 0; i < path.Count; i += step)
         {
             var worldX = path[i].X;
-            var worldY = path[i].Y + vertical;
+            var worldY = path[i].Y;
             var px = (worldX - leftWorld) / mmPerPixelX;
-            var py = edgeMap.Height - (worldY / mmPerPixel);
+            var py = edgeMap.Height - ((worldY - bottomWorld) / mmPerPixel);
             var sample = SampleEdgeMagnitudeNearPath(path, i, edgeMap, px, py, mmPerPixelX, mmPerPixel);
             if (sample < 0)
                 continue;
@@ -1415,7 +1374,7 @@ public sealed class SimulationBlueprint2DControl : Control
         if (!double.IsFinite(ToolXRaw) || !double.IsFinite(ToolZRaw))
             return fallback;
 
-        return new Point(ToVisualX(ToolXRaw), ToolZRaw + VerticalOffsetMm);
+        return new Point(ToVisualX(ToolXRaw), ToolZRaw);
     }
 
     private Point ResolvePivotFromTip(Point tipWorld, Point referencePathPoint, double mmPerPixel, double centerY)
@@ -1542,18 +1501,6 @@ public sealed class SimulationBlueprint2DControl : Control
                 return new Point(ToVisualX(t.Xp), t.Zp);
             })
             .ToList();
-    }
-
-    private List<Point> ApplyTrajectoryOffsets(IReadOnlyList<Point> source)
-    {
-        if (source.Count == 0)
-            return new List<Point>();
-
-        var verticalOffset = VerticalOffsetMm;
-        if (Math.Abs(verticalOffset) <= 1e-6)
-            return source.ToList();
-
-        return source.Select(p => new Point(p.X, p.Y + verticalOffset)).ToList();
     }
 
     private static List<Point> BuildRenderPath(

@@ -31,6 +31,7 @@ public sealed partial class SimulationView : UserControl
     private Point _resizeStartOrigin;
     private Size _resizeStartSize;
     private PanelResizeDirection _resizeDirection;
+    private SimulationCalibrationDialog? _calibrationDialog;
     private bool _panelsInitialized;
     private bool _calibrationLoaded;
     private bool _applyingTargetDisplayModes;
@@ -119,6 +120,7 @@ public sealed partial class SimulationView : UserControl
         View2DPlot.ZoomChanged -= OnView2DZoomChanged;
         View2DFactPlot.ZoomChanged -= OnView2DFactZoomChanged;
         View2DPairPlot.ZoomChanged -= OnView2DPairZoomChanged;
+        CloseCalibrationDialog();
         PersistPanelsLayout(force: false);
         _panelsInitialized = false;
     }
@@ -796,11 +798,17 @@ public sealed partial class SimulationView : UserControl
     private void ZoomIn2DPairView_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => View2DPairPlot.ZoomIn();
     private void ZoomOut2DPairView_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => View2DPairPlot.ZoomOut();
     private void Fit2DPairView_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => View2DPairPlot.ResetZoom();
-    private async void Open2DCalibration_Click(object? sender, RoutedEventArgs e)
+    private void Open2DCalibration_Click(object? sender, RoutedEventArgs e)
     {
         var owner = TopLevel.GetTopLevel(this) as Window;
         if (owner is null)
             return;
+
+        if (_calibrationDialog is not null)
+        {
+            _calibrationDialog.Activate();
+            return;
+        }
 
         var dialog = new SimulationCalibrationDialog(
             View2DPlot,
@@ -808,28 +816,57 @@ public sealed partial class SimulationView : UserControl
             resetCalibration: () => Reset2DCalibration_Click(null, new RoutedEventArgs()),
             autoCalibration: AutoAlign2DCalibrationAsync);
 
-        await dialog.ShowDialog(owner);
+        _calibrationDialog = dialog;
+        dialog.Closed += OnCalibrationDialogClosed;
+        dialog.Show(owner);
+        dialog.Activate();
     }
 
     private void Reset2DCalibration_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        var calibration = _vm?.AppSettings.SimulationPanels?.Calibration2D;
+        var (manipulatorAnchorX, manipulatorAnchorY) = ResolveDefaultManipulatorAnchors();
 
         View2DPlot.NozzleAnchorX = Controls.SimulationBlueprint2DControl.DefaultNozzleAnchorX;
         View2DPlot.NozzleAnchorY = Controls.SimulationBlueprint2DControl.DefaultNozzleAnchorY;
-        View2DPlot.ManipulatorAnchorX = calibration?.ManipulatorAnchorX ?? Controls.SimulationBlueprint2DControl.DefaultManipulatorAnchorX;
-        View2DPlot.ManipulatorAnchorY = calibration?.ManipulatorAnchorY ?? Controls.SimulationBlueprint2DControl.DefaultManipulatorAnchorY;
-        View2DPlot.ReferenceHeightMm = calibration?.ReferenceHeightMm ?? Controls.SimulationBlueprint2DControl.DefaultReferenceHeightMm;
-        View2DPlot.VerticalOffsetMm = calibration?.VerticalOffsetMm ?? Controls.SimulationBlueprint2DControl.DefaultVerticalOffsetMm;
-        View2DPlot.HorizontalOffsetMm = calibration?.HorizontalOffsetMm ?? Controls.SimulationBlueprint2DControl.DefaultHorizontalOffsetMm;
-        View2DPlot.PartWidthScalePercent = calibration?.PartWidthScalePercent ?? Controls.SimulationBlueprint2DControl.DefaultPartWidthScalePercent;
-        View2DPlot.ReversePath = calibration?.ReversePath ?? false;
+        View2DPlot.ManipulatorAnchorX = manipulatorAnchorX;
+        View2DPlot.ManipulatorAnchorY = manipulatorAnchorY;
+        View2DPlot.ReferenceHeightMm = Controls.SimulationBlueprint2DControl.DefaultReferenceHeightMm;
+        View2DPlot.VerticalOffsetMm = Controls.SimulationBlueprint2DControl.DefaultVerticalOffsetMm;
+        View2DPlot.HorizontalOffsetMm = Controls.SimulationBlueprint2DControl.DefaultHorizontalOffsetMm;
+        View2DPlot.PartWidthScalePercent = Controls.SimulationBlueprint2DControl.DefaultPartWidthScalePercent;
+        View2DPlot.ReversePath = false;
         View2DPlot.ResetZoom();
         View2DFactPlot.ResetZoom();
         View2DPairPlot.ResetZoom();
         UpdateView2DZoomText();
         UpdateView2DFactZoomText();
         UpdateView2DPairZoomText();
+    }
+
+    private void OnCalibrationDialogClosed(object? sender, EventArgs e)
+    {
+        if (sender is SimulationCalibrationDialog dialog)
+            dialog.Closed -= OnCalibrationDialogClosed;
+
+        _calibrationDialog = null;
+    }
+
+    private void CloseCalibrationDialog()
+    {
+        if (_calibrationDialog is null)
+            return;
+
+        _calibrationDialog.Closed -= OnCalibrationDialogClosed;
+        _calibrationDialog.Close();
+        _calibrationDialog = null;
+    }
+
+    private (double X, double Y) ResolveDefaultManipulatorAnchors()
+    {
+        var spriteVersion = _vm?.AppSettings.SimulationPanels?.SpriteVersion;
+        return (
+            SimulationSpriteAnchors.GetManipulatorPivotAnchorX(spriteVersion),
+            SimulationSpriteAnchors.GetManipulatorPivotAnchorY(spriteVersion));
     }
 
     private async void AutoAlign2DCalibration_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
