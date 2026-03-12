@@ -15,6 +15,12 @@ public static class SimulationOverlayGeometry
     public static Point ProjectWorldPoint(double x, double z, bool invertHorizontal, double verticalOffsetMm = 0)
         => new(invertHorizontal ? -x : x, z + verticalOffsetMm);
 
+    public static bool ShouldDrawOriginalTarget(string mode)
+        => SimulationTargetDisplayModes.Normalize(mode) != SimulationTargetDisplayModes.Mirrored;
+
+    public static bool ShouldDrawMirroredTarget(string mode)
+        => SimulationTargetDisplayModes.Normalize(mode) != SimulationTargetDisplayModes.Original;
+
     public static PlotMarkerGeometry ResolvePlotMarkerGeometry(
         Point toolPosition,
         Point targetPosition,
@@ -95,6 +101,47 @@ public static class SimulationOverlayGeometry
 
     public static Point MirrorPoint(Point point, double mirrorAxisX)
         => new(mirrorAxisX * 2.0 - point.X, point.Y);
+
+    public static ProfileDisplayPath MirrorProfileDisplayPath(ProfileDisplayPath source)
+    {
+        static Point Mirror(Point point) => MirrorPoint(point, 0);
+
+        return new ProfileDisplayPath(
+            source.Polylines
+                .Select(polyline => new ProfilePolylineData(
+                    polyline.GroupName,
+                    polyline.ControlPoints.Select(Mirror).ToList(),
+                    polyline.CurvePoints.Select(Mirror).ToList(),
+                    polyline.PointNumbers.ToList()))
+                .ToList(),
+            source.PathNodes
+                .Select(node => node with
+                {
+                    A0 = Mirror(node.A0),
+                    A1 = Mirror(node.A1),
+                    B0 = Mirror(node.B0)
+                })
+                .ToList(),
+            source.B0PolylinePoints.Select(Mirror).ToList(),
+            source.B0PointNumbers.ToList(),
+            source.FrameSamples
+                .Select(sample => sample with
+                {
+                    A1 = Mirror(sample.A1),
+                    B0 = Mirror(sample.B0)
+                })
+                .ToList(),
+            source.TotalPathLength,
+            source.TotalDurationSec);
+    }
+
+    public static IEnumerable<Point> EnumerateProfileDisplayPoints(ProfileDisplayPath displayPath)
+        => displayPath.Polylines.SelectMany(polyline => polyline.ControlPoints.Concat(polyline.CurvePoints))
+            .Concat(displayPath.B0PolylinePoints)
+            .Concat(displayPath.PathNodes.Select(node => node.A1))
+            .Concat(displayPath.PathNodes.Select(node => node.B0))
+            .Concat(displayPath.FrameSamples.Select(frame => frame.A1))
+            .Concat(displayPath.FrameSamples.Select(frame => frame.B0));
 
     private static Point ApplyHorizontalInversion(Point direction, bool invertHorizontal)
         => invertHorizontal ? new Point(-direction.X, direction.Y) : direction;

@@ -367,13 +367,18 @@ public sealed class RecipePlotControl : Control
         // background
         context.FillRectangle(new SolidColorBrush(Color.FromRgb(11, 18, 32)), new Rect(Bounds.Size));
 
-        var displayPath = FilterDisplayPathBySettings(
-            BuildVisibleDisplayPath(ApplyDisplayMirror(DisplayPathService.Build(Points ?? AnimationPoints, settings))),
+        var currentDisplayPath = FilterDisplayPathBySettings(
+            ApplyDisplayMirror(DisplayPathService.Build(Points ?? AnimationPoints, settings)),
             settings);
-        if (displayPath.PathNodes.Count > 0 || displayPath.Polylines.Count > 0)
+        var drawOriginalDisplayPath = ShouldDrawOriginalTarget();
+        var drawMirroredDisplayPath = ShouldDrawMirroredTarget();
+        var mirroredDisplayPath = drawMirroredDisplayPath
+            ? SimulationOverlayGeometry.MirrorProfileDisplayPath(currentDisplayPath)
+            : ProfileDisplayPath.Empty;
+        if (currentDisplayPath.PathNodes.Count > 0 || currentDisplayPath.Polylines.Count > 0)
         {
-            var selectedSample = !IsPlaying ? TryResolveSelectedDisplaySample(displayPath) : null;
-            var sample = selectedSample ?? DisplayPathService.EvaluateByProgress(displayPath, Progress);
+            var selectedSample = !IsPlaying ? TryResolveSelectedDisplaySample(currentDisplayPath) : null;
+            var sample = selectedSample ?? DisplayPathService.EvaluateByProgress(currentDisplayPath, Progress);
             _pad = Math.Clamp(Math.Min(Bounds.Width, Bounds.Height) * 0.06, 16, 36);
             var outerPlotRect = new Rect(_pad, _pad, Math.Max(1, Bounds.Width - 2 * _pad), Math.Max(1, Bounds.Height - 2 * _pad));
 
@@ -386,15 +391,15 @@ public sealed class RecipePlotControl : Control
             }
             else
             {
-                var allPoints = displayPath.Polylines.SelectMany(x => x.ControlPoints.Concat(x.CurvePoints))
-                    .Concat(displayPath.B0PolylinePoints)
-                    .Concat(displayPath.PathNodes.Select(node => node.A1))
-                    .Concat(displayPath.PathNodes.Select(node => node.B0))
-                    .Concat(displayPath.FrameSamples.Select(frame => frame.A1))
-                    .Concat(displayPath.FrameSamples.Select(frame => frame.B0))
-                    .Append(new Point(0, 0))
-                    .Append(new Point(0, settings.HFreeZ))
-                    .ToList();
+                var allPoints = new List<Point>();
+                if (drawOriginalDisplayPath)
+                    allPoints.AddRange(SimulationOverlayGeometry.EnumerateProfileDisplayPoints(currentDisplayPath));
+
+                if (drawMirroredDisplayPath)
+                    allPoints.AddRange(SimulationOverlayGeometry.EnumerateProfileDisplayPoints(mirroredDisplayPath));
+
+                allPoints.Add(new Point(0, 0));
+                allPoints.Add(new Point(0, settings.HFreeZ));
 
                 if (sample.IsValid)
                 {
@@ -445,12 +450,26 @@ public sealed class RecipePlotControl : Control
                 if (ShowGrid)
                     DrawGrid(context, forcedStep: 50);
 
-                DrawDisplayPolylines(context, displayPath, settings);
-                DrawDiscreteBSegmentFootprints(context, displayPath, settings);
-                DrawFrameOverlayCloud(context, displayPath, settings);
-                DrawDisplayPoints(context, displayPath, settings);
-                DrawA1Overlay(context, displayPath, settings);
-                DrawB0Polyline(context, displayPath, settings);
+                if (drawOriginalDisplayPath)
+                {
+                    DrawDisplayPolylines(context, currentDisplayPath, settings);
+                    DrawDiscreteBSegmentFootprints(context, currentDisplayPath, settings);
+                    DrawFrameOverlayCloud(context, currentDisplayPath, settings);
+                    DrawDisplayPoints(context, currentDisplayPath, settings);
+                    DrawA1Overlay(context, currentDisplayPath, settings);
+                    DrawB0Polyline(context, currentDisplayPath, settings);
+                }
+
+                if (drawMirroredDisplayPath)
+                {
+                    DrawDisplayPolylines(context, mirroredDisplayPath, settings);
+                    DrawDiscreteBSegmentFootprints(context, mirroredDisplayPath, settings);
+                    DrawFrameOverlayCloud(context, mirroredDisplayPath, settings);
+                    DrawDisplayPoints(context, mirroredDisplayPath, settings);
+                    DrawA1Overlay(context, mirroredDisplayPath, settings);
+                    DrawB0Polyline(context, mirroredDisplayPath, settings);
+                }
+
                 DrawAnimatedSegments(context, sample, settings);
             }
 
@@ -804,53 +823,6 @@ public sealed class RecipePlotControl : Control
 
         var frameSamples = displayPath.FrameSamples
             .Where(frameSample => IsDisplayGroupVisible(settings, frameSample.GroupName))
-            .ToList();
-
-        return new ProfileDisplayPath(
-            polylines,
-            pathNodes,
-            b0Polyline,
-            b0Numbers,
-            frameSamples,
-            displayPath.TotalPathLength,
-            displayPath.TotalDurationSec);
-    }
-
-    private ProfileDisplayPath BuildVisibleDisplayPath(ProfileDisplayPath displayPath)
-    {
-        var mode = SimulationTargetDisplayModes.Normalize(TargetDisplayMode);
-        if (mode == SimulationTargetDisplayModes.Full)
-            return displayPath;
-
-        var showMirroredOnly = mode == SimulationTargetDisplayModes.Mirrored;
-        var polylines = displayPath.Polylines
-            .Where(polyline => showMirroredOnly
-                ? polyline.GroupName == ProfileDisplayPathService.Group4Name
-                : polyline.GroupName != ProfileDisplayPathService.Group4Name)
-            .ToList();
-
-        var nodeMask = displayPath.PathNodes
-            .Select(node => showMirroredOnly
-                ? node.GroupName == ProfileDisplayPathService.Group4Name
-                : node.GroupName != ProfileDisplayPathService.Group4Name)
-            .ToList();
-
-        var pathNodes = displayPath.PathNodes
-            .Where((_, index) => nodeMask[index])
-            .ToList();
-
-        var b0Polyline = displayPath.B0PolylinePoints
-            .Where((_, index) => index < nodeMask.Count && nodeMask[index])
-            .ToList();
-
-        var b0Numbers = displayPath.B0PointNumbers
-            .Where((_, index) => index < nodeMask.Count && nodeMask[index])
-            .ToList();
-
-        var frameSamples = displayPath.FrameSamples
-            .Where(frameSample => showMirroredOnly
-                ? frameSample.GroupName == ProfileDisplayPathService.Group4Name
-                : frameSample.GroupName != ProfileDisplayPathService.Group4Name)
             .ToList();
 
         return new ProfileDisplayPath(
@@ -1538,10 +1510,10 @@ public sealed class RecipePlotControl : Control
     }
 
     private bool ShouldDrawOriginalTarget()
-        => SimulationTargetDisplayModes.Normalize(TargetDisplayMode) != SimulationTargetDisplayModes.Mirrored;
+        => SimulationOverlayGeometry.ShouldDrawOriginalTarget(TargetDisplayMode);
 
     private bool ShouldDrawMirroredTarget()
-        => SimulationTargetDisplayModes.Normalize(TargetDisplayMode) != SimulationTargetDisplayModes.Original;
+        => SimulationOverlayGeometry.ShouldDrawMirroredTarget(TargetDisplayMode);
 
     private static double ResolveDisplayedNozzleLengthMm(AppSettings settings)
         => Math.Max(1e-6, Math.Abs(settings.Lz));

@@ -144,6 +144,101 @@ public sealed class SimulationOverlayGeometryTests
             });
     }
 
+    [Theory]
+    [InlineData(SimulationTargetDisplayModes.Original, true, false)]
+    [InlineData(SimulationTargetDisplayModes.Mirrored, false, true)]
+    [InlineData(SimulationTargetDisplayModes.Full, true, true)]
+    public void TargetDisplayFlags_RespectRequestedMode(string mode, bool expectedOriginal, bool expectedMirrored)
+    {
+        Assert.Equal(expectedOriginal, SimulationOverlayGeometry.ShouldDrawOriginalTarget(mode));
+        Assert.Equal(expectedMirrored, SimulationOverlayGeometry.ShouldDrawMirroredTarget(mode));
+    }
+
+    [Fact]
+    public void MirrorProfileDisplayPath_MirrorsEveryOverlayCollection()
+    {
+        var source = new ProfileDisplayPath(
+            new List<ProfilePolylineData>
+            {
+                new(
+                    "Group 1",
+                    new List<Point> { new(-10, 20), new(-30, 40) },
+                    new List<Point> { new(-10, 20), new(-20, 30), new(-30, 40) },
+                    new List<int> { 1, 2 })
+            },
+            new List<ProfilePathNode>
+            {
+                new(
+                    PathIndex: 0,
+                    SourceIndex: 0,
+                    NPoint: 10,
+                    Place: 0,
+                    GroupName: "Group 1",
+                    A0: new Point(-10, 20),
+                    A1: new Point(-15, 25),
+                    B0: new Point(-18, 27),
+                    ANozzle: 5,
+                    AlfaDisplay: 30,
+                    Beta: 12,
+                    ArcLength: 0)
+            },
+            new List<Point> { new(-18, 27), new(-22, 31) },
+            new List<int> { 10, 11 },
+            new List<ProfileFrameOverlaySample>
+            {
+                new(new Point(-15, 25), new Point(-18, 27), 10, "Group 1")
+            },
+            TotalPathLength: 123,
+            TotalDurationSec: 7);
+
+        var mirrored = SimulationOverlayGeometry.MirrorProfileDisplayPath(source);
+
+        Assert.Collection(
+            mirrored.Polylines,
+            polyline =>
+            {
+                Assert.Equal("Group 1", polyline.GroupName);
+                Assert.Collection(
+                    polyline.ControlPoints,
+                    point => AssertPoint(new Point(10, 20), point),
+                    point => AssertPoint(new Point(30, 40), point));
+                Assert.Collection(
+                    polyline.CurvePoints,
+                    point => AssertPoint(new Point(10, 20), point),
+                    point => AssertPoint(new Point(20, 30), point),
+                    point => AssertPoint(new Point(30, 40), point));
+                Assert.Equal(new[] { 1, 2 }, polyline.PointNumbers);
+            });
+
+        Assert.Collection(
+            mirrored.PathNodes,
+            node =>
+            {
+                Assert.Equal(10, node.NPoint);
+                AssertPoint(new Point(10, 20), node.A0);
+                AssertPoint(new Point(15, 25), node.A1);
+                AssertPoint(new Point(18, 27), node.B0);
+            });
+
+        Assert.Collection(
+            mirrored.B0PolylinePoints,
+            point => AssertPoint(new Point(18, 27), point),
+            point => AssertPoint(new Point(22, 31), point));
+        Assert.Equal(new[] { 10, 11 }, mirrored.B0PointNumbers);
+
+        Assert.Collection(
+            mirrored.FrameSamples,
+            sample =>
+            {
+                AssertPoint(new Point(15, 25), sample.A1);
+                AssertPoint(new Point(18, 27), sample.B0);
+                Assert.Equal(10, sample.NPoint);
+            });
+
+        Assert.Equal(source.TotalPathLength, mirrored.TotalPathLength, 6);
+        Assert.Equal(source.TotalDurationSec, mirrored.TotalDurationSec, 6);
+    }
+
     private static void AssertPoint(Point expected, Point actual)
     {
         Assert.True(
