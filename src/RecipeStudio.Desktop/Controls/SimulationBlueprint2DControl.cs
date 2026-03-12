@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -51,6 +52,11 @@ public sealed class SimulationBlueprint2DControl : Control
     private const double AutoAlignOffsetCoarseStepMm = 12.0;
     private const double AutoAlignOffsetFineWindowMm = 24.0;
     private const double AutoAlignOffsetFineStepMm = 2.0;
+    private const int AutoAlignMaxScoreSamples = 72;
+    private const int AutoAlignNormalSearchRadiusPx = 4;
+    private const double AutoAlignNormalSearchPenalty = 10.0;
+    private const int AutoAlignLocalWindowRadiusPx = 0;
+    private const double AutoAlignLocalWindowPenalty = 8.0;
 
     public static readonly StyledProperty<IList<RecipePoint>?> PointsProperty =
         AvaloniaProperty.Register<SimulationBlueprint2DControl, IList<RecipePoint>?>(nameof(Points));
@@ -130,6 +136,7 @@ public sealed class SimulationBlueprint2DControl : Control
     private bool _panWithRightButton;
     private bool _hasFactPivot;
     private bool _syncingHeightScale;
+    private bool _autoAlignInProgress;
     private Point _factPivotWorld;
 
     private readonly Bitmap? _partImage;
@@ -144,6 +151,14 @@ public sealed class SimulationBlueprint2DControl : Control
         public required int Height { get; init; }
         public required double[] Magnitude { get; init; }
     }
+
+    private readonly record struct AutoAlignRequest(
+        IReadOnlyList<Point> Path,
+        EdgeMap EdgeMap,
+        double ReferenceHeightMm,
+        double HorizontalOffsetMm,
+        double VerticalOffsetMm,
+        double PartWidthScaleFactor);
 
     private readonly record struct AutoAlignSolution(double ReferenceHeightMm, double Horizontal, double Vertical, double Score);
     private readonly record struct OffsetAlignSolution(double Horizontal, double Vertical, double Score);
@@ -290,19 +305,19 @@ public sealed class SimulationBlueprint2DControl : Control
         ReferenceHeightMmProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) =>
         {
             c.SyncPartHeightScalePercentFromReferenceHeight();
-            c.MarkRefit();
+            c.InvalidateVisual();
         });
         PartHeightScalePercentProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.SyncReferenceHeightFromPartHeightScalePercent());
         InvertHorizontalProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.MarkRefit());
         ShowGridProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.InvalidateVisual());
-        NozzleAnchorXProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.MarkRefit());
-        ManipulatorAnchorXProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.MarkRefit());
-        NozzleAnchorYProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.MarkRefit());
-        ManipulatorAnchorYProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.MarkRefit());
-        VerticalOffsetMmProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.MarkRefit());
-        HorizontalOffsetMmProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.MarkRefit());
-        PartWidthScalePercentProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.MarkRefit());
-        ReversePathProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.MarkRefit());
+        NozzleAnchorXProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.InvalidateVisual());
+        ManipulatorAnchorXProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.InvalidateVisual());
+        NozzleAnchorYProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.InvalidateVisual());
+        ManipulatorAnchorYProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.InvalidateVisual());
+        VerticalOffsetMmProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.InvalidateVisual());
+        HorizontalOffsetMmProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.InvalidateVisual());
+        PartWidthScalePercentProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.InvalidateVisual());
+        ReversePathProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.InvalidateVisual());
         UseFactTelemetryProperty.Changed.AddClassHandler<SimulationBlueprint2DControl>((c, _) => c.MarkRefit());
     }
 
@@ -342,6 +357,51 @@ public sealed class SimulationBlueprint2DControl : Control
 
     public void AutoAlignCalibration()
     {
+        var request = BuildAutoAlignRequest();
+        if (request is null)
+            return;
+
+        ApplyAutoAlignSolution(OptimizeAutoAlignment(
+            request.Value.Path,
+            request.Value.EdgeMap,
+            request.Value.ReferenceHeightMm,
+            request.Value.HorizontalOffsetMm,
+            request.Value.VerticalOffsetMm,
+            request.Value.PartWidthScaleFactor));
+    }
+
+    public async Task AutoAlignCalibrationAsync()
+    {
+        if (_autoAlignInProgress)
+            return;
+
+        var request = BuildAutoAlignRequest();
+        if (request is null)
+            return;
+
+        _autoAlignInProgress = true;
+        try
+        {
+            var optimized = await Task.Run(() => OptimizeAutoAlignment(
+                request.Value.Path,
+                request.Value.EdgeMap,
+                request.Value.ReferenceHeightMm,
+                request.Value.HorizontalOffsetMm,
+                request.Value.VerticalOffsetMm,
+                request.Value.PartWidthScaleFactor));
+            ApplyAutoAlignSolution(optimized);
+        }
+        finally
+        {
+            _autoAlignInProgress = false;
+        }
+    }
+
+    private AutoAlignRequest? BuildAutoAlignRequest()
+    {
+        if (_partEdgeMap is null)
+            return null;
+
         var points = SelectRenderablePoints(Points?.ToList() ?? new List<RecipePoint>());
         var hZone = Settings?.HZone ?? 1200;
         var pathSource = SelectPathSource(points);
@@ -354,21 +414,26 @@ public sealed class SimulationBlueprint2DControl : Control
 
         var path = BuildDisplayPath(fitSource, hZone);
         if (path.Count == 0)
-            return;
+            return null;
 
         path = BuildRenderPath(path, AutoAlignPathSubsampleMm);
-        var referenceHeightMm = Math.Clamp(Math.Max(100, ReferenceHeightMm), AutoAlignReferenceHeightMinMm, AutoAlignReferenceHeightMaxMm);
-        var currentHorizontal = HorizontalOffsetMm;
-        var currentVertical = VerticalOffsetMm;
-        var partWidthScaleFactor = ResolvePartWidthScaleFactor(PartWidthScalePercent);
+        if (path.Count == 0)
+            return null;
 
-        if (_partEdgeMap is not null)
-        {
-            var optimized = OptimizeAutoAlignment(path, _partEdgeMap, referenceHeightMm, currentHorizontal, currentVertical, partWidthScaleFactor);
-            ReferenceHeightMm = optimized.ReferenceHeightMm;
-            HorizontalOffsetMm = optimized.Horizontal;
-            VerticalOffsetMm = optimized.Vertical;
-        }
+        return new AutoAlignRequest(
+            path,
+            _partEdgeMap,
+            Math.Clamp(Math.Max(100, ReferenceHeightMm), AutoAlignReferenceHeightMinMm, AutoAlignReferenceHeightMaxMm),
+            HorizontalOffsetMm,
+            VerticalOffsetMm,
+            ResolvePartWidthScaleFactor(PartWidthScalePercent));
+    }
+
+    private void ApplyAutoAlignSolution(AutoAlignSolution solution)
+    {
+        ReferenceHeightMm = solution.ReferenceHeightMm;
+        HorizontalOffsetMm = solution.Horizontal + AutoAlignHorizontalBiasMm;
+        VerticalOffsetMm = solution.Vertical + AutoAlignVerticalBiasMm;
     }
 
     private void SyncPartHeightScalePercentFromReferenceHeight()
@@ -535,12 +600,18 @@ public sealed class SimulationBlueprint2DControl : Control
             ApplyCurrentView();
         }
         var plotClip = new Rect(Pad, Pad, Math.Max(1, Bounds.Width - 2 * Pad), Math.Max(1, Bounds.Height - 2 * Pad));
+        var renderEquipmentOnTop = ShouldRenderEquipmentOnTop();
         using (context.PushClip(plotClip))
         {
             if (ShowGrid)
                 DrawGrid(context, worldBounds, 100);
 
             DrawImageWorld(context, _partImage, partRectWorld);
+            if (!renderEquipmentOnTop)
+            {
+                DrawImageWorld(context, _manipulatorImage, manipRectWorld);
+                DrawNozzleImageWorld(context, _nozzleImage, nozzlePivotWorld, nozzleWorkDirection, mmPerPixel);
+            }
 
             if (path.Count >= 2)
             {
@@ -552,8 +623,12 @@ public sealed class SimulationBlueprint2DControl : Control
                 }
             }
 
-            DrawImageWorld(context, _manipulatorImage, manipRectWorld);
-            DrawNozzleImageWorld(context, _nozzleImage, nozzlePivotWorld, nozzleWorkDirection, mmPerPixel);
+            if (renderEquipmentOnTop)
+            {
+                DrawImageWorld(context, _manipulatorImage, manipRectWorld);
+                DrawNozzleImageWorld(context, _nozzleImage, nozzlePivotWorld, nozzleWorkDirection, mmPerPixel);
+            }
+
             DrawNozzleMarker(context, nozzlePoseWorld);
         }
     }
@@ -654,6 +729,9 @@ public sealed class SimulationBlueprint2DControl : Control
     private string GetSpriteVersion()
         => SimulationSpriteVersions.Normalize(Settings?.SimulationPanels?.SpriteVersion);
 
+    private bool ShouldRenderEquipmentOnTop()
+        => Settings?.SimulationPanels?.RenderManipulatorAndNozzleOnTop ?? true;
+
     private (double X, double Y) ResolveManipulatorAnchors()
     {
         var anchorX = Math.Clamp(ManipulatorAnchorX, 0.0, 1.0);
@@ -715,6 +793,7 @@ public sealed class SimulationBlueprint2DControl : Control
         }
 
         var luma = new double[width * height];
+        var alpha = new double[width * height];
         for (var y = 0; y < height; y++)
         {
             var rowOffset = y * stride;
@@ -725,6 +804,7 @@ public sealed class SimulationBlueprint2DControl : Control
                 var b = raw[src];
                 var g = raw[src + 1];
                 var r = raw[src + 2];
+                alpha[pixOffset + x] = raw[src + 3];
                 luma[pixOffset + x] = 0.114 * b + 0.587 * g + 0.299 * r;
             }
         }
@@ -737,7 +817,12 @@ public sealed class SimulationBlueprint2DControl : Control
                 var idx = y * width + x;
                 var gx = luma[idx + 1] - luma[idx - 1];
                 var gy = luma[idx + width] - luma[idx - width];
-                magnitude[idx] = Math.Sqrt(gx * gx + gy * gy);
+                var ax = alpha[idx + 1] - alpha[idx - 1];
+                var ay = alpha[idx + width] - alpha[idx - width];
+                var colorMagnitude = Math.Sqrt(gx * gx + gy * gy);
+                var alphaMagnitude = Math.Sqrt(ax * ax + ay * ay);
+                var boundaryBoost = Math.Clamp(alphaMagnitude / 48.0, 0.0, 1.0);
+                magnitude[idx] = colorMagnitude * (0.30 + 0.70 * boundaryBoost) + alphaMagnitude * 0.90;
             }
         }
 
@@ -829,35 +914,101 @@ public sealed class SimulationBlueprint2DControl : Control
         var bestVertical = baseVertical;
         var bestScore = EvaluateAutoAlignScore(path, edgeMap, mmPerPixel, partWidthScaleFactor, baseHorizontal, baseVertical, bestHorizontal, bestVertical);
 
-        for (var h = baseHorizontal - AutoAlignHorizontalSearchWindowMm; h <= baseHorizontal + AutoAlignHorizontalSearchWindowMm; h += AutoAlignOffsetCoarseStepMm)
+        for (var pass = 0; pass < 2; pass++)
         {
-            for (var v = baseVertical - AutoAlignVerticalSearchWindowMm; v <= baseVertical + AutoAlignVerticalSearchWindowMm; v += AutoAlignOffsetCoarseStepMm)
-            {
-                var score = EvaluateAutoAlignScore(path, edgeMap, mmPerPixel, partWidthScaleFactor, baseHorizontal, baseVertical, h, v);
-                if (score > bestScore)
-                {
-                    bestScore = score;
-                    bestHorizontal = h;
-                    bestVertical = v;
-                }
-            }
+            (bestHorizontal, bestScore) = RefineAutoAlignmentAxis(
+                path,
+                edgeMap,
+                mmPerPixel,
+                partWidthScaleFactor,
+                baseHorizontal,
+                baseVertical,
+                bestHorizontal,
+                bestVertical,
+                AutoAlignHorizontalSearchWindowMm,
+                AutoAlignOffsetCoarseStepMm,
+                refineHorizontal: true,
+                bestScore);
+            (bestVertical, bestScore) = RefineAutoAlignmentAxis(
+                path,
+                edgeMap,
+                mmPerPixel,
+                partWidthScaleFactor,
+                baseHorizontal,
+                baseVertical,
+                bestVertical,
+                bestHorizontal,
+                AutoAlignVerticalSearchWindowMm,
+                AutoAlignOffsetCoarseStepMm,
+                refineHorizontal: false,
+                bestScore);
         }
 
-        for (var h = bestHorizontal - AutoAlignOffsetFineWindowMm; h <= bestHorizontal + AutoAlignOffsetFineWindowMm; h += AutoAlignOffsetFineStepMm)
+        for (var pass = 0; pass < 2; pass++)
         {
-            for (var v = bestVertical - AutoAlignOffsetFineWindowMm; v <= bestVertical + AutoAlignOffsetFineWindowMm; v += AutoAlignOffsetFineStepMm)
-            {
-                var score = EvaluateAutoAlignScore(path, edgeMap, mmPerPixel, partWidthScaleFactor, baseHorizontal, baseVertical, h, v);
-                if (score > bestScore)
-                {
-                    bestScore = score;
-                    bestHorizontal = h;
-                    bestVertical = v;
-                }
-            }
+            (bestHorizontal, bestScore) = RefineAutoAlignmentAxis(
+                path,
+                edgeMap,
+                mmPerPixel,
+                partWidthScaleFactor,
+                baseHorizontal,
+                baseVertical,
+                bestHorizontal,
+                bestVertical,
+                AutoAlignOffsetFineWindowMm,
+                AutoAlignOffsetFineStepMm,
+                refineHorizontal: true,
+                bestScore);
+            (bestVertical, bestScore) = RefineAutoAlignmentAxis(
+                path,
+                edgeMap,
+                mmPerPixel,
+                partWidthScaleFactor,
+                baseHorizontal,
+                baseVertical,
+                bestVertical,
+                bestHorizontal,
+                AutoAlignOffsetFineWindowMm,
+                AutoAlignOffsetFineStepMm,
+                refineHorizontal: false,
+                bestScore);
         }
 
         return new OffsetAlignSolution(bestHorizontal, bestVertical, bestScore);
+    }
+
+    private static (double Value, double Score) RefineAutoAlignmentAxis(
+        IReadOnlyList<Point> path,
+        EdgeMap edgeMap,
+        double mmPerPixel,
+        double partWidthScaleFactor,
+        double baseHorizontal,
+        double baseVertical,
+        double centerValue,
+        double otherValue,
+        double windowMm,
+        double stepMm,
+        bool refineHorizontal,
+        double seedScore)
+    {
+        var bestValue = centerValue;
+        var bestScore = seedScore;
+        if (stepMm <= 1e-9)
+            return (bestValue, bestScore);
+
+        for (var value = centerValue - windowMm; value <= centerValue + windowMm + 1e-9; value += stepMm)
+        {
+            var horizontal = refineHorizontal ? value : otherValue;
+            var vertical = refineHorizontal ? otherValue : value;
+            var score = EvaluateAutoAlignScore(path, edgeMap, mmPerPixel, partWidthScaleFactor, baseHorizontal, baseVertical, horizontal, vertical);
+            if (score <= bestScore)
+                continue;
+
+            bestScore = score;
+            bestValue = value;
+        }
+
+        return (bestValue, bestScore);
     }
 
     private static double EvaluateAutoAlignScore(
@@ -873,9 +1024,10 @@ public sealed class SimulationBlueprint2DControl : Control
         if (path.Count == 0 || mmPerPixel <= 1e-9)
             return double.NegativeInfinity;
 
-        var imageWidthMm = edgeMap.Width * mmPerPixel * Math.Max(1e-6, partWidthScaleFactor);
+        var mmPerPixelX = mmPerPixel * Math.Max(1e-6, partWidthScaleFactor);
+        var imageWidthMm = edgeMap.Width * mmPerPixelX;
         var leftWorld = horizontal - imageWidthMm * 0.5;
-        var step = Math.Max(1, path.Count / 240);
+        var step = Math.Max(1, (int)Math.Ceiling(path.Count / (double)AutoAlignMaxScoreSamples));
         var sum = 0.0;
         var hits = 0;
 
@@ -883,9 +1035,9 @@ public sealed class SimulationBlueprint2DControl : Control
         {
             var worldX = path[i].X;
             var worldY = path[i].Y + vertical;
-            var px = (worldX - leftWorld) / mmPerPixel;
+            var px = (worldX - leftWorld) / mmPerPixelX;
             var py = edgeMap.Height - (worldY / mmPerPixel);
-            var sample = SampleEdgeMagnitude(edgeMap, px, py);
+            var sample = SampleEdgeMagnitudeNearPath(path, i, edgeMap, px, py, mmPerPixelX, mmPerPixel);
             if (sample < 0)
                 continue;
 
@@ -893,7 +1045,8 @@ public sealed class SimulationBlueprint2DControl : Control
             hits++;
         }
 
-        if (hits < 24)
+        var minHits = Math.Min(path.Count, Math.Max(12, AutoAlignMaxScoreSamples / 3));
+        if (hits < minHits)
             return double.NegativeInfinity;
 
         var average = sum / hits;
@@ -901,6 +1054,75 @@ public sealed class SimulationBlueprint2DControl : Control
         var deviationPenalty = 0.02 * Math.Abs(horizontal - baseHorizontal)
             + 0.018 * Math.Abs(vertical - baseVertical);
         return average - deviationPenalty;
+    }
+
+    private static double SampleEdgeMagnitudeNearPath(
+        IReadOnlyList<Point> path,
+        int index,
+        EdgeMap edgeMap,
+        double x,
+        double y,
+        double mmPerPixelX,
+        double mmPerPixelY)
+    {
+        var best = SampleBestLocalEdge(edgeMap, x, y);
+        var normal = ResolvePathNormalInPixels(path, index, mmPerPixelX, mmPerPixelY);
+        if (Math.Abs(normal.X) <= 1e-6 && Math.Abs(normal.Y) <= 1e-6)
+            return best;
+
+        for (var offset = -AutoAlignNormalSearchRadiusPx; offset <= AutoAlignNormalSearchRadiusPx; offset++)
+        {
+            var sample = SampleEdgeMagnitude(edgeMap, x + normal.X * offset, y + normal.Y * offset);
+            if (sample < 0)
+                continue;
+
+            best = Math.Max(best, sample - Math.Abs(offset) * AutoAlignNormalSearchPenalty);
+        }
+
+        return best;
+    }
+
+    private static double SampleBestLocalEdge(EdgeMap edgeMap, double x, double y)
+    {
+        var best = -1.0;
+        for (var dy = -AutoAlignLocalWindowRadiusPx; dy <= AutoAlignLocalWindowRadiusPx; dy++)
+        {
+            for (var dx = -AutoAlignLocalWindowRadiusPx; dx <= AutoAlignLocalWindowRadiusPx; dx++)
+            {
+                var sample = SampleEdgeMagnitude(edgeMap, x + dx, y + dy);
+                if (sample < 0)
+                    continue;
+
+                var penalty = (Math.Abs(dx) + Math.Abs(dy)) * AutoAlignLocalWindowPenalty;
+                best = Math.Max(best, sample - penalty);
+            }
+        }
+
+        return best;
+    }
+
+    private static Point ResolvePathNormalInPixels(
+        IReadOnlyList<Point> path,
+        int index,
+        double mmPerPixelX,
+        double mmPerPixelY)
+    {
+        if (path.Count < 2 || mmPerPixelX <= 1e-9 || mmPerPixelY <= 1e-9)
+            return default;
+
+        var prevIndex = Math.Max(0, index - 1);
+        var nextIndex = Math.Min(path.Count - 1, index + 1);
+        var tangentWorld = new Point(
+            path[nextIndex].X - path[prevIndex].X,
+            path[nextIndex].Y - path[prevIndex].Y);
+        var tangentPx = new Point(
+            tangentWorld.X / mmPerPixelX,
+            -tangentWorld.Y / mmPerPixelY);
+        var length = Math.Sqrt(tangentPx.X * tangentPx.X + tangentPx.Y * tangentPx.Y);
+        if (length <= 1e-6)
+            return default;
+
+        return new Point(-tangentPx.Y / length, tangentPx.X / length);
     }
 
     private static double SampleEdgeMagnitude(EdgeMap edgeMap, double x, double y)

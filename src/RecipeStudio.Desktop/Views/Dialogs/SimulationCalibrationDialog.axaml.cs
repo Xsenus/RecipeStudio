@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -10,21 +11,21 @@ public sealed partial class SimulationCalibrationDialog : Window
 {
     private readonly Action _saveDefaults;
     private readonly Action _resetCalibration;
-    private readonly Action _autoCalibration;
+    private readonly Func<Task> _autoCalibration;
 
     public SimulationCalibrationDialog()
     {
         InitializeComponent();
         _saveDefaults = static () => { };
         _resetCalibration = static () => { };
-        _autoCalibration = static () => { };
+        _autoCalibration = static () => Task.CompletedTask;
     }
 
     public SimulationCalibrationDialog(
         SimulationBlueprint2DControl source,
         Action saveDefaults,
         Action resetCalibration,
-        Action autoCalibration)
+        Func<Task> autoCalibration)
         : this()
     {
         DataContext = source;
@@ -41,7 +42,7 @@ public sealed partial class SimulationCalibrationDialog : Window
 
     private void Reset_Click(object? sender, RoutedEventArgs e) => _resetCalibration();
 
-    private void AutoCal_Click(object? sender, RoutedEventArgs e) => _autoCalibration();
+    private async void AutoCal_Click(object? sender, RoutedEventArgs e) => await _autoCalibration();
 
     private void Close_Click(object? sender, RoutedEventArgs e) => Close();
 

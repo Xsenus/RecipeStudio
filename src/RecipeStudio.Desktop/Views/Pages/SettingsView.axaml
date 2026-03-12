@@ -760,6 +760,12 @@
                   </StackPanel>
 
                   <StackPanel Spacing="2">
+                    <CheckBox IsChecked="{Binding SimRenderManipulatorAndNozzleOnTop}" ToolTip.Tip="Рисовать изображения манипулятора и сопла поверх линий траектории и профиля">Манипулятор и сопло поверх линий</CheckBox>
+                    <TextBlock Classes="muted tiny" Margin="24,0,0,0" TextWrapping="Wrap"
+                               Text="Если включено, спрайты манипулятора и сопла рисуются на переднем плане в 2D с соплом и 2D Pair, а линии проходят под ними." />
+                  </StackPanel>
+
+                  <StackPanel Spacing="2">
                     <CheckBox IsChecked="{Binding SimAllowTopView}" ToolTip.Tip="Панель вида сверху">Вид сверху (X-Y)</CheckBox>
                     <TextBlock Classes="muted tiny" Margin="24,0,0,0" TextWrapping="Wrap"
                                Text="Плоский вид сверху в координатах X-Y для контроля геометрии траектории на плане." />

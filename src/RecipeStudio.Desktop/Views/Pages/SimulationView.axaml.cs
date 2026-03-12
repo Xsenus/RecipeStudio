@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.Globalization;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -805,7 +806,7 @@ public sealed partial class SimulationView : UserControl
             View2DPlot,
             saveDefaults: Persist2DCalibrationDefaults,
             resetCalibration: () => Reset2DCalibration_Click(null, new RoutedEventArgs()),
-            autoCalibration: () => AutoAlign2DCalibration_Click(null, new RoutedEventArgs()));
+            autoCalibration: AutoAlign2DCalibrationAsync);
 
         await dialog.ShowDialog(owner);
     }
@@ -831,9 +832,12 @@ public sealed partial class SimulationView : UserControl
         UpdateView2DPairZoomText();
     }
 
-    private void AutoAlign2DCalibration_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private async void AutoAlign2DCalibration_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+        => await AutoAlign2DCalibrationAsync();
+
+    private async Task AutoAlign2DCalibrationAsync()
     {
-        View2DPlot.AutoAlignCalibration();
+        await View2DPlot.AutoAlignCalibrationAsync();
         View2DPlot.ResetZoom();
         UpdateView2DZoomText();
     }

@@ -391,18 +391,22 @@ public sealed class SimulationPointPair2DControl : Control
         var referenceHeightMm = Math.Max(100, ReferenceHeightMm);
         var mmPerPixel = ResolveMmPerPixel(referenceHeightMm);
         var partRectWorld = CreateWorldRectCenteredAtX(HorizontalOffsetMm, 0, _partImage, mmPerPixel, referenceHeightMm, ResolvePartWidthScaleFactor(PartWidthScalePercent));
-        var displayPath = FilterDisplayPathBySettings(BuildVisibleDisplayPath(BuildDisplayPath(settings)), settings);
-        var sample = ResolveDisplaySample(displayPath);
+        var currentDisplayPath = FilterDisplayPathBySettings(BuildDisplayPath(settings), settings);
+        var drawOriginalDisplayPath = SimulationOverlayGeometry.ShouldDrawOriginalTarget(TargetDisplayMode);
+        var drawMirroredDisplayPath = SimulationOverlayGeometry.ShouldDrawMirroredTarget(TargetDisplayMode);
+        var mirroredDisplayPath = drawMirroredDisplayPath
+            ? SimulationOverlayGeometry.MirrorProfileDisplayPath(currentDisplayPath)
+            : ProfileDisplayPath.Empty;
+        var sample = ResolveDisplaySample(currentDisplayPath);
         var point1 = sample.A0;
         var point2 = sample.B0;
         var nozzleTip = sample.A1;
-        var allTargetPoints = displayPath.Polylines.SelectMany(polyline => polyline.ControlPoints.Concat(polyline.CurvePoints))
-            .Concat(displayPath.B0PolylinePoints)
-            .Concat(displayPath.PathNodes.Select(node => node.A1))
-            .Concat(displayPath.PathNodes.Select(node => node.B0))
-            .Concat(displayPath.FrameSamples.Select(frame => frame.A1))
-            .Concat(displayPath.FrameSamples.Select(frame => frame.B0))
-            .ToList();
+        var allTargetPoints = new List<Point>();
+        if (drawOriginalDisplayPath)
+            allTargetPoints.AddRange(SimulationOverlayGeometry.EnumerateProfileDisplayPoints(currentDisplayPath));
+
+        if (drawMirroredDisplayPath)
+            allTargetPoints.AddRange(SimulationOverlayGeometry.EnumerateProfileDisplayPoints(mirroredDisplayPath));
 
         if (sample.IsValid)
         {
@@ -434,19 +438,39 @@ public sealed class SimulationPointPair2DControl : Control
         }
 
         var plotClip = new Rect(Pad, Pad, Math.Max(1, Bounds.Width - 2 * Pad), Math.Max(1, Bounds.Height - 2 * Pad));
+        var renderEquipmentOnTop = ShouldRenderEquipmentOnTop();
         using (context.PushClip(plotClip))
         {
             if (ShowGrid)
                 DrawGrid(context, worldBounds, 50);
 
             DrawImageWorld(context, _partImage, partRectWorld);
-            DrawImageWorld(context, _manipulatorImage, manipRectWorld);
-            DrawProfilePolylines(context, displayPath, settings);
-            DrawDiscreteBSegmentFootprints(context, displayPath, settings);
-            DrawFrameOverlayCloud(context, displayPath, settings);
-            DrawProfilePoints(context, displayPath, settings);
-            DrawA1Overlay(context, displayPath, settings);
-            DrawB0Overlay(context, displayPath, settings);
+            if (!renderEquipmentOnTop)
+            {
+                DrawImageWorld(context, _manipulatorImage, manipRectWorld);
+                if (sample.IsValid)
+                    DrawNozzleBetweenPoints(context, nozzleTip, point2, mmPerPixel);
+            }
+
+            if (drawOriginalDisplayPath)
+            {
+                DrawProfilePolylines(context, currentDisplayPath, settings);
+                DrawDiscreteBSegmentFootprints(context, currentDisplayPath, settings);
+                DrawFrameOverlayCloud(context, currentDisplayPath, settings);
+                DrawProfilePoints(context, currentDisplayPath, settings);
+                DrawA1Overlay(context, currentDisplayPath, settings);
+                DrawB0Overlay(context, currentDisplayPath, settings);
+            }
+
+            if (drawMirroredDisplayPath)
+            {
+                DrawProfilePolylines(context, mirroredDisplayPath, settings);
+                DrawDiscreteBSegmentFootprints(context, mirroredDisplayPath, settings);
+                DrawFrameOverlayCloud(context, mirroredDisplayPath, settings);
+                DrawProfilePoints(context, mirroredDisplayPath, settings);
+                DrawA1Overlay(context, mirroredDisplayPath, settings);
+                DrawB0Overlay(context, mirroredDisplayPath, settings);
+            }
 
             if (sample.IsValid)
                 DrawGapLink(context, point1, nozzleTip, settings);
@@ -454,9 +478,14 @@ public sealed class SimulationPointPair2DControl : Control
             // Red reference line should match the visible nozzle segment.
             if (ShowPairLink && sample.IsValid)
                 DrawPairLink(context, nozzleTip, point2, settings);
+            if (renderEquipmentOnTop)
+                DrawImageWorld(context, _manipulatorImage, manipRectWorld);
+
             if (sample.IsValid)
             {
-                DrawNozzleBetweenPoints(context, nozzleTip, point2, mmPerPixel);
+                if (renderEquipmentOnTop)
+                    DrawNozzleBetweenPoints(context, nozzleTip, point2, mmPerPixel);
+
                 DrawSelectedPointMarker(context, sample.SelectedA0);
                 DrawPointMarker(context, point1, "A0", ParseColorOrDefault(settings.PlotColorProfileSegmentA, Color.FromRgb(46, 92, 147)));
                 DrawPointMarker(context, nozzleTip, "A1", Colors.Black);
@@ -550,53 +579,6 @@ public sealed class SimulationPointPair2DControl : Control
 
         var frameSamples = displayPath.FrameSamples
             .Where(frameSample => IsDisplayGroupVisible(settings, frameSample.GroupName))
-            .ToList();
-
-        return new ProfileDisplayPath(
-            polylines,
-            pathNodes,
-            b0Polyline,
-            b0Numbers,
-            frameSamples,
-            displayPath.TotalPathLength,
-            displayPath.TotalDurationSec);
-    }
-
-    private ProfileDisplayPath BuildVisibleDisplayPath(ProfileDisplayPath displayPath)
-    {
-        var mode = SimulationTargetDisplayModes.Normalize(TargetDisplayMode);
-        if (mode == SimulationTargetDisplayModes.Full)
-            return displayPath;
-
-        var showMirroredOnly = mode == SimulationTargetDisplayModes.Mirrored;
-        var polylines = displayPath.Polylines
-            .Where(polyline => showMirroredOnly
-                ? polyline.GroupName == ProfileDisplayPathService.Group4Name
-                : polyline.GroupName != ProfileDisplayPathService.Group4Name)
-            .ToList();
-
-        var nodeMask = displayPath.PathNodes
-            .Select(node => showMirroredOnly
-                ? node.GroupName == ProfileDisplayPathService.Group4Name
-                : node.GroupName != ProfileDisplayPathService.Group4Name)
-            .ToList();
-
-        var pathNodes = displayPath.PathNodes
-            .Where((_, index) => nodeMask[index])
-            .ToList();
-
-        var b0Polyline = displayPath.B0PolylinePoints
-            .Where((_, index) => index < nodeMask.Count && nodeMask[index])
-            .ToList();
-
-        var b0Numbers = displayPath.B0PointNumbers
-            .Where((_, index) => index < nodeMask.Count && nodeMask[index])
-            .ToList();
-
-        var frameSamples = displayPath.FrameSamples
-            .Where(frameSample => showMirroredOnly
-                ? frameSample.GroupName == ProfileDisplayPathService.Group4Name
-                : frameSample.GroupName != ProfileDisplayPathService.Group4Name)
             .ToList();
 
         return new ProfileDisplayPath(
@@ -806,6 +788,9 @@ public sealed class SimulationPointPair2DControl : Control
 
     private string GetSpriteVersion()
         => SimulationSpriteVersions.Normalize(Settings?.SimulationPanels?.SpriteVersion);
+
+    private bool ShouldRenderEquipmentOnTop()
+        => Settings?.SimulationPanels?.RenderManipulatorAndNozzleOnTop ?? true;
 
     private (double X, double Y) ResolveManipulatorAnchors()
     {

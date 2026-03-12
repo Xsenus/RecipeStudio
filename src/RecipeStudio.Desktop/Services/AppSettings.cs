@@ -160,6 +160,7 @@ public sealed class SimulationPanelsSettings
     public string View2DPairTargetDisplayMode { get; set; } = SimulationTargetDisplayModes.Full;
     public string View2DPairTargetDisplaySide { get; set; } = SimulationTargetDisplayModes.Original;
     public bool View2DPairShowRedLink { get; set; } = true;
+    public bool RenderManipulatorAndNozzleOnTop { get; set; } = true;
     public string SpriteVersion { get; set; } = SimulationSpriteVersions.Version2;
     public SimulationPanelsAccessSettings Access { get; set; } = new();
     public Simulation2DCalibrationSettings Calibration2D { get; set; } = new();

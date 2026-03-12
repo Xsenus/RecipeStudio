@@ -588,6 +588,16 @@ public sealed class SettingsViewModel : ViewModelBase
         }
     }
 
+    public bool SimRenderManipulatorAndNozzleOnTop
+    {
+        get => _settings.Settings.SimulationPanels.RenderManipulatorAndNozzleOnTop;
+        set
+        {
+            _settings.Settings.SimulationPanels.RenderManipulatorAndNozzleOnTop = value;
+            RaisePropertyChanged();
+        }
+    }
+
     public bool SimAllowView3D
     {
         get => SimulationPanelsAccess.View3D;
@@ -885,6 +895,7 @@ public sealed class SettingsViewModel : ViewModelBase
                 _settings.Settings.SimulationPanels.View2DPairTargetDisplayMode = defaults.SimulationPanels.View2DPairTargetDisplayMode;
                 _settings.Settings.SimulationPanels.View2DPairTargetDisplaySide = defaults.SimulationPanels.View2DPairTargetDisplaySide;
                 _settings.Settings.SimulationPanels.View2DPairShowRedLink = defaults.SimulationPanels.View2DPairShowRedLink;
+                _settings.Settings.SimulationPanels.RenderManipulatorAndNozzleOnTop = defaults.SimulationPanels.RenderManipulatorAndNozzleOnTop;
                 _settings.Settings.SimulationPanels.SpriteVersion = defaults.SimulationPanels.SpriteVersion;
                 RaisePropertyChanged(nameof(SimAllowPlot));
                 RaisePropertyChanged(nameof(SimAllowTelemetry));
@@ -893,6 +904,7 @@ public sealed class SettingsViewModel : ViewModelBase
                 RaisePropertyChanged(nameof(SimAllowView2DFact));
                 RaisePropertyChanged(nameof(SimAllowView2DPair));
                 RaisePropertyChanged(nameof(SimShowView2DPairRedLink));
+                RaisePropertyChanged(nameof(SimRenderManipulatorAndNozzleOnTop));
                 RaisePropertyChanged(nameof(SimAllowView3D));
                 RaisePropertyChanged(nameof(SimShowCalibrationControls));
                 RaisePropertyChanged(nameof(SimSpriteVersion));
@@ -1067,6 +1079,7 @@ public sealed class SettingsViewModel : ViewModelBase
                 target.SimulationPanels.View2DPairTargetDisplayMode = source.SimulationPanels.View2DPairTargetDisplayMode;
                 target.SimulationPanels.View2DPairTargetDisplaySide = source.SimulationPanels.View2DPairTargetDisplaySide;
                 target.SimulationPanels.View2DPairShowRedLink = source.SimulationPanels.View2DPairShowRedLink;
+                target.SimulationPanels.RenderManipulatorAndNozzleOnTop = source.SimulationPanels.RenderManipulatorAndNozzleOnTop;
                 target.SimulationPanels.SpriteVersion = SimulationSpriteVersions.Normalize(source.SimulationPanels.SpriteVersion);
                 break;
 
@@ -1183,6 +1196,7 @@ public sealed class SettingsViewModel : ViewModelBase
         RaisePropertyChanged(nameof(SimAllowView2DFact));
         RaisePropertyChanged(nameof(SimAllowView2DPair));
         RaisePropertyChanged(nameof(SimShowView2DPairRedLink));
+        RaisePropertyChanged(nameof(SimRenderManipulatorAndNozzleOnTop));
         RaisePropertyChanged(nameof(SimAllowView3D));
         RaisePropertyChanged(nameof(SimShowCalibrationControls));
         RaisePropertyChanged(nameof(SimSpriteVersion));
