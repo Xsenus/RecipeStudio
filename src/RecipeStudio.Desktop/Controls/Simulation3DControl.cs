@@ -626,8 +626,17 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         LogInfo($"logger configured. folder={(s?.LogsFolder ?? "<default>")}");
     }
 
-    private static string LocalDiagnosticsPath
-        => Path.Combine(AppContext.BaseDirectory, "logs", "simulation3d.log");
+    private string LocalDiagnosticsPath
+    {
+        get
+        {
+            var logsFolder = !string.IsNullOrWhiteSpace(Settings?.LogsFolder)
+                ? Settings.LogsFolder
+                : AppPaths.ResolveLogsRoot();
+
+            return Path.Combine(logsFolder, "simulation3d.log");
+        }
+    }
 
     private void LogInfo(string message)
     {
@@ -647,7 +656,7 @@ public sealed unsafe class Simulation3DControl : OpenGlControlBase
         WriteLocalDiag("ERROR", message, ex);
     }
 
-    private static void WriteLocalDiag(string level, string message, Exception? ex)
+    private void WriteLocalDiag(string level, string message, Exception? ex)
     {
         try
         {

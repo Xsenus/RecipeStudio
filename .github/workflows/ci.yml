@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+      - feature/**
+  pull_request:
+
+jobs:
+  build-test:
+    name: ${{ matrix.os }} / ${{ matrix.rid }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+          - os: ubuntu-latest
+            rid: linux-x64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Restore
+        run: dotnet restore RecipeStudio.sln
+
+      - name: Build
+        run: dotnet build RecipeStudio.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test tests/RecipeStudio.Tests/RecipeStudio.Tests.csproj -c Release --no-build
+
+      - name: Publish smoke artifact
+        run: dotnet publish src/RecipeStudio.Desktop/RecipeStudio.Desktop.csproj -c Release -r ${{ matrix.rid }} --self-contained true
+
+      - name: Build Linux deb smoke artifact
+        if: matrix.rid == 'linux-x64'
+        run: bash scripts/build-linux-deb.sh 0.0.0-ci src/RecipeStudio.Desktop/bin/Release/net9.0/linux-x64/publish artifacts/linux-deb

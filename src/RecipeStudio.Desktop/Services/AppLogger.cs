@@ -147,7 +147,6 @@ public sealed class AppLogger
 
     private static string ResolveDefaultLogsDir()
     {
-        var baseDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        return Path.Combine(baseDir, "RecipeStudio", "logs");
+        return AppPaths.ResolveLogsRoot();
     }
 }

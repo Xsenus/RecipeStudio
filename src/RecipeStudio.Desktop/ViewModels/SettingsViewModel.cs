@@ -945,8 +945,8 @@ public sealed class SettingsViewModel : ViewModelBase
     {
         var defaults = new AppSettings
         {
-            RecipesFolder = Path.Combine(_settings.AppDataRoot, "recipes"),
-            LogsFolder = Path.Combine(_settings.AppDataRoot, "logs"),
+            RecipesFolder = _settings.DefaultRecipesFolder,
+            LogsFolder = _settings.DefaultLogsFolder,
             LogMode = LogSeverity.Info
         };
 

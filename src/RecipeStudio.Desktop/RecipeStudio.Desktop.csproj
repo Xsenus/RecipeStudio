@@ -6,18 +6,22 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
 
-    <!-- Publish settings: single-file executable that runs without installed .NET runtime -->
-    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-x64</RuntimeIdentifier>
-    <SelfContained>true</SelfContained>
-    <PublishSingleFile>true</PublishSingleFile>
-    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <!-- Publish settings: enable single-file self-contained output when RID is specified explicitly -->
+    <SelfContained Condition="'$(RuntimeIdentifier)' != '' and '$(SelfContained)' == ''">true</SelfContained>
+    <PublishSingleFile Condition="'$(RuntimeIdentifier)' != '' and '$(PublishSingleFile)' == ''">true</PublishSingleFile>
+    <EnableCompressionInSingleFile Condition="'$(RuntimeIdentifier)' != '' and '$(EnableCompressionInSingleFile)' == ''">true</EnableCompressionInSingleFile>
+    <IncludeNativeLibrariesForSelfExtract Condition="'$(RuntimeIdentifier)' != '' and '$(IncludeNativeLibrariesForSelfExtract)' == ''">true</IncludeNativeLibrariesForSelfExtract>
     <PublishTrimmed>false</PublishTrimmed>
     <AssemblyVersion>1.0.10</AssemblyVersion>
     <FileVersion>1.0.10</FileVersion>
-    <ApplicationIcon>icon.ico</ApplicationIcon>
+
+    <TargetRuntimeIdentifier Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</TargetRuntimeIdentifier>
+    <TargetRuntimeIdentifier Condition="'$(TargetRuntimeIdentifier)' == ''">$(NETCoreSdkRuntimeIdentifier)</TargetRuntimeIdentifier>
+    <IsWindowsTarget Condition="$([System.String]::Copy('$(TargetRuntimeIdentifier)').StartsWith('win'))">true</IsWindowsTarget>
+    <IsWindowsTarget Condition="'$(IsWindowsTarget)' == ''">false</IsWindowsTarget>
+    <ApplicationManifest Condition="'$(IsWindowsTarget)' == 'true'">app.manifest</ApplicationManifest>
+    <ApplicationIcon Condition="'$(IsWindowsTarget)' == 'true'">icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -37,7 +41,7 @@
     <AvaloniaResource Include="Assets\\**" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(IsWindowsTarget)' == 'true'">
     <Content Include="icon.ico" />
   </ItemGroup>
 

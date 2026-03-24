@@ -12,9 +12,13 @@ public sealed class SettingsService
     };
 
     private readonly AppLogger _logger;
+    private readonly string _legacySettingsPath;
 
     public string AppDataRoot { get; }
+    public string SettingsRoot { get; }
     public string SettingsPath { get; }
+    public string DefaultRecipesFolder { get; }
+    public string DefaultLogsFolder { get; }
 
     public AppSettings Settings { get; private set; }
 
@@ -22,10 +26,17 @@ public sealed class SettingsService
     {
         _logger = logger;
 
-        AppDataRoot = ResolveSettingsRoot();
-        Directory.CreateDirectory(AppDataRoot);
+        SettingsRoot = AppPaths.ResolveSettingsRoot();
+        AppDataRoot = AppPaths.ResolveDataRoot();
+        DefaultRecipesFolder = Path.Combine(AppDataRoot, "recipes");
+        DefaultLogsFolder = AppPaths.ResolveLogsRoot();
+        _legacySettingsPath = ResolveLegacySettingsPath();
 
-        SettingsPath = Path.Combine(AppDataRoot, "settings.json");
+        Directory.CreateDirectory(SettingsRoot);
+        Directory.CreateDirectory(AppDataRoot);
+        Directory.CreateDirectory(DefaultLogsFolder);
+
+        SettingsPath = Path.Combine(SettingsRoot, "settings.json");
 
         var hadLoadErrors = false;
         Settings = Load(out hadLoadErrors);
@@ -51,17 +62,23 @@ public sealed class SettingsService
 
         try
         {
-            if (!File.Exists(SettingsPath))
+            var path = ResolveReadableSettingsPath();
+            if (!File.Exists(path))
             {
                 return new AppSettings();
             }
 
-            var json = File.ReadAllText(SettingsPath);
+            var json = File.ReadAllText(path);
             var settings = JsonSerializer.Deserialize<AppSettings>(json, _jsonOptions);
             if (settings is null)
             {
                 hadErrors = true;
                 return new AppSettings();
+            }
+
+            if (UsesLegacySettingsPath(path))
+            {
+                _logger.Info($"Найдены legacy-настройки в '{path}'. При следующем сохранении они будут перенесены в '{SettingsPath}'.");
             }
 
             if (!ValidateSettings(settings, out var validationError))
@@ -130,12 +147,12 @@ public sealed class SettingsService
     {
         if (string.IsNullOrWhiteSpace(settings.RecipesFolder))
         {
-            settings.RecipesFolder = Path.Combine(AppDataRoot, "recipes");
+            settings.RecipesFolder = DefaultRecipesFolder;
         }
 
         if (string.IsNullOrWhiteSpace(settings.LogsFolder))
         {
-            settings.LogsFolder = Path.Combine(AppDataRoot, "logs");
+            settings.LogsFolder = DefaultLogsFolder;
         }
 
         settings.CalculationOriginMode = CalculationOriginModes.Normalize(settings.CalculationOriginMode);
@@ -186,8 +203,8 @@ public sealed class SettingsService
         catch (Exception ex)
         {
             _logger.Error("Ошибка создания рабочих каталогов из настроек.", ex);
-            settings.RecipesFolder = Path.Combine(AppDataRoot, "recipes");
-            settings.LogsFolder = Path.Combine(AppDataRoot, "logs");
+            settings.RecipesFolder = DefaultRecipesFolder;
+            settings.LogsFolder = DefaultLogsFolder;
             Directory.CreateDirectory(settings.RecipesFolder);
             Directory.CreateDirectory(settings.LogsFolder);
         }
@@ -230,7 +247,22 @@ public sealed class SettingsService
     private static bool NearlyEqual(double left, double right)
         => Math.Abs(left - right) <= 1e-3;
 
-    private static string ResolveSettingsRoot()
+    private string ResolveReadableSettingsPath()
+    {
+        if (File.Exists(SettingsPath))
+        {
+            return SettingsPath;
+        }
+
+        if (UsesLegacySettingsPath(_legacySettingsPath) && File.Exists(_legacySettingsPath))
+        {
+            return _legacySettingsPath;
+        }
+
+        return SettingsPath;
+    }
+
+    private static string ResolveLegacySettingsPath()
     {
         try
         {
@@ -239,7 +271,7 @@ public sealed class SettingsService
                 var processDir = Path.GetDirectoryName(Environment.ProcessPath);
                 if (!string.IsNullOrWhiteSpace(processDir))
                 {
-                    return processDir;
+                    return Path.Combine(processDir, "settings.json");
                 }
             }
         }
@@ -248,8 +280,16 @@ public sealed class SettingsService
             // ignore
         }
 
-        return AppContext.BaseDirectory;
+        return Path.Combine(AppContext.BaseDirectory, "settings.json");
     }
+
+    private bool UsesLegacySettingsPath(string path)
+    {
+        return !string.Equals(path, SettingsPath, GetPathComparison());
+    }
+
+    private static StringComparison GetPathComparison()
+        => OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
     private static bool ValidateSettings(AppSettings s, out string error)
     {
