@@ -18,14 +18,14 @@ public sealed class AppPathsTests
             XdgStateHome: null);
 
         Assert.Equal(
-            @"C:\Users\Test\AppData\Local\RecipeStudio",
-            AppPaths.ResolveSettingsRoot(env));
+            NormalizeSeparators(@"C:\Users\Test\AppData\Local\RecipeStudio"),
+            NormalizeSeparators(AppPaths.ResolveSettingsRoot(env)));
         Assert.Equal(
-            @"C:\Users\Test\AppData\Local\RecipeStudio",
-            AppPaths.ResolveDataRoot(env));
+            NormalizeSeparators(@"C:\Users\Test\AppData\Local\RecipeStudio"),
+            NormalizeSeparators(AppPaths.ResolveDataRoot(env)));
         Assert.Equal(
-            @"C:\Users\Test\AppData\Local\RecipeStudio\logs",
-            AppPaths.ResolveLogsRoot(env));
+            NormalizeSeparators(@"C:\Users\Test\AppData\Local\RecipeStudio\logs"),
+            NormalizeSeparators(AppPaths.ResolveLogsRoot(env)));
     }
 
     [Fact]
@@ -41,13 +41,13 @@ public sealed class AppPathsTests
             XdgStateHome: "/home/test/.local/state");
 
         Assert.Equal(
-            "/home/test/.config/RecipeStudio",
+            NormalizeSeparators("/home/test/.config/RecipeStudio"),
             NormalizeSeparators(AppPaths.ResolveSettingsRoot(env)));
         Assert.Equal(
-            "/home/test/.local/share/RecipeStudio",
+            NormalizeSeparators("/home/test/.local/share/RecipeStudio"),
             NormalizeSeparators(AppPaths.ResolveDataRoot(env)));
         Assert.Equal(
-            "/home/test/.local/state/RecipeStudio/logs",
+            NormalizeSeparators("/home/test/.local/state/RecipeStudio/logs"),
             NormalizeSeparators(AppPaths.ResolveLogsRoot(env)));
     }
 
@@ -64,7 +64,7 @@ public sealed class AppPathsTests
             XdgStateHome: null);
 
         Assert.Equal(
-            "/home/test/.local/share/RecipeStudio/logs",
+            NormalizeSeparators("/home/test/.local/share/RecipeStudio/logs"),
             NormalizeSeparators(AppPaths.ResolveLogsRoot(env)));
     }
 
